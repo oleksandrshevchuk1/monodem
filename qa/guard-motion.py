@@ -1,0 +1,4 @@
+from pathlib import Path
+p=Path('dist/motion.js');s=p.read_text(encoding='utf-8');s=s.replace('\nrender();','\nconst beforeMotionRender=render;render=function(){if(swipeLayers){cardSlideAnimation?.cancel();cleanupSwipe()}beforeMotionRender()};\nrender();');p.write_text(s,encoding='utf-8')
+p=Path('dist/app.js');s=p.read_text(encoding='utf-8');s=s.replace("if(!sharedSaving&&(force||!$('#modal').open)){state=next;", "if(!sharedSaving&&(force||(!$('#modal').open&&document.documentElement.dataset.gesture!=='active'&&document.documentElement.dataset.editing!=='true'))){state=next;");p.write_text(s,encoding='utf-8')
+p=Path('qa/motion-v18.js');s=p.read_text(encoding='utf-8').replace("await page.waitForSelector('.home-content');", "await page.waitForSelector('.home-content');await page.waitForFunction(()=>!loading&&!sharedLoading);");p.write_text(s,encoding='utf-8')

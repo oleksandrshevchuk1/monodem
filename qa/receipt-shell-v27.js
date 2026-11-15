@@ -1,0 +1,9 @@
+async page=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('http://127.0.0.1:8091/index.html?v=27&qa='+Date.now()+'#home');await page.waitForFunction(()=>!loading&&!sharedLoading);
+ const colours=await page.evaluate(()=>{const out=[];for(const c of allCards().slice(0,2)){state.activeCard=c.id;historyPresentation='card';route={page:'history'};render();out.push({id:c.id,white:document.querySelector('.stats-mini-card .bank-card').classList.contains('is-white'),background:getComputedStyle(document.querySelector('.stats-mini-card .bank-card-front')).backgroundImage})}return out});if(colours.length<2||colours[0].background===colours[1].background)throw Error('Same mini card colour');
+ await page.evaluate(async()=>{const blob=await(await fetch('assets/profile-character.png')).blob();state.files.push({id:'qa-receipt-image',name:'test-receipt.png',type:'image/png',blob});navigate('file','qa-receipt-image')});await page.waitForTimeout(500);
+ if(await page.locator('.uploaded-receipt-image').count()!==1||await page.locator('.receipt-bottom .primary').innerText()!=='Зберегти квитанцію')throw Error('Missing image receipt shell');
+ await page.screenshot({path:'qa/v27-uploaded-receipt.png'});
+ const downloaded=page.waitForEvent('download');await page.locator('[data-action=save-uploaded-receipt]').click();const file=await downloaded;if(file.suggestedFilename()!=='test-receipt.png')throw Error('Wrong original filename');
+ await page.evaluate(()=>{state.files.push({id:'qa-receipt-pdf',name:'test.pdf',type:'application/pdf',blob:new Blob(['%PDF-1.4\n%%EOF'],{type:'application/pdf'})});navigate('file','qa-receipt-pdf')});await page.waitForTimeout(450);if(await page.locator('.uploaded-receipt-pdf').count()!==1)throw Error('Missing PDF shell');if(errors.length)throw Error(JSON.stringify(errors));return {colours,image:true,pdf:true,originalDownload:file.suggestedFilename(),errors};
+}

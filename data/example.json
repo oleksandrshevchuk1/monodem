@@ -1,0 +1,61 @@
+{
+  "name": "Демо-користувач",
+  "holder": "DEMO USER",
+  "card": "0000 0000 0000 0000",
+  "account": "Чорна картка",
+  "opening": 12000,
+  "cashback": 261.35,
+  "avatar": null,
+  "transactions": [
+    {
+      "id": "sample-income",
+      "title": "Поповнення картки",
+      "amount": 2500,
+      "date": "2026-11-14",
+      "time": "12:40",
+      "note": "Приклад надходження",
+      "category": "Перекази",
+      "cardId": "main"
+    },
+    {
+      "id": "sample-shop",
+      "title": "Інтернет-магазин",
+      "amount": -1800,
+      "date": "2026-11-14",
+      "time": "11:15",
+      "note": "Покупки",
+      "category": "Покупки",
+      "cardId": "main"
+    },
+    {
+      "id": "sample-coffee",
+      "title": "Кав’ярня",
+      "amount": -219.5,
+      "date": "2026-11-14",
+      "time": "09:30",
+      "note": "Кава та сніданок",
+      "category": "Кафе та ресторани",
+      "cardId": "main"
+    }
+  ],
+  "files": [],
+  "extraCards": [
+    {
+      "id": "white",
+      "account": "Біла картка",
+      "color": "white",
+      "card": "0000 0000 0000 0001",
+      "opening": 0
+    }
+  ],
+  "activeCard": "main",
+  "jars": [],
+  "deposits": [],
+  "categories": [],
+  "contacts": [],
+  "messages": [],
+  "regular": [],
+  "creditLimit": 0,
+  "notifications": 3,
+  "cardSettings": {}
+}

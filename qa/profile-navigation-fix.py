@@ -1,0 +1,2 @@
+from pathlib import Path
+p=Path('dist/app.js');s=p.read_text(encoding='utf-8').replace("function navigate(page,id){\n", "function navigate(page,id){\n if($('#modal').open)$('#modal').close();\n").replace("function back(){\n", "function back(){\n if($('#modal').open)$('#modal').close();\n").replace("window.addEventListener('popstate',e=>{route=", "window.addEventListener('popstate',e=>{if($('#modal').open)$('#modal').close();route=");p.write_text(s,encoding='utf-8')

@@ -1,0 +1,2 @@
+from pathlib import Path
+p=Path('dist/refinement.js');s=p.read_text(encoding='utf-8');s=s.replace(".replace('<span class=\"card-holder\">','<span class=\"card-printed-number\">'+esc(c.card||'')+'</span><span class=\"card-holder\">')",'');s=s.replace('<button class="card-number-overlay" data-action="copy-visible-card" data-id="${c.id}" aria-label="Скопіювати номер ${esc(c.account)}">${esc(c.card)}</button>','');p.write_text(s,encoding='utf-8')

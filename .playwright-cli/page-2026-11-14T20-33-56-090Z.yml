@@ -1,0 +1,67 @@
+- main [ref=f12e2]:
+  - generic: Демо · не банк
+  - generic [ref=f12e3]:
+    - generic [ref=f12e4]:
+      - button "Профіль" [ref=f12e5] [cursor=pointer]
+      - button "Підтримка" [ref=f12e7] [cursor=pointer]:
+        - generic [ref=f12e9]: "3"
+      - button "261.35 ₴" [ref=f12e10] [cursor=pointer]
+      - button "Персонаж" [ref=f12e14] [cursor=pointer]
+      - button "Статистика" [ref=f12e16] [cursor=pointer]
+    - button "Поповнити картку" [ref=f12e18] [cursor=pointer]:
+      - strong [ref=f12e20]: 12 480.50 ₴
+    - generic [ref=f12e21]:
+      - button "Відкрити Чорна картка" [ref=f12e22] [cursor=pointer]:
+        - generic [ref=f12e23]:
+          - generic [ref=f12e24]:
+            - generic [ref=f12e25]:
+              - text: monobank
+              - generic [ref=f12e26]: Universal Bank
+            - generic [ref=f12e27]: VISA
+          - generic [ref=f12e28]:
+            - generic [ref=f12e30]: 0000 0000 0000 0000
+            - generic [ref=f12e31]: Демонстраційна картка · не платіжний інструмент
+      - button "Наступна картка" [ref=f12e32] [cursor=pointer]:
+        - generic [ref=f12e33]:
+          - generic [ref=f12e34]:
+            - generic [ref=f12e35]:
+              - text: monobank
+              - generic [ref=f12e36]: Universal Bank
+            - generic [ref=f12e37]: VISA
+          - generic [ref=f12e38]:
+            - generic [ref=f12e40]: 0000 0000 0000 0001
+            - generic [ref=f12e41]: Демонстраційна картка · не платіжний інструмент
+    - button "Усі картки" [ref=f12e42] [cursor=pointer]
+    - generic [ref=f12e44]:
+      - button "Чорна картка" [ref=f12e45] [cursor=pointer]
+      - button "Біла картка" [ref=f12e46] [cursor=pointer]
+    - generic [ref=f12e47]:
+      - button [ref=f12e48] [cursor=pointer]: Переказатина картку
+      - button [ref=f12e53] [cursor=pointer]: Платіжза IBAN
+      - button [ref=f12e56] [cursor=pointer]: Іншіплатежі
+    - generic [ref=f12e59]:
+      - generic [ref=f12e60]:
+        - heading "Операції" [level=2] [ref=f12e61]
+        - button "Усі" [ref=f12e62] [cursor=pointer]
+      - button "Поповнення картки +2 500.00 ₴" [ref=f12e64] [cursor=pointer]:
+        - strong [ref=f12e68]: Поповнення картки
+        - generic [ref=f12e69]: +2 500.00 ₴
+      - button "Інтернет-магазин −1 800.00 ₴" [ref=f12e70] [cursor=pointer]:
+        - strong [ref=f12e74]: Інтернет-магазин
+        - generic [ref=f12e75]: −1 800.00 ₴
+      - button "Кав’ярня −219.50 ₴" [ref=f12e76] [cursor=pointer]:
+        - strong [ref=f12e80]: Кав’ярня
+        - generic [ref=f12e81]: −219.50 ₴
+    - generic [ref=f12e83]:
+      - heading "Корисне" [level=2] [ref=f12e84]
+      - button "Служба підтримки" [ref=f12e85] [cursor=pointer]
+      - button "Регулярні платежі" [ref=f12e89] [cursor=pointer]
+  - navigation "Основна навігація" [ref=f12e93]:
+    - generic [ref=f12e94]:
+      - button "Картки" [ref=f12e95] [cursor=pointer]
+      - button "Кредити" [ref=f12e100] [cursor=pointer]
+      - button "Накопичення" [ref=f12e103] [cursor=pointer]:
+        - img [aria-hidden] [ref=f12e104]:
+          - generic [ref=f12e107]: "16"
+      - button "Ще" [ref=f12e109] [cursor=pointer]
+    - button "Маркет" [ref=f12e112] [cursor=pointer]

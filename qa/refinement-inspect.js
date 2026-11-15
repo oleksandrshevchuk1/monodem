@@ -1,0 +1,11 @@
+async page=>{
+const url='http://127.0.0.1:8091/';
+await page.request.post(url+'api/state',{data:{revision:(await(await page.request.get(url+'api/state')).json()).revision,state:{name:'Демо-користувач',holder:'DEMO USER',card:'0000 0000 0000 2328',account:'Чорна картка',opening:2660.69,cashback:2,avatar:null,transactions:[{id:'ref-atb',title:'АТБ',amount:-52.93,date:'2026-11-14',time:'22:00',category:'Продукти та супермаркети',cardId:'main'},{id:'ref-transfer',title:'Віталій Д.',amount:-1240,date:'2026-11-14',time:'21:00',category:'Переказ на картку',cardId:'main'},{id:'ref-transfer-two',title:'Владислав Ф.',amount:-1353,date:'2026-11-14',time:'20:00',category:'Переказ на картку',cardId:'main'}],files:[],extraCards:[{id:'white',color:'white',account:'Біла картка',card:'0000 0000 0000 8061',opening:0}],activeCard:'main',jars:[],deposits:[],categories:[],contacts:[],messages:[],regular:[],notifications:3,creditLimit:0,cardSettings:{}}}});
+await page.setViewportSize({width:393,height:852});await page.goto(url+'index.html?v=10');await page.waitForFunction(()=>document.querySelector('.home-balance'));await page.screenshot({path:'qa/refined-home.png'});
+await page.getByRole('button',{name:'Відкрити Чорна картка',exact:true}).click();await page.waitForTimeout(350);await page.screenshot({path:'qa/refined-card.png'});await page.getByRole('button',{name:'Закрити',exact:true}).click();await page.waitForTimeout(350);
+await page.getByRole('button',{name:'Усі картки',exact:true}).click();await page.waitForTimeout(250);await page.screenshot({path:'qa/refined-cards.png'});
+await page.goto(url+'index.html?v=10#analytics');await page.waitForFunction(()=>document.querySelector('.stats-summary'));await page.screenshot({path:'qa/refined-stats.png'});
+await page.goto(url+'index.html?v=10#more');await page.waitForFunction(()=>document.querySelector('.more-services'));await page.screenshot({path:'qa/refined-more.png'});
+await page.goto(url+'index.html?v=10#appearance');await page.waitForFunction(()=>document.querySelector('.character-cover img')?.complete);await page.screenshot({path:'qa/refined-character.png'});
+return {fonts:await page.evaluate(()=>document.fonts.check('16px DemoInter')),bodyOverflow:await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)};
+}

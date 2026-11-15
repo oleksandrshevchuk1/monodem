@@ -1,0 +1,11 @@
+from pathlib import Path
+p=Path('dist/app.js')
+s=p.read_text(encoding='utf-8')
+s=s.replace("let route={page:'home'},db", "const adminMode=location.pathname.endsWith('/admin.html');\nconst initialHash=location.hash.slice(1).split('/');\nlet route={page:initialHash[0]||'home',id:initialHash[1]},db")
+s=s.replace("history.replaceState(route,'',location.pathname+location.search+'#home');", "history.replaceState(route,'',location.pathname+location.search+'#'+route.page+(route.id?'/'+route.id:''));")
+s=s.replace("easing:'cubic-bezier(.22,.75,.2,1)'", "easing:'cubic-bezier(.23,1,.32,1)'")
+s=s.replace("duration:nested?310:240", "duration:nested?240:160")
+s=s.replace("opacity:.35", "opacity:.85")
+s=s.replace("if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});render();", "if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});")
+p.write_text(s,encoding='utf-8')
+p=Path('dist/index.html');s=p.read_text(encoding='utf-8').replace('<div class="prototype-label">МАКЕТ · НЕ БАНК</div>','<div class="prototype-label">Демо · не банк</div>').replace('<script src="app.js"></script>','<script src="app.js"></script><script src="experience.js"></script>').replace('viewport-fit=cover','viewport-fit=cover,interactive-widget=resizes-content');p.write_text(s,encoding='utf-8');Path('dist/admin.html').write_text(s.replace('<title>mono · інтерактивний макет</title>','<title>Адмінка · mono демо</title>'),encoding='utf-8')

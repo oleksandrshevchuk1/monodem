@@ -1,0 +1,74 @@
+- generic [active] [ref=f5e1]:
+  - main [ref=f5e2]:
+    - generic: Демо · не банк
+    - generic [ref=f5e3]:
+      - generic [ref=f5e4]:
+        - button "Профіль" [ref=f5e5] [cursor=pointer]:
+          - img "Аватар" [ref=f5e6]
+        - button "Повідомлення" [ref=f5e7] [cursor=pointer]
+        - button "0.00 ₴" [ref=f5e10] [cursor=pointer]
+        - button "Персонаж" [ref=f5e14] [cursor=pointer]
+        - button "Статистика" [ref=f5e16] [cursor=pointer]
+      - generic [ref=f5e18]:
+        - button "Поповнити картку" [ref=f5e19] [cursor=pointer]:
+          - strong [ref=f5e21]: 722.00 ₴
+        - generic [ref=f5e23]:
+          - button "Відкрити Чорна картка" [ref=f5e25] [cursor=pointer]:
+            - generic [ref=f5e26]:
+              - generic [ref=f5e27]:
+                - img "monobank · Universal Bank" [ref=f5e29]
+                - generic [ref=f5e30]: 5355 **** **** 3266
+                - img "Visa" [ref=f5e32]
+              - generic [ref=f5e33]:
+                - generic "Демонстраційний термін дії" [ref=f5e35]: 11/30
+                - generic [ref=f5e36]:
+                  - text: "16"
+                  - generic "Демонстраційний CVV" [ref=f5e37]: "000"
+                - generic [ref=f5e38]: Демонстраційна картка · не платіжний інструмент
+          - button "Відкрити Біла картка" [ref=f5e40] [cursor=pointer]:
+            - generic [ref=f5e41]:
+              - generic [ref=f5e42]:
+                - img "monobank · Universal Bank" [ref=f5e44]
+                - generic [ref=f5e45]: 4441 **** **** 6575
+                - img "Visa" [ref=f5e47]
+              - generic [ref=f5e48]:
+                - generic "Демонстраційний термін дії" [ref=f5e50]: 11/30
+                - generic [ref=f5e51]:
+                  - text: "16"
+                  - generic "Демонстраційний CVV" [ref=f5e52]: "000"
+                - generic [ref=f5e53]: Демонстраційна картка · не платіжний інструмент
+          - button "Відкрити нову картку" [ref=f5e55] [cursor=pointer]
+        - button "Усі картки" [ref=f5e58] [cursor=pointer]
+        - generic [ref=f5e61]:
+          - button [ref=f5e62] [cursor=pointer]: Переказатина картку
+          - button [ref=f5e65] [cursor=pointer]: Платіжза IBAN
+          - button [ref=f5e68] [cursor=pointer]: Іншіплатежі
+        - generic [ref=f5e71]:
+          - generic [ref=f5e72]:
+            - heading "Операції" [level=2] [ref=f5e73]
+            - button "Усі" [ref=f5e74] [cursor=pointer]
+          - button "Володимир К. −2 222.00 ₴" [ref=f5e76] [cursor=pointer]:
+            - strong [ref=f5e80]: Володимир К.
+            - generic [ref=f5e81]: −2 222.00 ₴
+          - button "Микита Пестун −2 000.00 ₴" [ref=f5e82] [cursor=pointer]:
+            - strong [ref=f5e86]: Микита Пестун
+            - generic [ref=f5e87]: −2 000.00 ₴
+          - button "Богдан Н. +4 954.00 ₴" [ref=f5e88] [cursor=pointer]:
+            - strong [ref=f5e92]: Богдан Н.
+            - generic [ref=f5e93]: +4 954.00 ₴
+          - button "Василь П. −10.00 ₴" [ref=f5e94] [cursor=pointer]:
+            - strong [ref=f5e98]: Василь П.
+            - generic [ref=f5e99]: −10.00 ₴
+        - generic [ref=f5e101]:
+          - heading "Корисне" [level=2] [ref=f5e102]
+          - button "Служба підтримки" [ref=f5e103] [cursor=pointer]
+          - button "Регулярні платежі" [ref=f5e108] [cursor=pointer]
+  - navigation "Основна навігація" [ref=f5e112]:
+    - generic [ref=f5e113]:
+      - button "Картки" [ref=f5e114] [cursor=pointer]
+      - button "Кредити" [ref=f5e119] [cursor=pointer]
+      - button "Накопичення" [ref=f5e122] [cursor=pointer]:
+        - img [aria-hidden] [ref=f5e123]:
+          - generic [ref=f5e126]: "16"
+      - button "Ще" [ref=f5e128] [cursor=pointer]
+    - button "Маркет" [ref=f5e131] [cursor=pointer]
