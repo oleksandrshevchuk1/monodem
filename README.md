@@ -209,3 +209,11 @@ Transfer icons now share bank identity for incoming and outgoing operations, inc
 The monthly limits page retains the original “Збільшити суму на місяць” label. Used transfers remain calculated from this month's outgoing card/IBAN transactions, excluding merchants. Saving a remainder adjusts the total by the calculated used amount; future transfers reduce the remainder. Zero remainder is valid. Foreign transfer remainder cannot exceed the domestic remainder. Progress colors interpolate green through orange to red without a decorative glow.
 
 Verified in Chromium at 393×852 with standalone and touch emulation: both drawer directions, transfer icons, incoming details, editable/zero remainder, merchant exclusion, fixed root width, card edge clamping and reduced motion. Native iPhone gesture and keyboard behavior still require device verification.
+
+## Restore reference motion and adapt iPhone screens (v47)
+
+Restored the original full-motion default and removed the v46 blanket animation overrides. History background blur, card transitions, scrolling effects and counters run again. The card payment panel reads “Ліміт інтернет-оплати”.
+
+The installed scroll canvas fills the layout viewport; keyboard height only resizes the transfer form. Removed the global 16px input override that accidentally shrank the amount. Funding selection uses the dark reference sheet, recipient header, card thumbnails and selected check while retaining entered values. Top controls in home, history, statistics, savings, payments and standard toolbars respect the system safe area; navigation and sheets respect the bottom inset.
+
+Verified Chromium standalone fixtures at 390×844 and 440×956 with 47/59px top and 34px bottom insets: full canvas height, controls below the status area, restored 28px history blur, card opening/flip, internet payment label, 40px amount text, funding selection and retained input, and stable header/footer geometry during a simulated keyboard resize. Physical iOS keyboard/compositor verification remains necessary.

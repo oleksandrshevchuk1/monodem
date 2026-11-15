@@ -41,3 +41,14 @@ document.addEventListener('touchmove',e=>{if(e.touches.length>1)e.preventDefault
 // Changing the funding card updates only the balance pill, preserving the amount
 // field, comment and keyboard/caret state instead of remounting the whole page.
 if(!adminMode)actions['choose-transfer-funding']=button=>{if(!recipientDraft)return;recipientDraft.fromCardId=button.dataset.id;document.querySelector('#modal').close();const pill=document.querySelector('.amount-funding-pill');if(pill)pill.innerHTML=icon('credit-card')+' '+displayMoney(cardBalance(transferFundingCard()))+' ₴ '+icon('caret-right')};
+
+// Funding selection preserves the form and follows the dark reference sheet.
+const fundingSheetBeforeReference=actions['transfer-funding'];
+actions['transfer-funding']=()=>{
+ if(!recipientDraft)return;
+ document.activeElement?.blur();fundingSheetBeforeReference();
+ const sheet=document.querySelector('#modal');sheet.dataset.sheet='funding';
+ const heading=sheet.querySelector('#modal-title');heading.textContent=recipientDraft.title||'Одержувач';heading.tabIndex=-1;
+ const portrait=document.createElement('span');portrait.className='recipient-icon mono funding-recipient';portrait.innerHTML=recipientPicture(recipientDraft);heading.prepend(portrait);heading.focus({preventScroll:true});
+};
+document.querySelector('#modal').addEventListener('close',()=>{delete document.querySelector('#modal').dataset.sheet;requestAnimationFrame(updateInstalledViewport)});

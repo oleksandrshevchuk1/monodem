@@ -17,11 +17,18 @@ limitRow=function(title,value,max,image){const amount=text=>Number(String(text).
 function animateLimitIndicators(){document.querySelectorAll('[data-limit-ratio]').forEach(fill=>{const ratio=Number(fill.dataset.limitRatio),color=remainingLimitColor(ratio);fill.style.background=color;fill.style.boxShadow='none';if(!shouldReduceMotion())fill.animate([{transform:'scaleX(1)',backgroundColor:color},{transform:`scaleX(${ratio})`,backgroundColor:color}],{duration:300,easing:'cubic-bezier(.23,1,.32,1)'})});const progress=document.querySelector('.internet-limit progress');if(progress){const card=activeCard(),settings=state.cardSettings[card.id]||{},maximum=Number(settings.limit??10000),spent=txFor(card.id).filter(tx=>tx.amount<0&&tx.date===today()).reduce((sum,tx)=>sum-tx.amount,0),ratio=settings.online===false||maximum<=0?0:Math.max(0,1-spent/maximum);progress.value=ratio*100;progress.style.setProperty('--limit-color',remainingLimitColor(ratio))}}
 const flipBeforeLimitColors=actions['flip-card'];actions['flip-card']=()=>{flipBeforeLimitColors();animateLimitIndicators()};
 const renderBeforeMobileStability=render;render=function(){renderBeforeMobileStability();prepareVisibleGlyphs();animateLimitIndicators()};
-function updateInstalledViewport(){if(!document.documentElement.classList.contains('installed-scroll'))return;const height=window.visualViewport?.height||innerHeight;document.documentElement.style.setProperty('--app-height',height+'px');const nav=document.querySelector('#nav'),navHeight=nav.getBoundingClientRect().height;if(navHeight>0)document.documentElement.style.setProperty('--nav-height',navHeight+'px')}
+function updateInstalledViewport(){
+ const root=document.documentElement,viewport=window.visualViewport;
+ root.style.setProperty('--visible-height',(viewport?.height||innerHeight)+'px');
+ root.classList.toggle('keyboard-open',!!viewport&&innerHeight-viewport.height>120);
+ root.style.setProperty('--app-height',innerHeight+'px');
+ const nav=document.querySelector('#nav'),height=nav.getBoundingClientRect().height;
+ if(height>0)root.style.setProperty('--nav-height',height+'px');
+}
 window.addEventListener('resize',updateInstalledViewport,{passive:true});window.visualViewport?.addEventListener('resize',updateInstalledViewport,{passive:true});window.addEventListener('pageshow',()=>requestAnimationFrame(updateInstalledViewport));document.addEventListener('DOMContentLoaded',()=>requestAnimationFrame(updateInstalledViewport));
 // Show only the ready entry screen (or ready admin), never a transient loading row.
 function releaseStableBoot(){if(loading)return;const entry=document.querySelector('.entry-overlay');if(!adminMode&&entry&&entry.dataset.ready!=='true')return;document.documentElement.classList.remove('booting');bootObserver.disconnect()}
 const bootObserver=new MutationObserver(releaseStableBoot);bootObserver.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['data-ready']});document.addEventListener('DOMContentLoaded',()=>setTimeout(releaseStableBoot,0));
 
-document.documentElement.dataset.appVersion='46';
-const settingsBeforeBuildLabel=appSettingsPage;appSettingsPage=function(){return settingsBeforeBuildLabel()+'<p class="build-version">Версія 46</p>'};
+document.documentElement.dataset.appVersion='47';
+const settingsBeforeBuildLabel=appSettingsPage;appSettingsPage=function(){return settingsBeforeBuildLabel()+'<p class="build-version">Версія 47</p>'};

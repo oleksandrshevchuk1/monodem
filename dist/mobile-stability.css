@@ -29,13 +29,49 @@ body.document-open .receipt-share-footer{padding:14px 16px calc(var(--safe-botto
 
 /* The viewport stays fixed; only intentional content surfaces scroll. */
 html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior:none;touch-action:pan-y}
-.installed-scroll body{position:fixed;inset:0;width:100%}
 .pwa-scroll{touch-action:pan-y;overscroll-behavior:none}
 button,a,[role=button]{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none}
-input,textarea,select{font-size:16px!important}
 .bank-mark{object-fit:contain!important;opacity:1!important;border-radius:50%;box-sizing:border-box}
 .transaction-icon.income>img{width:100%;height:100%;object-fit:contain}
 .transaction-icon.incoming-bank-icon{background:#dcebcf;opacity:1}.transaction-icon.incoming-bank-icon>img{width:72%;height:72%;object-fit:contain}.external-bank-incoming .incoming-avatar{background:#dcebcf}.external-bank-incoming .incoming-avatar>img{width:72%;height:72%;object-fit:contain}
-html[data-motion=reduced] *,html[data-motion=reduced] *:before,html[data-motion=reduced] *:after{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:140ms!important;transition-timing-function:ease-out!important;scroll-behavior:auto!important}
-html[data-motion=reduced] .card-glint{animation:none!important}
-@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important;scroll-behavior:auto!important}}
+
+/* Stable full-screen canvas; keyboard resizing is confined to amount entry. */
+.installed-scroll .pwa-scroll{inset:0;height:100%;bottom:0}
+.installed-scroll #app{min-height:100dvh}
+.installed-scroll #nav{top:auto;bottom:max(12px,var(--safe-bottom))}
+:root{--safe-header:max(44px,var(--safe-top))}
+.amount-entry-header{padding-top:var(--safe-header);flex:none}
+#app.transferAmount,#app.transferAmount #screen{height:var(--visible-height,100dvh);min-height:0;padding-bottom:0;overflow:hidden}
+.amount-entry-page{height:100%;min-height:0!important;display:flex;flex-direction:column}
+.amount-entry-form{min-height:0;flex:1}
+.amount-center{min-height:0;padding:20px 16px;flex:1}
+.amount-value,.amount-value input{font-size:40px;line-height:50px}
+.amount-entry-footer{flex:none;padding-bottom:calc(16px + var(--safe-bottom))}
+.keyboard-open .amount-entry-footer{padding-bottom:12px}
+.keyboard-open .amount-entry-footer>.form-note{display:none}
+.keyboard-open .amount-center{padding:8px 16px}
+#modal[data-sheet=funding]{background:#252326;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + var(--safe-bottom));max-height:calc(100dvh - var(--safe-header) - 16px);color:#f3f3f4}
+#modal[data-sheet=funding] .modal-head{margin-bottom:12px}
+#modal[data-sheet=funding] #modal-title{display:flex;align-items:center;gap:12px;font-size:16px;font-weight:500;outline:none}
+#modal[data-sheet=funding] .funding-recipient{width:32px;height:32px}
+#modal[data-sheet=funding] #close{width:32px;height:32px;flex:none;background:none}
+#modal[data-sheet=funding] .funding-option{min-height:76px;padding:14px 0;gap:14px}
+#modal[data-sheet=funding] .funding-option>span:nth-child(2){font-size:16px}
+#modal[data-sheet=funding] .stats-mini-card{width:46px;height:30px;flex:none}
+.home-top{padding-top:calc(var(--safe-header) + 5px);height:calc(var(--safe-header) + 53px)}
+#app:not(.appearance):not(.receipt):not(.file):not(.card) .toolbar{padding-top:var(--safe-header);height:calc(var(--safe-header) + 56px)}
+#app:not(.appearance):not(.receipt):not(.file):not(.card) .toolbar>.back,#app:not(.appearance):not(.receipt):not(.file):not(.card) .toolbar>.right{top:calc(var(--safe-header) + 6px)}
+.reference-sticky-header,.side-history-compact{padding-top:var(--safe-header);height:calc(var(--safe-header) + 56px)}
+.side-history-compact button{top:calc(var(--safe-header) + 7px)}
+.stable-card-close{top:calc(var(--safe-header) + 13px)}
+/* Fixed controls respect the top system area even on narrower phones. */
+#modal{max-height:calc(100dvh - var(--safe-header) - 16px)}
+.stats-toolbar,.capital-page>.stats-toolbar{padding-top:var(--safe-header);height:calc(var(--safe-header) + 56px)}
+.payment-reference-header{padding-top:var(--safe-header)}
+.savings-header{padding-top:calc(var(--safe-header) + 20px)}
+.savings-header>button{top:calc(var(--safe-header) + 20px)}
+.drawer-operations .all-operations-top{height:calc(var(--safe-header) + 84px)}
+.drawer-operations .all-operations-top>button,.card-operations .all-operations-top>button{top:calc(var(--safe-header) + 14px)}
+.drawer-operations .all-operations-top>.history-stack{top:calc(var(--safe-header) + 20px)}
+.card-operations .all-operations-top{height:calc(var(--safe-header) + 56px)}
+.card-operations .all-operations-top>.stats-mini-card{top:calc(var(--safe-header) + 8px)}
