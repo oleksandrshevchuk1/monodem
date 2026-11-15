@@ -10,6 +10,9 @@ import os
 import re
 import io
 import zipfile
+import hashlib
+import base64
+import pymupdf as fitz
 from xml.sax.saxutils import escape
 
 ROOT=Path(__file__).resolve().parent
@@ -86,7 +89,7 @@ class Handler(SimpleHTTPRequestHandler):
     def log_request(self,code='-',size='-'):
         if str(code).startswith(('4','5')):super().log_request(code,size)
     def end_headers(self):
-        self.send_header('Cache-Control','no-store')
+        self.send_header('Cache-Control',getattr(self,'cache_control','no-store'))
         self.send_header('X-Content-Type-Options','nosniff')
         super().end_headers()
     def json_response(self,status,value):
@@ -98,6 +101,42 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
     def do_GET(self):
         parsed=urlparse(self.path)
+        if parsed.path in ('/','/index.html'):
+            with LOCK:record=read_record()
+            profile=record['state']
+            avatar=profile.get('avatar') or ''
+            signature=str(len(avatar))+':'+avatar[:64]+':'+avatar[-64:] if avatar else ''
+            token=hashlib.sha256(avatar.encode()).hexdigest()[:20] if avatar else ''
+            local_avatar=avatar.startswith(('data:image/jpeg;base64,','data:image/png;base64,','data:image/webp;base64,'))
+            avatar_url='/api/profile-avatar?v='+token if local_avatar else (avatar or None)
+            bootstrap={'name':profile.get('name',''),'avatar':avatar_url,'avatarSignature':signature}
+            payload=json.dumps(bootstrap,ensure_ascii=False).replace('<','\\u003c').replace('&','\\u0026')
+            extra='<script type="application/json" id="entry-bootstrap">'+payload+'</script>'
+            if local_avatar:extra+='<link rel="preload" as="image" href="'+avatar_url+'">'
+            body=(DIST/'index.html').read_text(encoding='utf-8').replace('</head>',extra+'</head>').encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type','text/html; charset=utf-8')
+            self.send_header('Content-Length',str(len(body)))
+            self.end_headers()
+            return self.wfile.write(body)
+        if parsed.path=='/api/profile-avatar':
+            with LOCK:avatar=read_record()['state'].get('avatar') or ''
+            if not avatar.startswith(('data:image/jpeg;base64,','data:image/png;base64,','data:image/webp;base64,')):
+                return self.json_response(404,{'error':'Фото профілю не задане'})
+            token=hashlib.sha256(avatar.encode()).hexdigest()[:20]
+            if parse_qs(parsed.query).get('v',[''])[0]!=token:
+                self.send_response(302)
+                self.send_header('Location','/api/profile-avatar?v='+token)
+                self.end_headers()
+                return
+            raw=base64.b64decode(avatar.split(',',1)[1],validate=True)
+            self.cache_control='private, max-age=31536000, immutable'
+            self.send_response(200)
+            self.send_header('Content-Type',avatar[5:].split(';',1)[0])
+            self.send_header('ETag','"'+token+'"')
+            self.send_header('Content-Length',str(len(raw)))
+            self.end_headers()
+            return self.wfile.write(raw)
         if parsed.path=='/api/state':
             with LOCK:record=read_record()
             if parse_qs(parsed.query).get('revision',[''])[0]==str(record['revision']):
@@ -117,6 +156,31 @@ class Handler(SimpleHTTPRequestHandler):
             return self.wfile.write(body)
         return super().do_GET()
     def do_POST(self):
+        if urlparse(self.path).path=='/api/receipt-preview':
+            origin=self.headers.get('Origin','')
+            if origin and urlparse(origin).netloc!=self.headers.get('Host',''):return self.json_response(403,{'error':'Інше джерело'})
+            try:
+                length=int(self.headers.get('Content-Length','0'))
+                if not 0<length<=10*1024*1024:raise ValueError('PDF до 10 МБ')
+                raw=self.rfile.read(length)
+                key=hashlib.sha256(raw).hexdigest()
+                cache=DATA/'receipt-previews';cache.mkdir(exist_ok=True)
+                target=cache/(key+'.json')
+                with LOCK:
+                    if target.exists():result=json.loads(target.read_text())
+                    else:
+                        with fitz.open(stream=raw,filetype='pdf') as doc:
+                            if doc.needs_pass or not 0<len(doc)<=20:raise ValueError('PDF захищений або містить понад 20 сторінок')
+                            pages=[]
+                            for page in doc:
+                                scale=min(2,1400/max(page.rect.width,page.rect.height))
+                                png=page.get_pixmap(matrix=fitz.Matrix(scale,scale),alpha=False).tobytes('png')
+                                pages.append('data:image/png;base64,'+base64.b64encode(png).decode())
+                            result={'pages':pages}
+                        target.write_text(json.dumps(result))
+                return self.json_response(200,result)
+            except Exception:
+                return self.json_response(400,{'error':'Не вдалося відкрити PDF. Перевірте файл.'})
         if urlparse(self.path).path!='/api/state':return self.json_response(404,{'error':'Невідомий шлях'})
         # Only accept browser requests from this local project's origins.
         origin=self.headers.get('Origin','')
@@ -137,8 +201,9 @@ class Handler(SimpleHTTPRequestHandler):
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser()
-    parser.add_argument('--port',type=int,default=8080)
-    parser.add_argument('--data-dir',type=Path,default=DATA)
+    parser.add_argument('--port',type=int,default=int(os.environ.get('PORT','8080')))
+    parser.add_argument('--host',default=os.environ.get('HOST','127.0.0.1'))
+    parser.add_argument('--data-dir',type=Path,default=Path(os.environ.get('DATA_DIR',str(DATA))))
     options=parser.parse_args()
     DATA=options.data_dir.resolve()
     DATA.mkdir(parents=True,exist_ok=True)
@@ -149,4 +214,4 @@ if __name__=='__main__':
     class LocalServer(ThreadingHTTPServer):
         request_queue_size=128
         daemon_threads=True
-    LocalServer(('127.0.0.1',options.port),Handler).serve_forever()
+    LocalServer((options.host,options.port),Handler).serve_forever()

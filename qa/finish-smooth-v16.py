@@ -1,4 +1,0 @@
-from pathlib import Path
-p=Path('dist/experience.js');s=p.read_text(encoding='utf-8');s=s.replace(" const front=node.querySelector('.bank-card-front')", " document.body.append(node);\n const front=node.querySelector('.bank-card-front')");s=s.replace(" document.body.append(node);to.style.opacity='0';", " to.style.opacity='0';");p.write_text(s,encoding='utf-8')
-p=Path('dist/interactions.js');s=p.read_text(encoding='utf-8');s=s.replace('pageTransition.finished.catch(()=>{});return','pageTransition.ready.catch(()=>{});pageTransition.updateCallbackDone.catch(()=>{});pageTransition.finished.catch(()=>{});return');p.write_text(s,encoding='utf-8')
-p=Path('qa/continuity-v16.js');s=p.read_text(encoding='utf-8').replace("await page.emulateMedia({reducedMotion:'reduce'});", "await page.evaluate(()=>{state.motionPreference='system'});await page.emulateMedia({reducedMotion:'reduce'});");p.write_text(s,encoding='utf-8')

@@ -1,1 +1,26 @@
-{"id": "./", "name": "mono — інтерактивний макет", "short_name": "mono макет", "lang": "uk", "start_url": "./", "scope": "./", "display": "standalone", "background_color": "#111214", "theme_color": "#11183b", "icons": [{"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}, {"src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}]}
+{
+  "id": "./",
+  "name": "mono — інтерактивний макет",
+  "short_name": "mono макет",
+  "lang": "uk",
+  "start_url": "./index.html#home",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#111214",
+  "theme_color": "#11183b",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "orientation": "portrait-primary"
+}

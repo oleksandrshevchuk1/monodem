@@ -1,1 +1,0 @@
-async page=>{await page.goto('http://127.0.0.1:8091/index.html?debug14#transfer');await page.waitForSelector('#recipient-query');return await page.evaluate(()=>({validation:cardNumberError('5555555555554444'),stateKeys:Object.keys(state),responseReady:loading}))}

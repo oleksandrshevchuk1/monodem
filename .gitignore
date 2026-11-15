@@ -1,0 +1,10 @@
+.idea/
+.playwright-cli/
+__pycache__/
+*.py[cod]
+qa/
+data/state*.json
+data/receipt-previews/
+.env
+.env.*
+!.env.example

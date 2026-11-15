@@ -1,0 +1,10 @@
+services:
+  mono:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - mono-data:/data
+    restart: unless-stopped
+volumes:
+  mono-data:

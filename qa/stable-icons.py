@@ -1,7 +1,0 @@
-from pathlib import Path
-import json,re
-icons={p.stem:p.read_text(encoding='utf-8').replace('<svg ','<svg class="icon" aria-hidden="true" ',1) for p in Path('dist/assets/icons').glob('*.svg')}
-p=Path('dist/motion.js');s=p.read_text(encoding='utf-8');s+='\nconst stableIconMarkup='+json.dumps(icons,ensure_ascii=False)+';\nconst referenceIconRenderer=icon;icon=n=>referenceIcons.has(n)?referenceIconRenderer(n):(stableIconMarkup[n]||referenceIconRenderer(n));\nconst decodedIconImages=[];for(const name of [...referenceIcons,"card-brand","visa","apple-native"]){const image=new Image();image.src="assets/reference/"+name+".png";image.decode().catch(()=>{});decodedIconImages.push(image)}\nrender();\n';p.write_text(s,encoding='utf-8')
-for name in ['index.html','admin.html']:
- p=Path('dist')/name;s=p.read_text(encoding='utf-8').replace('v=18','v=19');preloads=''.join('<link rel="preload" as="image" href="assets/reference/'+n+'.png">' for n in ['card-brand','visa','cat-fill','gift-fill','chart-bar-fill','credit-card-fill','receipt-fill','stack-fill','gear','lock-key','apple-native']);s=s.replace('</head>',preloads+'</head>');p.write_text(s,encoding='utf-8')
-p=Path('dist/sw.js');s=p.read_text(encoding='utf-8').replace('v18','v19').replace('v=18','v=19').replace('const ASSETS=[','const ASSETS=["./assets/reference/credit-heart.png","./assets/reference/incoming-reply.png","./assets/reference/incoming-smile.png",');p.write_text(s,encoding='utf-8')

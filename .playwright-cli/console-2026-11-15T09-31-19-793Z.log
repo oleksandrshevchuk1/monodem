@@ -1,7 +1,0 @@
-[  184293ms] [WARNING] Invalid keyframe value for property transform: scale(NaN) @ http://127.0.0.1:8091/experience.js?v=16:139
-[  185814ms] [WARNING] Invalid keyframe value for property transform: scale(NaN) @ http://127.0.0.1:8091/experience.js?v=16:139
-[  247936ms] Transition was skipped
-[  247936ms] Transition was skipped
-[ 5923687ms] TypeError: Assignment to constant variable.
-    at http://127.0.0.1:8091/motion.js?v=23:182:63
-[ 9195497ms] [ERROR] Failed to load resource: net::ERR_FILE_NOT_FOUND @ blob:http://127.0.0.1:8091/04156ac5-b8f3-46a7-883e-ff77669a1f5b:0

@@ -1,6 +1,0 @@
-[  864927ms] ReferenceError: adminMode is not defined
-    at render (http://127.0.0.1:8080/experience.js:116:30)
-    at http://127.0.0.1:8080/experience.js:122:1
-[  865053ms] ReferenceError: adminMode is not defined
-    at render (http://127.0.0.1:8080/experience.js:116:30)
-    at r.onsuccess (http://127.0.0.1:8080/app.js:8:300)

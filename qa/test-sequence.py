@@ -1,2 +1,0 @@
-from pathlib import Path
-p=Path('qa/shared-functional.js');s=p.read_text(encoding='utf-8');s=s.replace("try{\n await admin.goto", "try{\n const record=await(await admin.request.get(url+'api/state')).json();const sample=await(await admin.request.get(url+'api/example')).json();await admin.request.post(url+'api/state',{data:{revision:record.revision,state:sample}});\n await admin.goto");p.write_text(s,encoding='utf-8')

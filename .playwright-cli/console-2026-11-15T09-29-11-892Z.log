@@ -1,8 +1,0 @@
-[   66110ms] TypeError: Cannot set properties of null (setting 'className')
-    at render (http://127.0.0.1:8080/app.js?v=15:84:92)
-    at render (http://127.0.0.1:8080/experience.js?v=15:121:7)
-    at render (http://127.0.0.1:8080/refinement.js?v=15:78:307)
-    at render (http://127.0.0.1:8080/refinement.js?v=15:96:171)
-    at render (http://127.0.0.1:8080/surfaces.js?v=15:51:187)
-    at render (http://127.0.0.1:8080/interactions.js?v=15:53:428)
-    at initializeSharedState (http://127.0.0.1:8080/app.js?v=15:19:112)

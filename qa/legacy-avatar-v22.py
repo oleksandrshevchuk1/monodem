@@ -1,3 +1,0 @@
-from pathlib import Path
-p=Path('dist/interactions.js');s=p.read_text(encoding='utf-8').replace("esc(r.title||r.bankName)","esc(r.title||(r.bankType==='mono'?'На картку':r.bankName))");p.write_text(s,encoding='utf-8')
-p=Path('qa/reference-functional-v22.js');s=p.read_text(encoding='utf-8').replace("await page.evaluate(()=>{const t=state.transactions.find(t=>t.amount<0);Object.assign(t", "await page.evaluate(async()=>{const t=txFor('main').find(t=>t.amount<0);Object.assign(t").replace("recipientAvatar:'assets/profile-character.png'});navigate('home');render()", "recipientAvatar:'assets/profile-character.png'});await persist();state.activeCard='main';navigate('home');render()");p.write_text(s,encoding='utf-8')

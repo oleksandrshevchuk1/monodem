@@ -1,0 +1,8 @@
+.git
+.idea
+.playwright-cli
+__pycache__
+qa
+.env*
+data/state*.json
+data/receipt-previews

@@ -1,3 +1,0 @@
-from pathlib import Path
-p=Path('dist/motion.js');s=p.read_text(encoding='utf-8');s=s.replace("panel.addEventListener('pointerdown',e=>{if(e.button!==0)return;start={x:e.clientX,y:e.clientY};dx=0", "panel.addEventListener('pointerdown',e=>{if(e.button!==0||e.clientX-$('#app').getBoundingClientRect().left<=28)return;start={x:e.clientX,y:e.clientY};dx=0");p.write_text(s,encoding='utf-8')
-p=Path('dist/sw.js');s=p.read_text(encoding='utf-8');paths=['./assets/reference/payment-method-'+str(i)+'.png' for i in range(6)];import json;s=s.replace('const ASSETS=[','const ASSETS=['+','.join(map(json.dumps,paths))+',');p.write_text(s,encoding='utf-8')
