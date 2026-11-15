@@ -100,6 +100,8 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
     def do_GET(self):
+        if urlparse(self.path).path in ('/mono/', '/admin/'):
+            self.path = '/admin.html' if urlparse(self.path).path == '/admin/' else '/index.html'
         parsed=urlparse(self.path)
         if parsed.path in ('/','/index.html'):
             with LOCK:record=read_record()

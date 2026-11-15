@@ -1,0 +1,10 @@
+/* Root and nested scroll surfaces keep native vertical scrolling without indicators. */
+html,body{overscroll-behavior-y:none;scrollbar-width:none!important;-ms-overflow-style:none}
+html::-webkit-scrollbar,body::-webkit-scrollbar,*::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
+*{scrollbar-width:none!important}
+#app:not(.receipt):not(.file){overflow-x:clip;overflow-y:visible}
+.home .home-content,.home .card-carousel,.operation-panel,.card-settings{touch-action:pan-y pinch-zoom}
+#nav{touch-action:manipulation;isolation:isolate}
+@media(hover:none){button:hover{filter:none}}
+
+.glass-history-backdrop{contain:strict}.home-product{contain:layout paint}

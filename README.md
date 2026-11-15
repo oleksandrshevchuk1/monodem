@@ -166,3 +166,16 @@ Connect an Upstash Redis database to the Vercel project and redeploy. Supported 
 The app and admin now poll the durable shared state; atomic revision checks reject concurrent overwrites. A missing database is explicitly shown in the admin rather than reported as synchronized. Existing local browser data is retained. When the shared database is empty, the admin offers to transfer its local state once. Use the same stable Production domain for the admin and the installed PWA; an old immutable Preview URL does not update when a new deployment is published.
 
 GET /api/health reports whether shared storage is configured, along with the stable production domain when supplied by Vercel.
+
+## Separate installed apps (v41)
+
+Use the stable Production domain and add these two addresses to the phone home screen separately:
+
+- `/mono/` — mono, manifest id and scope `/mono/`.
+- `/admin/` — Адмінка, manifest id and scope `/admin/`.
+
+Existing shortcuts made with the old shared manifest should be replaced. Remove the old home-screen icons only; do not clear website data before transferring any local records to Redis. Both installed apps use the same shared database.
+
+The worker now deduplicates its cache list, precaches only the executable shell, loads media lazily, checks for updates on resume, and avoids cached HTML during online navigation. It does not force-reload an active form. Interrupted card/history gestures settle on background/resume, scrollbar styles cover nested scrollers, and root content retains native scrolling. The bottom navigation intentionally remains fixed and available while page content scrolls.
+
+Verified manifests/scopes, worker activation, background/resume, touch scrolling and visible controls in Chromium at 393x852. OS startup behavior and Safari home-screen installation still need physical iPhone verification.
