@@ -142,3 +142,13 @@ python server.py --port 8091 --data-dir qa/test-data
 PWA: у Safari виберіть «Поділитися» → «На початковий екран». Manifest налаштований на standalone. PIN та Face ID тут демонстраційні, це не справжня біометрична автентифікація.
 
 Локальний стан, PDF-квитанції, знімки перевірок та налаштування IDE не включаються у нові коміти. Для нового запуску використовується нейтральний data/example.json. Це не видаляє дані з попередньої історії Git.
+
+## Vercel (v38)
+
+Import the repository root, not the dist subdirectory. Framework: Other; Output Directory: dist. The committed vercel.json configures static files and the Python API automatically. Redeploy the latest main commit.
+
+Hosted mode stores state and attachments in IndexedDB on each browser/device. Admin and app share that storage on the same origin. It does not synchronize between devices; use the existing export/import actions to transfer a backup. Clearing site data removes this local copy. The local Python server retains its existing shared file storage.
+
+PDF preview and XLSX generation run in api/index.py; no private state is stored on the ephemeral function filesystem. PDF files on Vercel are limited to 4 MB to stay below the platform request limit.
+
+If a preview redirects to vercel.com/sso-api, it is protected by Vercel Authentication. Use the project's Production domain, or change Deployment Protection in Vercel if public preview access is desired. This setting cannot be changed by the repository.
