@@ -3,8 +3,19 @@ html,body{overscroll-behavior-y:none;scrollbar-width:none!important;-ms-overflow
 html::-webkit-scrollbar,body::-webkit-scrollbar,*::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
 *{scrollbar-width:none!important}
 #app:not(.receipt):not(.file){overflow-x:clip;overflow-y:visible}
-.home .home-content,.home .card-carousel,.operation-panel,.card-settings{touch-action:pan-y pinch-zoom}
+.home .home-content,.home .card-carousel,.operation-panel,.card-settings{touch-action:pan-y}
 #nav{touch-action:manipulation;isolation:isolate}
 @media(hover:none){button:hover{filter:none}}
 
 .glass-history-backdrop{contain:strict}.home-product{contain:layout paint}
+.installed-scroll,.installed-scroll body{height:100%;overflow:hidden!important}
+.pwa-scroll{position:fixed;inset:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:none;-webkit-overflow-scrolling:touch;scrollbar-width:none!important}
+body.document-open .pwa-scroll{overflow:hidden}
+#recipient-search,#iban-reference-search{box-sizing:border-box;width:100%;position:relative}
+#recipient-search input,#iban-reference-search input{font-size:14px;outline:none!important;box-shadow:none!important;width:0;min-width:0;flex:1;padding-inline:0}
+#recipient-search:focus-within,#iban-reference-search:focus-within{outline:2px solid #a8bfff;outline-offset:0}
+.refresh-rocket-flight{position:fixed;top:0;width:48px;overflow:hidden;pointer-events:none;z-index:36;contain:strict}
+.refresh-rocket-flight>img{position:absolute;left:6px;top:0;width:36px;height:52px;object-fit:contain;will-change:transform}
+
+html,body{touch-action:pan-x pan-y}
+.pwa-scroll{z-index:36}.installed-scroll #nav{z-index:60}

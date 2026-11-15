@@ -179,3 +179,11 @@ Existing shortcuts made with the old shared manifest should be replaced. Remove 
 The worker now deduplicates its cache list, precaches only the executable shell, loads media lazily, checks for updates on resume, and avoids cached HTML during online navigation. It does not force-reload an active form. Interrupted card/history gestures settle on background/resume, scrollbar styles cover nested scrollers, and root content retains native scrolling. The bottom navigation intentionally remains fixed and available while page content scrolls.
 
 Verified manifests/scopes, worker activation, background/resume, touch scrolling and visible controls in Chromium at 393x852. OS startup behavior and Safari home-screen installation still need physical iPhone verification.
+
+## Installed scrolling and transitions (v44)
+
+Standalone PWAs now use one internal scroll surface; the bottom navigation lives outside it. Page scroll helpers preserve history and card offsets in both browser and standalone modes. The side operations drawer only opens left-to-right. Pull-to-refresh launches a clipped rocket from behind the operations panel through the top of the viewport, with navigator.vibrate feedback where supported.
+
+Fixed stale transition callbacks cancelling newer transaction entrances, capture of a scrolled background after its scroll was reset, and full-page remount when choosing a transfer funding card. Reference field font sizes are preserved; focus outline follows the entire recipient search bar. Pinch/gesture zoom and viewport zoom are disabled at the user's explicit request.
+
+Verified in simulated standalone Chromium: internal scroll with window scroll remaining zero, stable navigation position, direction rejection, rocket clipping/trajectory, rapid transaction interruption and cleanup, and original 14px recipient text. Physical iPhone compositor/keyboard behavior remains hardware-dependent. Safari iOS does not support the standard Vibration API.

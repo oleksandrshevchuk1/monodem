@@ -43,5 +43,5 @@ detail=function(){const t=currentTx();if(!t||!['mono','other'].includes(operatio
 actions['reference-edit-note']=()=>{const t=currentTx();modal('Опис та #теги',field('Опис','note',t.note||'','text','maxlength="300"')+field('Тег','tag',t.tag||'','text','maxlength="40"'),f=>{t.note=f.get('note');t.tag=f.get('tag')})};
 actions['reference-upload']=()=>inform('Завантажити файл','Вкладення до операції можна додати в адмінці: Операції → Квитанція.');
 actions['reference-invite']=()=>inform('Запросити отримувача до monobank','Демонстраційний екран із відео. Запрошення не надсилається, бонус не нараховується.');
-const beforeReferenceRender=render;render=function(){beforeReferenceRender();if(!adminMode&&route.page==='limits'){const update=()=>{if(route.page!=='limits'){window.removeEventListener('scroll',update);return}$('.reference-sticky-header')?.classList.toggle('scrolled',window.scrollY>65)};window.addEventListener('scroll',update,{passive:true});update()}};
+const beforeReferenceRender=render;render=function(){beforeReferenceRender();if(!adminMode&&route.page==='limits'){const update=()=>{if(route.page!=='limits'){window.removeEventListener('scroll',update);return}$('.reference-sticky-header')?.classList.toggle('scrolled',pageScrollY()>65)};window.addEventListener('scroll',update,{passive:true});update()}};
 render();

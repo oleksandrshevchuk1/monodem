@@ -3,6 +3,8 @@ const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>
 let icon=n=>`<img class="icon" src="assets/icons/${n}.svg" alt="" aria-hidden="true">`;
 const uid=()=>crypto.randomUUID(),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},money=n=>new Intl.NumberFormat('uk-UA',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n),safeID=v=>typeof v==='string'&&/^[a-zA-Z0-9-]+$/.test(v),validTypes=['image/jpeg','image/png','image/webp','application/pdf'];
 let state={"name":"Демо-користувач","holder":"DEMO USER","card":"0000 0000 0000 0000","account":"Чорна картка","opening":0,"cashback":0,"avatar":null,"transactions":[],"files":[],"extraCards":[],"activeCard":"main","jars":[],"deposits":[],"categories":[],"contacts":[],"messages":[],"regular":[],"creditLimit":0,"notifications":0,"cardSettings":{}};
+function pageScrollY(){return document.getElementById('pwa-scroll')?.scrollTop??window.scrollY}
+function pageScrollTo(...args){const host=document.getElementById('pwa-scroll');return host?host.scrollTo(...args):window.scrollTo(...args)}
 const adminMode=/^\/admin(?:\/|\.html$)/.test(location.pathname);
 const initialHash=location.hash.slice(1).split('/');
 let route={page:initialHash[0]||'home',id:initialHash[1]},db,submit,showNumber=false,fileURL,loading=true,returnRoute={page:'home'},fileReturn={page:'files'};
@@ -43,7 +45,7 @@ function navigate(page,id){
  if(fileURL){URL.revokeObjectURL(fileURL);fileURL=null}
  if(page==='detail')returnRoute={...route};
  if(page==='file')fileReturn={...route};
- route={page,id};history.pushState(route,'','#'+page+(id?'/'+id:''));window.scrollTo(0,0);paint();
+ route={page,id};history.pushState(route,'','#'+page+(id?'/'+id:''));pageScrollTo(0,0);paint();
 }
 function back(){
  if($('#modal').open)$('#modal').close();
@@ -51,7 +53,7 @@ function back(){
  else if(route.page==='file')route=fileReturn;
  else if(route.page==='detail')route=returnRoute;
  else route={page:'home'};
- history.replaceState(route,'','#'+route.page+(route.id?'/'+route.id:''));window.scrollTo(0,0);paint('back');
+ history.replaceState(route,'','#'+route.page+(route.id?'/'+route.id:''));pageScrollTo(0,0);paint('back');
 }
 window.addEventListener('popstate',e=>{if($('#modal').open)$('#modal').close();route=e.state?.page?e.state:{page:'home'};paint('back')});history.replaceState(route,'',location.pathname+location.search+'#'+route.page+(route.id?'/'+route.id:''));
 const mask=number=>showNumber?esc(number):esc(number.slice(0,4))+'  ****  ****  '+esc(number.slice(-4));

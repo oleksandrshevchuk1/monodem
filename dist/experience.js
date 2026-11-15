@@ -92,7 +92,7 @@ addFile=function(txId){modal('Додати квитанцію / фото',field(
 function adminSimpleForm(collection,id,title,fields,make){const old=state[collection].find(x=>x.id===id);modal(title,fields(old||{}),f=>{const data={id:old?.id||uid(),...make(f)};if(old)state[collection]=state[collection].map(x=>x.id===id?{...old,...data}:x);else state[collection].push(data)})}
 function removeItem(collection,id,label){confirmDelete(label,()=>{state[collection]=state[collection].filter(x=>x.id!==id)})}
 Object.assign(actions,{
- 'admin-tab':b=>{adminTab=b.dataset.tab;history.replaceState(null,'','#'+adminTab);render();window.scrollTo(0,0)},
+ 'admin-tab':b=>{adminTab=b.dataset.tab;history.replaceState(null,'','#'+adminTab);render();pageScrollTo(0,0)},
  'admin-new-card':()=>cardAdmin(),'admin-card':b=>cardAdmin(b.dataset.id),
  'admin-delete-card':b=>{const id=b.dataset.id;if(id==='main')return;const txCount=state.transactions.filter(t=>t.cardId===id).length;confirmDelete(`Видалити картку та ${txCount} операцій?`,()=>{const ids=state.transactions.filter(t=>t.cardId===id).map(t=>t.id);state.transactions=state.transactions.filter(t=>t.cardId!==id);state.files.forEach(f=>{if(ids.includes(f.txId))f.txId=null});state.extraCards=state.extraCards.filter(c=>c.id!==id);if(state.activeCard===id)state.activeCard='main';delete state.cardSettings[id]})},
  'admin-new-tx':()=>txForm(),'admin-tx':b=>txForm(b.dataset.id),'admin-tx-file':b=>addFile(b.dataset.id),'admin-add-file':()=>addFile(),

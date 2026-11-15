@@ -16,7 +16,7 @@ function launchRefreshRocket(panel){const spinner=$('.refresh-indicator');spinne
 
 bindRefresh=function(){const app=$('#app');if(app.dataset.refreshV14)return;app.dataset.refreshV14='1';let start=null,pull=0,panel=null,active=false;
 
-const begin=(x,y,target)=>{panel=target.closest('.operation-panel');if(route.page!=='home'||!panel||window.scrollY>0)return;start={x,y};pull=0;active=false};
+const begin=(x,y,target)=>{panel=target.closest('.operation-panel');if(route.page!=='home'||!panel||pageScrollY()>0)return;start={x,y};pull=0;active=false};
 
 const move=(x,y)=>{if(!start||route.page!=='home')return false;const dx=x-start.x,dy=y-start.y;if(!active&&(dy<0||Math.abs(dx)>Math.abs(dy)*.8)){if(Math.abs(dx)>10||dy<-10)start=null;return false}pull=Math.min(110,Math.max(0,dy*.4));active=pull>5;panel.style.transform=`translate3d(0,${pull}px,0)`;const spinner=$('.refresh-indicator');if(spinner){spinner.style.opacity=String(Math.min(1,pull/50));spinner.style.transform=`translateX(-50%) rotate(${pull*4}deg)`}return active};
 
@@ -42,9 +42,9 @@ panel.addEventListener('pointerup',end);panel.addEventListener('pointercancel',e
 
 }
 
-function bindCardCollapse(){const card=$('.expanded-card'),settings=$('.card-settings');if(!card)return;const update=()=>{if(route.page!=='card'||!card.isConnected){window.removeEventListener('scroll',update);return}const y=window.scrollY,p=Math.min(1,Math.max(0,y/220)),scale=1-(1-64/card.offsetWidth)*p;card.style.transform=`translate3d(0,${y-61*p}px,0) scale(${scale})`;settings.classList.toggle('compact-card-view',p>.85)};window.addEventListener('scroll',update,{passive:true});update()}
+function bindCardCollapse(){const card=$('.expanded-card'),settings=$('.card-settings');if(!card)return;const update=()=>{if(route.page!=='card'||!card.isConnected){window.removeEventListener('scroll',update);return}const y=pageScrollY(),p=Math.min(1,Math.max(0,y/220)),scale=1-(1-64/card.offsetWidth)*p;card.style.transform=`translate3d(0,${y-61*p}px,0) scale(${scale})`;settings.classList.toggle('compact-card-view',p>.85)};window.addEventListener('scroll',update,{passive:true});update()}
 
-const slowFlip=actions['flip-card'];actions['flip-card']=()=>{if(window.scrollY>30){window.scrollTo({top:0,behavior:shouldReduceMotion()?'instant':'smooth'});return}slowFlip();const panel=$('.payment-settings');if(!panel)return;const s=state.cardSettings[activeCard().id]||{};panel.classList.toggle('internet-limit',cardFlipped);panel.innerHTML=cardFlipped?icon('lock-key')+`<span>Ліміт оплат за день<progress max="100" value="${s.online===false?0:100}"></progress><small>${s.online===false?'Інтернет-оплати вимкнені':'Денний ліміт '+displayMoney(s.limit??10000)+' ₴'}</small></span>`:icon('gear')+'<span>Налаштування оплат<small>Додаткові перевірки</small></span>';if(!shouldReduceMotion())panel.animate([{opacity:.3},{opacity:1}],{duration:240,easing:'ease-out'})};
+const slowFlip=actions['flip-card'];actions['flip-card']=()=>{if(pageScrollY()>30){pageScrollTo({top:0,behavior:shouldReduceMotion()?'instant':'smooth'});return}slowFlip();const panel=$('.payment-settings');if(!panel)return;const s=state.cardSettings[activeCard().id]||{};panel.classList.toggle('internet-limit',cardFlipped);panel.innerHTML=cardFlipped?icon('lock-key')+`<span>Ліміт оплат за день<progress max="100" value="${s.online===false?0:100}"></progress><small>${s.online===false?'Інтернет-оплати вимкнені':'Денний ліміт '+displayMoney(s.limit??10000)+' ₴'}</small></span>`:icon('gear')+'<span>Налаштування оплат<small>Додаткові перевірки</small></span>';if(!shouldReduceMotion())panel.animate([{opacity:.3},{opacity:1}],{duration:240,easing:'ease-out'})};
 
 const legacyTransfer=transfer;
 
@@ -155,14 +155,14 @@ back=function(){
  if(route.page!=='history'||shouldReduceMotion())return backBeforeHistory();
  const source=$('.all-operations-page'),pose=source?getComputedStyle(source).transform:'none',node=historyDrawer();
  // Preserve the displayed list, search and scroll position throughout dismissal.
- if(source){node.replaceChildren(source.cloneNode(true));node.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));node.firstElementChild.style.transform='none';node.firstElementChild.style.marginTop=-window.scrollY+'px'}
+ if(source){node.replaceChildren(source.cloneNode(true));node.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));node.firstElementChild.style.transform='none';node.firstElementChild.style.marginTop=-pageScrollY()+'px'}
  const offset=pose==='none'?0:new DOMMatrixReadOnly(pose).m42;
  node.style.transform=`translate3d(0,${offset}px,0)`;skipPageMotion=true;backBeforeHistory();
  node.animate([{transform:`translate3d(0,${offset}px,0)`},{transform:'translate3d(0,100%,0)'}],{duration:280,easing:'cubic-bezier(.32,.72,0,1)'}).finished.catch(()=>{}).finally(()=>node.remove());
 };actions.back=()=>back();
 function bindHistoryDismiss(){
  const screen=$('#screen');let start=null,pull=0,returnMotion=null,axis=null;
- const begin=(x,y)=>{if(route.page!=='history'||window.scrollY>0)return;const page=$('.all-operations-page'),pose=page?getComputedStyle(page).transform:'none';const base=pose==='none'?0:new DOMMatrixReadOnly(pose).m42;if(page)page.style.transform=`translate3d(0,${base}px,0)`;returnMotion?.cancel();start={x,y,base};pull=base;axis=null};
+ const begin=(x,y)=>{if(route.page!=='history'||pageScrollY()>0)return;const page=$('.all-operations-page'),pose=page?getComputedStyle(page).transform:'none';const base=pose==='none'?0:new DOMMatrixReadOnly(pose).m42;if(page)page.style.transform=`translate3d(0,${base}px,0)`;returnMotion?.cancel();start={x,y,base};pull=base;axis=null};
  const move=(x,y)=>{if(!start||route.page!=='history')return false;const dy=y-start.y,dx=x-start.x;if(!axis&&Math.max(Math.abs(dx),Math.abs(dy))>7)axis=dy>0&&dy>Math.abs(dx)*1.2?'vertical':'other';if(axis!=='vertical')return false;pull=Math.max(0,start.base+dy*.65);const page=$('.all-operations-page');if(page)page.style.transform=`translate3d(0,${pull}px,0)`;return true};
  const end=(cancelled=false)=>{if(!start)return;start=null;const page=$('.all-operations-page');if(!cancelled&&pull>65){back()}else if(page){if(shouldReduceMotion())page.style.transform='';else{const from=pull;page.style.transform='';returnMotion=page.animate([{transform:`translate3d(0,${from}px,0)`},{transform:'translate3d(0,0,0)'}],{duration:240,easing:'cubic-bezier(.23,1,.32,1)'})}}pull=0;axis=null};
  screen.onpointerdown=e=>{if(e.pointerType==='mouse'&&!e.target.closest('input,button'))begin(e.clientX,e.clientY)};screen.onpointermove=e=>{if(e.pointerType==='mouse')move(e.clientX,e.clientY)};screen.onpointerup=e=>{if(e.pointerType==='mouse')end()};screen.onpointercancel=()=>end(true);
