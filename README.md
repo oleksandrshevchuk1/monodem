@@ -187,3 +187,15 @@ Standalone PWAs now use one internal scroll surface; the bottom navigation lives
 Fixed stale transition callbacks cancelling newer transaction entrances, capture of a scrolled background after its scroll was reset, and full-page remount when choosing a transfer funding card. Reference field font sizes are preserved; focus outline follows the entire recipient search bar. Pinch/gesture zoom and viewport zoom are disabled at the user's explicit request.
 
 Verified in simulated standalone Chromium: internal scroll with window scroll remaining zero, stable navigation position, direction rejection, rocket clipping/trajectory, rapid transaction interruption and cleanup, and original 14px recipient text. Physical iPhone compositor/keyboard behavior remains hardware-dependent. Safari iOS does not support the standard Vibration API.
+
+## Phone stability and safe areas (v45)
+
+Production: https://monodem.vercel.app/mono/ and https://monodem.vercel.app/admin/. The production health endpoint confirmed shared storage is configured on 2026-11-15.
+
+Removed full-account content clones and transforms during card dragging: only the card strip moves. Horizontal history intent requires a clear left-to-right gesture, while vertical scrolling retains priority. Pull-to-refresh no longer shifts the operations panel. Small UI raster art is embedded and decoded during startup; library SVGs render inline, including navigation. Large product photos retain lazy loading.
+
+The initial document stays behind a dark boot surface until data and the entry screen are ready; PIN success fades for 300ms. Standalone layouts use the full phone width and current visual viewport height. Safe-area offsets protect the receipt title and share action, navigation, headers and entry screen. Reference input font sizes and the user's requested zoom lock remain unchanged.
+
+Statistics selection starts the amount counter for both dot and gesture navigation. Transfer limit remainder derives from this month's demo transfers; bar colors interpolate green -> orange -> red with the remaining fraction.
+
+Validation: Chromium standalone simulation at 440x956, 59px top / 34px bottom safe-area fixture, stable block geometry during card dragging, no external navigation/action icon requests, counter interpolation, PIN fade and low-limit color. Physical iPhone testing is still necessary for Safari compositing and system keyboard behavior.

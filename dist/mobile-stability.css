@@ -1,0 +1,28 @@
+:root{--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);--top-extra:max(0px,calc(var(--safe-top) - 44px))}
+html.booting #app,html.booting #nav{visibility:hidden!important}
+html.booting body:before{content:'';position:fixed;inset:0;z-index:1000;background:#161616;pointer-events:none}
+.installed-scroll .pwa-scroll{height:var(--app-height,100dvh);bottom:auto}
+.installed-scroll #app{max-width:none;min-height:var(--app-height,100dvh);box-shadow:none}
+.installed-scroll #nav{max-width:none;width:calc(100% - 38px);top:calc(var(--app-height,100dvh) - max(30px,var(--safe-bottom)) - var(--nav-height,70px));bottom:auto}
+.installed-scroll .stable-card-close{left:13px}
+.installed-scroll #modal[data-kind=sheet],.installed-scroll #modal[data-kind=profile]{width:100%;max-width:none}
+body.document-open #app{height:var(--app-height,100dvh);min-height:0}
+body.document-open .toolbar{height:calc(56px + var(--safe-top));min-height:calc(56px + var(--safe-top));padding:var(--safe-top) 16px 0}
+body.document-open .toolbar>.back,body.document-open .toolbar>.right{top:calc(var(--safe-top) + 8px)}
+body.document-open .receipt-share-footer{padding:14px 16px calc(var(--safe-bottom) + 16px)}
+.home-top{height:calc(97px + var(--top-extra));padding-top:calc(49px + var(--top-extra))}
+#app:not(.appearance):not(.receipt):not(.file):not(.card) .toolbar{height:calc(100px + var(--top-extra));padding-top:calc(44px + var(--top-extra))}
+#app:not(.appearance):not(.receipt):not(.file):not(.card) .toolbar>.back,#app:not(.appearance):not(.receipt):not(.file):not(.card) .toolbar>.right{top:calc(50px + var(--top-extra))}
+.stable-card-close{top:calc(57px + var(--top-extra))}
+.credit-reference,.more-reference{padding-top:max(64px,calc(var(--safe-top) + 12px));min-height:var(--app-height,100dvh)}
+.reference-sticky-header,.side-history-compact{height:calc(100px + var(--top-extra));padding-top:calc(44px + var(--top-extra))}
+.side-history-compact button{top:calc(51px + var(--top-extra))}
+#app.detail .toolbar{padding-top:max(44px,var(--safe-top))}
+#screen{padding-bottom:calc(125px + max(0px,calc(var(--safe-bottom) - 30px)))}
+.reference-limit-track>i{transform-origin:left center;transition:background-color 240ms linear,box-shadow 240ms linear}
+.internet-limit progress::-webkit-progress-value{background:var(--limit-color,#58d54b);transition:background-color 240ms linear}
+.internet-limit progress::-moz-progress-bar{background:var(--limit-color,#58d54b)}
+
+.installed-scroll .entry-overlay{height:var(--app-height,100dvh);bottom:auto}.amount-entry-page{min-height:var(--app-height,100dvh)}
+
+.build-version{padding:12px 16px 24px;color:#858589;font-size:13px;text-align:center}
