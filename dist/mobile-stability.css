@@ -96,3 +96,37 @@ body.document-open .receipt-fit,body.document-open .receipt-document-stage{flex:
 .sense-bank-icon{background:transparent!important;overflow:hidden;border-radius:50%}
 .sense-bank-icon>img,.recipient-icon>.sense-full-logo{display:block;width:100%!important;height:100%!important;object-fit:cover!important;padding:0!important;border:0!important}
 .native-auth-alert,.native-auth-scrim{animation:none;backface-visibility:hidden}
+
+/* Wardrobe controls belong below the iPhone status area. */
+#app.appearance #screen,.wardrobe-layout{height:100lvh;min-height:0}
+.wardrobe-layout .character-reference-cover{padding-top:var(--safe-header);background:#b9346c;flex:0 1 auto;min-height:0;overflow:hidden}
+.character-reference-cover .toolbar{inset:var(--safe-header) 0 auto;height:56px;padding:0}
+.character-reference-cover .toolbar>.back,.character-reference-cover .toolbar>.right{top:6px;width:44px;height:44px;display:grid;place-items:center;background:#1b122c66;border-radius:50%}
+.character-reference-cover>img{width:100%;max-height:40lvh;object-fit:contain;object-position:center bottom}
+.wardrobe-scroll{flex:1 1 180px;min-height:100px;padding-bottom:var(--safe-bottom)}
+.wardrobe-grid button.selected:after{content:none}
+.wardrobe-grid button.selected>span{text-decoration:underline;text-decoration-color:#a3bdff;text-underline-offset:5px}
+.wardrobe-grid img{image-rendering:auto}
+.refresh-rocket-flight{z-index:1;clip-path:inset(0);isolation:isolate}
+.refresh-rocket-flight>img{max-width:none}
+.card .expanded-card,.precise-card-surface{box-sizing:border-box;overflow:visible}
+.card .expanded-card .bank-card,.precise-card-surface .bank-card{width:100%;height:100%;aspect-ratio:1.586}
+
+.home-content{isolation:isolate}
+.home .operation-panel{position:relative;z-index:2}
+#app.transfer .transfer-gradient{padding-top:var(--safe-header)}
+#recipient-search input::selection{background:#8eaaff66;color:#fff}
+.transfer-page,.amount-entry-page,.transfer-archive{touch-action:pan-y}
+
+/* Keep the entire supplied poster visible; controls are real, separate elements. */
+.wardrobe-layout .character-reference-cover{display:flex;flex-direction:column;flex:none;padding-top:var(--safe-header);background:linear-gradient(#ef3a70,#9f22c3)}
+.character-reference-cover .toolbar{position:relative;inset:auto;height:56px;min-height:56px;flex:none;width:100%}
+.character-reference-cover .toolbar .icon{opacity:1}
+.character-reference-cover>img{width:auto;max-width:calc(100% - 32px);align-self:center;height:clamp(220px,34lvh,350px);max-height:none;aspect-ratio:auto;object-fit:contain;object-position:center;border-radius:20px}
+
+.wardrobe-layout .character-reference-cover{background:#a02192 url(assets/reference/character-background-v49.png) center/cover no-repeat}
+.character-reference-cover>img{border-radius:0;background:none;height:clamp(220px,34lvh,350px);max-width:calc(100% - 32px);object-fit:contain}
+.glass-history-image{will-change:opacity;contain:layout paint}
+.glass-history-sharp{filter:none!important;transform:none!important;opacity:1!important;will-change:auto}
+
+.drawer-operations .transaction,.transfer-archive .transaction{content-visibility:auto;contain-intrinsic-size:auto 74px}

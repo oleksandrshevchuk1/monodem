@@ -51,4 +51,18 @@ actions['transfer-funding']=()=>{
  const heading=sheet.querySelector('#modal-title');heading.textContent=recipientDraft.title||'Одержувач';heading.tabIndex=-1;
  const portrait=document.createElement('span');portrait.className='recipient-icon mono funding-recipient';portrait.innerHTML=recipientPicture(recipientDraft);heading.prepend(portrait);heading.focus({preventScroll:true});
 };
-document.querySelector('#modal').addEventListener('close',()=>{delete document.querySelector('#modal').dataset.sheet;requestAnimationFrame(updateInstalledViewport)});
+document.querySelector('#modal').addEventListener('close',()=>{if(!document.querySelector('#modal').open)delete document.querySelector('#modal').dataset.sheet;requestAnimationFrame(updateInstalledViewport)});
+
+// Keep the dialog in the top layer until its exit finishes.
+const animatedDialog=document.querySelector('#modal'),nativeDialogClose=animatedDialog.close.bind(animatedDialog);
+let dialogExit=null;
+function finishDialogExit(){const exit=dialogExit;if(!exit)return;dialogExit=null;exit.motion.cancel();delete animatedDialog.dataset.closing;nativeDialogClose(exit.value)}
+animatedDialog.close=function(value){
+ if(!this.open||dialogExit)return;
+ if(!['sheet','profile'].includes(this.dataset.kind)||shouldReduceMotion()){nativeDialogClose(value);return}
+ this.dataset.closing='true';
+ const motion=this.animate([{transform:'translateY(0)',opacity:1},{transform:'translateY(100%)',opacity:0}],{duration:180,easing:'cubic-bezier(.4,0,1,1)',fill:'both'});
+ const exit={motion,value};dialogExit=exit;motion.finished.then(()=>{if(dialogExit===exit)finishDialogExit()}).catch(()=>{});
+};
+animatedDialog.addEventListener('cancel',event=>{event.preventDefault();animatedDialog.close()});
+const modalBeforeAnimatedExit=modal;modal=function(...args){finishDialogExit();modalBeforeAnimatedExit(...args);prepareVisibleGlyphs()};

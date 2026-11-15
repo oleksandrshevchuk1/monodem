@@ -225,3 +225,17 @@ Sense uses its full logo for incoming/outgoing rows, recipient selection and tra
 Face ID artwork decodes before the entry screen is revealed. Successful unlock fades the entry overlay without filtering/repainting the full app behind it. Brief system interruptions retain the Face ID sheet instead of removing and reinserting it.
 
 Verified at 390×844 and 440×956 in Chromium standalone emulation: a single entry/Face ID layer, decoded artwork, successful unlock, Sense logos in both directions, full-width 326px profile sheet, full-height receipt and a share button 46px above the viewport edge with a simulated 34px bottom safe area. Physical iPhone startup/compositor behavior still needs hardware confirmation.
+
+## Ready artwork, wardrobe controls and complete exits (v49)
+
+Standard controls render inline vector icons; the credit-heart icon is also vector. Reference art, bank marks and wardrobe items are bundled and decoded before boot is revealed. A generated transparent cat and separate original-style star/dot background are predecoded as independent layers. Wardrobe controls sit below the top safe area as real controls; selected items underline their label instead of adding a green overlay. The refresh rocket is a sibling behind the operations panel and clipped above its top. Card transition completion matches the live face before handing it over.
+
+Saving the internet payment limit records the current transactions as its baseline. Earlier purchases and card transfers do not deplete a newly set limit; subsequent merchant/online expenses do. The settings label is “Ліміт інтернет-оплати”.
+
+The monthly transfer limit editor sets the total directly, without adding previously used transfers. A 100,000 total with 500 used leaves 99,500. Foreign transfer usage is accounted separately using explicit foreign transfer metadata, so ordinary domestic transfers do not deplete the foreign allowance.
+
+Transfer search uses the requested Ukrainian prompt, a QR icon and “На мою білу/чорну”. Its top action opens an “Архів” of outgoing card/IBAN transfers for the active card. Horizontal swipe navigation is disabled on transfer pages. Sheet/profile closing remains in the dialog top layer for its 180ms exit, including cancel and rapid reopen handling; existing reverse page transitions remain enabled.
+
+Verified in Chromium touch/standalone mode with a 59px top inset: decoded/vector controls, wardrobe safe area and selection, transfer copy/QR/archive, rejected horizontal page swipe, fresh/used internet limit, sheet close and rapid reopen, reverse personal-page transition, card endpoint geometry (under 0.001px delta), and rocket clipping/layer order. Real iPhone rendering still requires device confirmation.
+
+History opening now crossfades a static blurred viewport snapshot, uses batched string generation and cached formatters, avoids duplicate list rewrites, and progressively adds offscreen rows. Card selection updates amounts/operations immediately and settles the strip in 220ms. With 160 transactions and 4× Chromium CPU throttling, measured history setup fell from about 1.3s to 0.24s; card amount update measured 16ms in the same fixture. These measurements are comparative diagnostics, not a hardware performance guarantee.

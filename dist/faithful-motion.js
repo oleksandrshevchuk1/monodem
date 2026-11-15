@@ -21,7 +21,7 @@ expandTransition=function(from,to,opening){
  const scene={node,base,target:to,backdrop:snapshot,header,sourceRect:from.rect,destinationRect:destination};preciseCardScene=scene;
  if(!opening&&from.flipped)scene.faceMotion=node.querySelector('.bank-card').animate([{transform:'rotateY(180deg)'},{transform:'rotateY(360deg)'}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  const motion=node.animate(reduce?[{opacity:0},{opacity:1}]:[{transform:start},{transform:end}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});scene.motion=motion;cardTransition=motion;
- motion.finished.then(async()=>{await Promise.all([...to.querySelectorAll('img')].map(img=>img.decode().catch(()=>{})));if(preciseCardScene!==scene)return;requestAnimationFrame(()=>{if(preciseCardScene!==scene)return;to.style.opacity='';node.remove();snapshot?.remove();header?.remove();preciseCardScene=null;delete document.documentElement.dataset.gesture;restoreOperationsNav()})}).catch(()=>{});
+ motion.finished.then(async()=>{await Promise.all([...to.querySelectorAll('img')].map(img=>img.decode().catch(()=>{})));if(preciseCardScene!==scene)return;requestAnimationFrame(()=>{if(preciseCardScene!==scene)return;const finalRect=to.getBoundingClientRect();if(opening){motion.cancel();Object.assign(node.style,{left:finalRect.left+'px',top:finalRect.top+'px',width:finalRect.width+'px',height:finalRect.height+'px',transform:'none'})}to.style.opacity='';node.remove();snapshot?.remove();header?.remove();preciseCardScene=null;delete document.documentElement.dataset.gesture;restoreOperationsNav()})}).catch(()=>{});
 };
 // The card carousel owns only its own strip. The rest of Home opens all operations.
 bindOperationsGesture=function(){};
