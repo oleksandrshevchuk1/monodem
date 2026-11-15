@@ -30,5 +30,9 @@ window.addEventListener('resize',updateInstalledViewport,{passive:true});window.
 function releaseStableBoot(){if(loading)return;const entry=document.querySelector('.entry-overlay');if(!adminMode&&entry&&entry.dataset.ready!=='true')return;document.documentElement.classList.remove('booting');bootObserver.disconnect()}
 const bootObserver=new MutationObserver(releaseStableBoot);bootObserver.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['data-ready']});document.addEventListener('DOMContentLoaded',()=>setTimeout(releaseStableBoot,0));
 
-document.documentElement.dataset.appVersion='47';
-const settingsBeforeBuildLabel=appSettingsPage;appSettingsPage=function(){return settingsBeforeBuildLabel()+'<p class="build-version">Версія 47</p>'};
+document.documentElement.dataset.appVersion='48';
+const settingsBeforeBuildLabel=appSettingsPage;appSettingsPage=function(){return settingsBeforeBuildLabel()+'<p class="build-version">Версія 48</p>'};
+
+// Sense has its own full-size identity; transfer badges belong to other banks.
+const recipientBeforeFullSense=recipientPicture;recipientPicture=function(person){const bank=bankPreset(person);return bank.id==='sense'?`<img class="sense-full-logo" src="${bank.logo}" alt="Sense Bank" draggable="false">`:recipientBeforeFullSense(person)};
+const detailBeforeFullSense=detail;detail=function(){const html=detailBeforeFullSense(),tx=currentTx();if(!tx||bankPreset(tx).id!=='sense')return html;const template=document.createElement('template');template.innerHTML=html;const avatar=template.content.querySelector('.reference-operation-avatar');if(avatar){avatar.classList.add('sense-bank-icon');avatar.innerHTML=recipientPicture(tx)}return template.innerHTML};

@@ -217,3 +217,11 @@ Restored the original full-motion default and removed the v46 blanket animation 
 The installed scroll canvas fills the layout viewport; keyboard height only resizes the transfer form. Removed the global 16px input override that accidentally shrank the amount. Funding selection uses the dark reference sheet, recipient header, card thumbnails and selected check while retaining entered values. Top controls in home, history, statistics, savings, payments and standard toolbars respect the system safe area; navigation and sheets respect the bottom inset.
 
 Verified Chromium standalone fixtures at 390×844 and 440×956 with 47/59px top and 34px bottom insets: full canvas height, controls below the status area, restored 28px history blur, card opening/flip, internet payment label, 40px amount text, funding selection and retained input, and stable header/footer geometry during a simulated keyboard resize. Physical iOS keyboard/compositor verification remains necessary.
+
+## Full-height documents, compact profile and stable entry (v48)
+
+Sense uses its full logo for incoming/outgoing rows, recipient selection and transaction details. The installed canvas and entry layer use the large viewport height. Receipt screens remove an inherited 40px bottom padding that was lifting the share footer; the footer reaches the viewport edge with a safe-area inset for its button. Profile sheets size to their content, with a compact footer instead of the previous minimum 82px padding and empty header.
+
+Face ID artwork decodes before the entry screen is revealed. Successful unlock fades the entry overlay without filtering/repainting the full app behind it. Brief system interruptions retain the Face ID sheet instead of removing and reinserting it.
+
+Verified at 390×844 and 440×956 in Chromium standalone emulation: a single entry/Face ID layer, decoded artwork, successful unlock, Sense logos in both directions, full-width 326px profile sheet, full-height receipt and a share button 46px above the viewport edge with a simulated 34px bottom safe area. Physical iPhone startup/compositor behavior still needs hardware confirmation.

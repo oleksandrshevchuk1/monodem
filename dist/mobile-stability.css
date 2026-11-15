@@ -75,3 +75,24 @@ button,a,[role=button]{-webkit-tap-highlight-color:transparent;-webkit-touch-cal
 .drawer-operations .all-operations-top>.history-stack{top:calc(var(--safe-header) + 20px)}
 .card-operations .all-operations-top{height:calc(var(--safe-header) + 56px)}
 .card-operations .all-operations-top>.stats-mini-card{top:calc(var(--safe-header) + 8px)}
+
+/* Fill the installed window, including the home indicator's background. */
+html.installed-scroll,html.installed-scroll body{height:100lvh;min-height:100lvh;width:100%;margin:0}
+.installed-scroll .pwa-scroll{height:100lvh;min-height:100lvh;inset:0}
+.installed-scroll #app{min-height:100lvh}
+.installed-scroll .entry-overlay{inset:0;height:100lvh;width:100%;max-width:none}
+body.document-open #app{height:100lvh;min-height:0}
+body.document-open #screen{height:100%;min-height:0}
+#app.receipt #screen,#app.file #screen{height:100%;min-height:0;padding-bottom:0}
+body.document-open .receipt-share-footer{margin-top:auto;padding:12px 16px calc(12px + var(--safe-bottom))}
+body.document-open .receipt-fit,body.document-open .receipt-document-stage{flex:1;min-height:0}
+#modal[data-kind=profile]{height:auto;min-height:0;width:100%;max-width:none;padding:12px 16px calc(12px + var(--safe-bottom));max-height:calc(100lvh - var(--safe-header) - 12px);overflow-y:auto;background:#111214}
+#modal[data-kind=profile] .modal-head{display:none}
+#modal[data-kind=profile] #form,#modal[data-kind=profile] #fields{height:auto;min-height:0;margin:0;padding:0}
+#modal[data-kind=profile] #error:empty{display:none}
+#modal[data-kind=profile] .reference-profile section{margin-bottom:12px}
+#modal[data-kind=profile] .reference-profile section:last-child{margin-bottom:0}
+#modal[data-kind=profile] .reference-profile button{min-height:64px;padding:10px 12px}
+.sense-bank-icon{background:transparent!important;overflow:hidden;border-radius:50%}
+.sense-bank-icon>img,.recipient-icon>.sense-full-logo{display:block;width:100%!important;height:100%!important;object-fit:cover!important;padding:0!important;border:0!important}
+.native-auth-alert,.native-auth-scrim{animation:none;backface-visibility:hidden}
