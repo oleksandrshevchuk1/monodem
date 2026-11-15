@@ -32,8 +32,8 @@ let stableGlyphsReady=false;Promise.all([...readyReferenceImages,...readyAssetIm
 function releaseStableBoot(){if(loading||!stableGlyphsReady)return;const entry=document.querySelector('.entry-overlay');if(!adminMode&&entry&&entry.dataset.ready!=='true')return;document.documentElement.classList.remove('booting');bootObserver.disconnect()}
 const bootObserver=new MutationObserver(releaseStableBoot);bootObserver.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['data-ready']});document.addEventListener('DOMContentLoaded',()=>setTimeout(releaseStableBoot,0));
 
-document.documentElement.dataset.appVersion='49';
-const settingsBeforeBuildLabel=appSettingsPage;appSettingsPage=function(){return settingsBeforeBuildLabel()+'<p class="build-version">Версія 49</p>'};
+document.documentElement.dataset.appVersion='50';
+const settingsBeforeBuildLabel=appSettingsPage;appSettingsPage=function(){return settingsBeforeBuildLabel()+'<p class="build-version">Версія 50</p>'};
 
 // Sense has its own full-size identity; transfer badges belong to other banks.
 const recipientBeforeFullSense=recipientPicture;recipientPicture=function(person){const bank=bankPreset(person);return bank.id==='sense'?`<img class="sense-full-logo" src="${bank.logo}" alt="Sense Bank" draggable="false">`:recipientBeforeFullSense(person)};
@@ -64,3 +64,7 @@ updateOperationHistory=function(){if(route.page==='history'&&glassHistoryChangin
 const historyBeforeViewportPreview=historyPage;
 historyPage=function(){if(route.page!=='history'||historyPresentation!=='drawer'||!glassHistoryChanging||!glassHistory?.sheet)return historyBeforeViewportPreview();const full=state.transactions;try{state.transactions=[...full].sort(compareTransactions).slice(0,12);return historyBeforeViewportPreview()}finally{state.transactions=full}};
 function fillHistoryInChunks(scene){const list=document.querySelector('#tx-list');if(!list||historyFavoritesActive)return;const items=[...state.transactions].sort(compareTransactions);if(items.length<=12)return;let offset=12;const token={};scene.historyFillToken=token;scene.historyFilling=true;const append=()=>{if(scene.historyFillToken!==token||glassHistory!==scene||route.page!=='history'||!list.isConnected)return;const batch=items.slice(offset,offset+12);let html=operationHistoryRows(batch,true);if(offset&&items[offset-1]?.date===batch[0]?.date)html=html.replace(/^<h3 class="date-heading">[\s\S]*?<\/h3>/,'');list.insertAdjacentHTML('beforeend',html);offset+=batch.length;if(offset<items.length)requestAnimationFrame(append);else{scene.historyFilling=false;scene.historyFillToken=null}};requestAnimationFrame(append)}
+
+const renderBeforeScrollAndWardrobe=render;render=function(){renderBeforeScrollAndWardrobe();if(pendingRouteScroll!==null){const scroll=pendingRouteScroll;pendingRouteScroll=null;pageScrollTo({top:scroll,behavior:'instant'})}if(route.page==='appearance'){const existing=document.querySelector('.character-reference-cover>img'),ready=readyCharacterImages[0];if(existing&&ready.complete&&ready.naturalWidth){ready.alt='Кіт у вишиванці';ready.className='wardrobe-character';ready.decoding='sync';existing.replaceWith(ready)}}};
+// The large decoded wardrobe artwork appears at full opacity, without a page clone.
+sidePages.delete('appearance');

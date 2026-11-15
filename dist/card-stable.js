@@ -11,6 +11,6 @@ render();
 expandTransition=recordedCardExpandTransition;
 
 // Upgrade bundled bank marks without touching uploaded recipient portraits.
-const sharpBankMarks={'assets/reference/bank-pumb.png':'assets/brands/pumb-circle.svg','assets/reference/bank-privat.png':'assets/brands/privat-icon.png','assets/reference/bank-abank.png':'assets/brands/abank-word.svg','assets/reference/bank-sense.png':'assets/brands/sense-icon.png'};
+const sharpBankMarks={'assets/reference/bank-otp.png':'assets/brands/otp-icon.svg','assets/reference/bank-pumb.png':'assets/brands/pumb-circle.svg','assets/reference/bank-privat.png':'assets/brands/privat-icon.svg','assets/reference/bank-abank.png':'assets/brands/abank-word.svg','assets/reference/bank-sense.png':'assets/brands/sense-icon.svg'};
 for(const bank of demoBanks)if(sharpBankMarks[bank.logo])bank.logo=sharpBankMarks[bank.logo];
 const renderBeforeSharpMarks=render;render=function(){renderBeforeSharpMarks();document.querySelectorAll('img[src]').forEach(img=>{const source=img.getAttribute('src');if(sharpBankMarks[source])img.src=sharpBankMarks[source]})};render();

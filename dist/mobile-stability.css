@@ -130,3 +130,12 @@ body.document-open .receipt-fit,body.document-open .receipt-document-stage{flex:
 .glass-history-sharp{filter:none!important;transform:none!important;opacity:1!important;will-change:auto}
 
 .drawer-operations .transaction,.transfer-archive .transaction{content-visibility:auto;contain-intrinsic-size:auto 74px}
+
+/* Match the original large bust, with the lower torso behind the action panel. */
+.wardrobe-layout .character-reference-cover{position:relative;height:calc(var(--safe-header) + clamp(310px,88vw,360px));padding-top:var(--safe-header);overflow:hidden;isolation:isolate}
+.character-reference-cover .toolbar{z-index:2}
+.character-reference-cover>img{position:absolute;left:50%;bottom:-180px;transform:translateX(-54%);width:auto;height:clamp(420px,128vw,570px);max-width:none;max-height:none;pointer-events:none;opacity:1;animation:none;transition:none}
+.wardrobe-layout .character-actions{position:relative;z-index:2}
+.tx-amount{font-family:inherit;font-weight:500}
+.reference-operation-amount,.incoming-operation .reference-operation-amount,.external-bank-incoming .reference-operation-amount{font-family:inherit;font-weight:550}
+.reference-balance,.reference-balance strong{font-weight:400}

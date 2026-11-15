@@ -40,23 +40,26 @@ function paint(direction='forward'){
  screen.animate([{opacity:.7},{opacity:1}],{duration:160,easing:'ease-out'});
 }
 
+const routeScrollPositions=new Map();let pendingRouteScroll=null;const routeScrollKey=value=>value.page+'/'+(value.id||'');
 function navigate(page,id){
+ routeScrollPositions.set(routeScrollKey(route),pageScrollY());
  delete document.documentElement.dataset.editing;
  if($('#modal').open)$('#modal').close();
  if(fileURL){URL.revokeObjectURL(fileURL);fileURL=null}
  if(page==='detail')returnRoute={...route};
  if(page==='file')fileReturn={...route};
- route={page,id};history.pushState(route,'','#'+page+(id?'/'+id:''));pageScrollTo(0,0);paint();
+ route={page,id};history.pushState(route,'','#'+page+(id?'/'+id:''));pendingRouteScroll=0;paint();
 }
 function back(){
+ routeScrollPositions.set(routeScrollKey(route),pageScrollY());
  if($('#modal').open)$('#modal').close();
  if(route.page==='receipt')route={page:'detail',id:route.id};
  else if(route.page==='file')route=fileReturn;
  else if(route.page==='detail')route=returnRoute;
  else route={page:'home'};
- history.replaceState(route,'','#'+route.page+(route.id?'/'+route.id:''));pageScrollTo(0,0);paint('back');
+ history.replaceState(route,'','#'+route.page+(route.id?'/'+route.id:''));pendingRouteScroll=routeScrollPositions.get(routeScrollKey(route))||0;paint('back');
 }
-window.addEventListener('popstate',e=>{if($('#modal').open)$('#modal').close();route=e.state?.page?e.state:{page:'home'};paint('back')});history.replaceState(route,'',location.pathname+location.search+'#'+route.page+(route.id?'/'+route.id:''));
+window.addEventListener('popstate',e=>{if($('#modal').open)$('#modal').close();route=e.state?.page?e.state:{page:'home'};pendingRouteScroll=routeScrollPositions.get(routeScrollKey(route))||0;paint('back')});history.replaceState(route,'',location.pathname+location.search+'#'+route.page+(route.id?'/'+route.id:''));
 const mask=number=>showNumber?esc(number):esc(number.slice(0,4))+'  ****  ****  '+esc(number.slice(-4));
 function rows(items){return items.length?items.map(t=>{const kind=t.amount>0?'income':t.category==='Кафе та ресторани'?'coffee':'shop',i=t.amount>0?'arrow-square-in':kind==='coffee'?'coffee-fill':'shopping-bag-fill';return `<button class="transaction" data-action="tx" data-id="${t.id}"><span class="transaction-icon ${kind}">${icon(i)}</span><span class="tx-content"><strong>${esc(t.title)}</strong><small>${esc(t.note||t.category||'Переказ')}</small></span><span class="tx-amount ${t.amount>0?'green':''}">${t.amount>0?'+':'−'}${money(Math.abs(t.amount))} ₴</span></button>`}).join(''):empty('Поки немає операцій','Додайте операцію у налаштуваннях макета.')}
 function nav(){const selected=['home','cards','card'].includes(route.page)?'home':['history','detail','files','receipt'].includes(route.page)?'home':route.page;const tabs=[['home','Карти','credit-card-fill'],['credit','Кредити','chart-pie-fill'],['jars','Накопичення','stack-fill'],['more','Ще','circles-four-fill']];return `<div class="tabs-main">${tabs.map(([p,l,i])=>`<button class="tab ${selected===p?'active':''}" data-action="nav" data-page="${p}">${icon(i)}<span>${l}</span></button>`).join('')}</div><button class="tab market-tab ${selected==='market'?'active':''}" data-action="nav" data-page="market">${icon('bag-fill')}<span>Маркет</span></button>`}

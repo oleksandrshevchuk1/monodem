@@ -239,3 +239,11 @@ Transfer search uses the requested Ukrainian prompt, a QR icon and “На мо�
 Verified in Chromium touch/standalone mode with a 59px top inset: decoded/vector controls, wardrobe safe area and selection, transfer copy/QR/archive, rejected horizontal page swipe, fresh/used internet limit, sheet close and rapid reopen, reverse personal-page transition, card endpoint geometry (under 0.001px delta), and rocket clipping/layer order. Real iPhone rendering still requires device confirmation.
 
 History opening now crossfades a static blurred viewport snapshot, uses batched string generation and cached formatters, avoids duplicate list rewrites, and progressively adds offscreen rows. Card selection updates amounts/operations immediately and settles the strip in 220ms. With 160 transactions and 4× Chromium CPU throttling, measured history setup fell from about 1.3s to 0.24s; card amount update measured 16ms in the same fixture. These measurements are comparative diagnostics, not a hardware performance guarantee.
+
+## Stable wardrobe, scroll restoration and card geometry (v50)
+
+The cat uses the original large bust composition with the lower torso clipped behind the action panel. Its decoded image node is reused, and the wardrobe screen opens at full opacity without a large sliding page clone. Transfer amounts use weight 500 in lists and 550 in detail, between the 650 home balance and the lighter remaining balance. PrivatBank, Sense and OTP small marks have vector assets.
+
+Navigation saves each route's scroll offset. Back navigation restores the destination after rendering and before the reverse transition paints, while the outgoing page snapshot retains its own scroll. The operations drawer uses a 180ms short-distance fade/slide for taps, preserving directional swipe interaction. Card opening interpolates the painted source/target rectangles without perspective/scale width overshoot.
+
+Verified touch/standalone Chromium: immediate and settled restoration from limits to the same 600px home offset; decoded large cat with the lower 180px behind its panel; vector bank marks; six card transition samples with monotonically increasing width/height and no endpoint resizing; 180ms drawer motion with all 80 fixture operations loaded; transaction/detail amount weights and no JavaScript errors. Real iPhone compositing still needs hardware confirmation.
