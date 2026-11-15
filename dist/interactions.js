@@ -96,7 +96,7 @@ const form=$('#transfer-amount-form');if(!form)return;const updateAmount=()=>{co
 
 const plainDetail=detail;
 
-function operationBank(t){if(t.bankType)return t.bankType;return /Переказ/i.test(t.category||'')?'other':'merchant'}
+function operationBank(t){if(t.bankType)return t.bankType;if(t.bankId||t.bankName)return t.bankId==='mono'?'mono':'other';return /Переказ/i.test(t.category||'')?'other':'merchant'}
 
 detail=function(){const t=currentTx();if(!t)return plainDetail();const bank=operationBank(t),html=plainDetail(),start=html.indexOf('<div class="detail-top">'),end=html.indexOf('<div class="chart-panel">');if(start<0||end<0)return html;const hero=`<section class="operation-hero ${bank==='mono'?'mono-operation':bank==='other'?'other-bank-operation':'merchant-operation'}"><div class="operation-art"><span class="operation-avatar ${bank==='other'?'small-bank':''}">${t.logo?`<img src="${esc(t.logo)}" alt="">`:bank==='mono'?transferSymbol():icon(bank==='merchant'?'shopping-bag-fill':'credit-card')}</span></div><div class="operation-identity"><h1>${esc(t.title)}</h1><strong class="${t.amount>0?'green':''}">${t.amount>0?'+':'−'}${displayMoney(Math.abs(t.amount))} ₴</strong><p>${esc(t.date)} · ${esc(t.time||'12:00')}${bank==='other'?' · '+esc(t.bankName||'Інший банк'):''}</p></div></section>`;return html.slice(0,start)+hero+`<div class="operation-body">`+html.slice(end)+'</div>'};
 
@@ -108,7 +108,7 @@ actions['history-search']=()=>{const search=$('.history-search');search.hidden=!
 
 const priorInteractionsRender=render;
 
-render=function(){document.documentElement.dataset.motion=state.motionPreference||'full';if(loading){priorInteractionsRender();return}if(!adminMode&&['transfer','transferAmount','appSettings'].includes(route.page)){defaults();$('#app').className=route.page;$('#nav').hidden=true;$('#screen').innerHTML=route.page==='appSettings'?appSettingsPage():route.page==='transfer'?transferPage():transferAmountPage();bindTransfer()}else priorInteractionsRender();if(!adminMode&&route.page==='home')bindOperationsGesture();if(!adminMode&&route.page==='card')bindCardCollapse();if(!adminMode&&route.page==='history')bindHistoryDismiss();if(!adminMode&&route.page==='detail'){const t=currentTx();$('#app').classList.toggle('is-mono-operation',!!t&&operationBank(t)==='mono');$('#app').classList.toggle('is-other-bank-operation',!!t&&operationBank(t)==='other')}if(route.page==='history')$('#nav').hidden=true};
+render=function(){document.documentElement.dataset.motion=motionMode();if(loading){priorInteractionsRender();return}if(!adminMode&&['transfer','transferAmount','appSettings'].includes(route.page)){defaults();$('#app').className=route.page;$('#nav').hidden=true;$('#screen').innerHTML=route.page==='appSettings'?appSettingsPage():route.page==='transfer'?transferPage():transferAmountPage();bindTransfer()}else priorInteractionsRender();if(!adminMode&&route.page==='home')bindOperationsGesture();if(!adminMode&&route.page==='card')bindCardCollapse();if(!adminMode&&route.page==='history')bindHistoryDismiss();if(!adminMode&&route.page==='detail'){const t=currentTx();$('#app').classList.toggle('is-mono-operation',!!t&&operationBank(t)==='mono');$('#app').classList.toggle('is-other-bank-operation',!!t&&operationBank(t)==='other')}if(route.page==='history')$('#nav').hidden=true};
 
 
 
@@ -118,9 +118,9 @@ actions['avatar-info']=()=>avatar();
 
 actions['app-settings']=()=>navigate('appSettings');
 
-function appSettingsPage(){const motion=state.motionPreference||'full';return toolbar('')+`<div class="page native-settings"><h1>Налаштування застосунку</h1><section class="native-group">${button('motion-settings','Анімації','stack-fill',motion==='full'?'Повні — незалежно від системних налаштувань':motion==='reduced'?'Зменшено рух':'Як у системі')}${button('haptic-settings','Тактильний відгук','device-mobile',state.haptics?'Увімкнено':'Вимкнено')}${button('avatar','Фото профілю','image')}${button('theme-settings','Тема застосунку','cat-fill','Темна')}${button('language-settings','Мова','users','Українська')}</section><section class="native-group">${button('nav','Про застосунок','question','','data-page="about"')}</section></div>`}
+function appSettingsPage(){const motion=motionMode();return toolbar('')+`<div class="page native-settings"><h1>Налаштування застосунку</h1><section class="native-group">${button('motion-settings','Анімації','stack-fill',motion==='full'?'Повні анімації':motion==='reduced'?'Зменшено рух':'Як у системі')}${button('haptic-settings','Тактильний відгук','device-mobile',state.haptics?'Увімкнено':'Вимкнено')}${button('avatar','Фото профілю','image')}${button('theme-settings','Тема застосунку','cat-fill','Темна')}${button('language-settings','Мова','users','Українська')}</section><section class="native-group">${button('nav','Про застосунок','question','','data-page="about"')}</section></div>`}
 
-actions['motion-settings']=()=>modal('Анімації',select('Режим руху','motion',[['full','Повні анімації'],['system','Як у системі'],['reduced','Зменшити рух']],state.motionPreference||'full')+'<p class="form-note">Повний режим використовує анімації навіть тоді, коли браузер повідомляє про системне зменшення руху.</p>',f=>{state.motionPreference=f.get('motion');document.documentElement.dataset.motion=state.motionPreference});
+actions['motion-settings']=()=>modal('Анімації',select('Режим руху','motion',[['full','Повні анімації'],['system','Як у системі'],['reduced','Зменшити рух']],motionMode())+'<p class="form-note">Системне зменшення руху завжди враховується.</p>',f=>{state.motionPreference=f.get('motion');state.motionRevision=46;document.documentElement.dataset.motion=state.motionPreference});
 
 actions['haptic-settings']=()=>change(()=>{state.haptics=!state.haptics;if(state.haptics&&navigator.vibrate)navigator.vibrate(12)});
 

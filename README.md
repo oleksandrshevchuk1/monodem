@@ -199,3 +199,13 @@ The initial document stays behind a dark boot surface until data and the entry s
 Statistics selection starts the amount counter for both dot and gesture navigation. Transfer limit remainder derives from this month's demo transfers; bar colors interpolate green -> orange -> red with the remaining fraction.
 
 Validation: Chromium standalone simulation at 440x956, 59px top / 34px bottom safe-area fixture, stable block geometry during card dragging, no external navigation/action icon requests, counter interpolation, PIN fade and low-limit color. Physical iPhone testing is still necessary for Safari compositing and system keyboard behavior.
+
+## Calm installed behavior and editable transfer remainder (v46)
+
+Reduced motion is the default for existing and new records; the animation setting can explicitly enable full motion again. System reduced motion is always respected. Installed pages cannot pan beyond the viewport, card swipes stop at the first/last card, and the operations drawer rejects right-to-left opening, including gesture reversal. Form fields use at least 16px to avoid iOS focus zoom.
+
+Transfer icons now share bank identity for incoming and outgoing operations, including PrivatBank and OTP, while monobank portraits retain priority. Incoming transfers use the original full bank mark on a pale background; outgoing transfers retain the purple transfer icon and bank badge. Incoming details preserve the full bank mark.
+
+The monthly limits page retains the original “Збільшити суму на місяць” label. Used transfers remain calculated from this month's outgoing card/IBAN transactions, excluding merchants. Saving a remainder adjusts the total by the calculated used amount; future transfers reduce the remainder. Zero remainder is valid. Foreign transfer remainder cannot exceed the domestic remainder. Progress colors interpolate green through orange to red without a decorative glow.
+
+Verified in Chromium at 393×852 with standalone and touch emulation: both drawer directions, transfer icons, incoming details, editable/zero remainder, merchant exclusion, fixed root width, card edge clamping and reduced motion. Native iPhone gesture and keyboard behavior still require device verification.
