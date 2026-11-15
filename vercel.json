@@ -4,7 +4,7 @@
   "buildCommand": "",
   "outputDirectory": "dist",
   "functions": {
-    "api/index.py": {"includeFiles": "{server.py,data/example.json}", "maxDuration": 60}
+    "api/index.py": {"includeFiles": "{server.py,shared_store.py,data/example.json}", "maxDuration": 60}
   },
   "rewrites": [{"source": "/api/:path*", "destination": "/api/index?endpoint=:path*"}],
   "headers": [{"source": "/(index.html|admin.html|sw.js)", "headers": [{"key": "Cache-Control", "value": "no-cache"}]}]

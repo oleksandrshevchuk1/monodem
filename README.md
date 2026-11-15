@@ -158,3 +158,11 @@ If a preview redirects to vercel.com/sso-api, it is protected by Vercel Authenti
 One launch/resume owner prevents duplicate Face ID attempts; short system interruptions and open file pickers do not relock the app. The recorded Face ID sprite plays once per attempt. Card swipes only interrupt settling after committing to a horizontal gesture; cancelled gestures restore the current card and action positions. Stale history gesture handlers reject other routes. Inline dark first-paint styles prevent an unstyled white document flash; scrollbar indicators are hidden while native scrolling remains enabled.
 
 Validated in a 393x852 browser viewport with touch input, repeated history/card transitions, a cancelled card gesture, and one authentication attempt per launch. Physical iPhone Safari/PWA verification is still required for OS-level startup and scroll-indicator behavior.
+
+## Shared sync on Vercel (v40)
+
+Connect an Upstash Redis database to the Vercel project and redeploy. Supported environment pairs are UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN and KV_REST_API_URL / KV_REST_API_TOKEN. Credentials remain server-side. MONO_STATE_KEY optionally selects a shared record namespace. All deployments connected to the same database and key use the same data.
+
+The app and admin now poll the durable shared state; atomic revision checks reject concurrent overwrites. A missing database is explicitly shown in the admin rather than reported as synchronized. Existing local browser data is retained. When the shared database is empty, the admin offers to transfer its local state once. Use the same stable Production domain for the admin and the installed PWA; an old immutable Preview URL does not update when a new deployment is published.
+
+GET /api/health reports whether shared storage is configured, along with the stable production domain when supplied by Vercel.
