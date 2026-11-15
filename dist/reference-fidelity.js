@@ -22,8 +22,8 @@ showEntry=function(){if(adminMode)return;if($('#modal')?.open)$('#modal').close(
  if(face&&document.visibilityState==='visible'&&!entryScanTimer)entryScanTimer=setTimeout(unlock,1100);
 };actions['lock-demo']=()=>showEntry();
 window.entryChecked=true;showEntry();
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){clearTimeout(entryScanTimer);entryScanTimer=null;showEntry()}else showEntry()});
-window.addEventListener('pageshow',()=>showEntry());
+// Entry lifecycle is owned by faithful-entry.js.
+
 render();
 // Remove legacy empty receipt decoration and a stray markup character.
 const paperBeforeCleanup=paper;paper=function(t){return paperBeforeCleanup(t).replace('<span class="brand">monobank</span><<br><br></small>','<span class="brand">monobank</span>').replace('<div class="paper-demo"></div>','')};

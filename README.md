@@ -152,3 +152,9 @@ Hosted mode stores state and attachments in IndexedDB on each browser/device. Ad
 PDF preview and XLSX generation run in api/index.py; no private state is stored on the ephemeral function filesystem. PDF files on Vercel are limited to 4 MB to stay below the platform request limit.
 
 If a preview redirects to vercel.com/sso-api, it is protected by Vercel Authentication. Use the project's Production domain, or change Deployment Protection in Vercel if public preview access is desired. This setting cannot be changed by the repository.
+
+## Mobile fixes (v39)
+
+One launch/resume owner prevents duplicate Face ID attempts; short system interruptions and open file pickers do not relock the app. The recorded Face ID sprite plays once per attempt. Card swipes only interrupt settling after committing to a horizontal gesture; cancelled gestures restore the current card and action positions. Stale history gesture handlers reject other routes. Inline dark first-paint styles prevent an unstyled white document flash; scrollbar indicators are hidden while native scrolling remains enabled.
+
+Validated in a 393x852 browser viewport with touch input, repeated history/card transitions, a cancelled card gesture, and one authentication attempt per launch. Physical iPhone Safari/PWA verification is still required for OS-level startup and scroll-indicator behavior.
