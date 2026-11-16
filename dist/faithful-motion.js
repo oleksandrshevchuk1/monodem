@@ -43,7 +43,9 @@ expandTransition=function(from,to,opening){
  // Keep the same projected corner size when replacing the live card with the moving plane.
  art.style.borderRadius=targetRadius;
  art.animate([{borderRadius:((from.cornerRadius||parseFloat(targetRadius))*width/source.width)+'px'},{borderRadius:targetRadius}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
- art.animate([{boxShadow:from.shadow||'none'},{boxShadow:targetArtStyle.boxShadow}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
+ plane.style.borderRadius=targetRadius;
+ plane.animate([{borderRadius:((from.cornerRadius||parseFloat(targetRadius))*width/source.width)+'px'},{borderRadius:targetRadius}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
+ plane.animate([{boxShadow:from.shadow||'none'},{boxShadow:getComputedStyle(to).boxShadow}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  const rear=!opening&&from.flipped;node.classList.toggle('returning-rear',rear);
  if(rear)art.animate([{transform:'rotateY(180deg)'},{transform:'rotateY(360deg)'}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  const snapshot=from.snapshot;if(snapshot){snapshot.querySelectorAll('.card-face,.expanded-card,.card-header-mini,.transition-nav').forEach(el=>el.style.visibility='hidden');snapshot.style.zIndex='37';document.body.append(snapshot);snapshot.animate([{opacity:1},{opacity:0}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'}).finished.catch(()=>{})}

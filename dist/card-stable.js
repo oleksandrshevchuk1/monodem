@@ -2,7 +2,7 @@
 const recordedCardExpandTransition=expandTransition;
 // Restore the stable card layout and remove the experimental pinned-card behavior.
 bindCardCollapse=function(){naturalCardScrollCleanup?.();const card=$('.expanded-card');if(card)card.style.transform='';$('.card-settings')?.classList.remove('compact-card-view')};
-measureCardPose=function(el){const pose=measureBeforeHeaderThumbnail(el);pose.geometry=stableCardGeometry(el);pose.cornerRadius=parseFloat(getComputedStyle(el.querySelector(".bank-card")).borderTopLeftRadius);return pose};
+measureCardPose=function(el){const pose=measureBeforeHeaderThumbnail(el);pose.geometry=stableCardGeometry(el);pose.shadow=getComputedStyle(el).boxShadow;pose.cornerRadius=parseFloat(getComputedStyle(el.querySelector(".bank-card")).borderTopLeftRadius);return pose};
 const renderBeforeStableCard=render;render=function(){renderBeforeStableCard();const existing=$('.stable-card-close');if(route.page!=='card'||adminMode){existing?.remove();return}if(!$('.entry-overlay')){$('#app').inert=false;$('#nav').inert=false}if(!existing){const close=document.createElement('button');close.type='button';close.className='stable-card-close';close.setAttribute('aria-label','Закрити картку');close.innerHTML=icon('x');close.onclick=e=>{e.preventDefault();e.stopPropagation();back()};document.body.append(close)}};
 render();
 
