@@ -91,6 +91,9 @@ class Handler(SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header('Cache-Control',getattr(self,'cache_control','no-store'))
         self.send_header('X-Content-Type-Options','nosniff')
+        self.send_header('X-Frame-Options','DENY')
+        self.send_header('Content-Security-Policy',"frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'")
+        self.send_header('Referrer-Policy','same-origin')
         super().end_headers()
     def json_response(self,status,value):
         body=json.dumps(value,ensure_ascii=False,allow_nan=False,separators=(',',':')).encode('utf-8')
@@ -104,7 +107,7 @@ class Handler(SimpleHTTPRequestHandler):
             self.path = '/admin.html' if urlparse(self.path).path == '/admin/' else '/index.html'
         parsed=urlparse(self.path)
         if parsed.path in ('/','/index.html'):
-            with LOCK:record=read_record()
+            with LOCK:record=self.current_record()
             profile=record['state']
             avatar=profile.get('avatar') or ''
             signature=str(len(avatar))+':'+avatar[:64]+':'+avatar[-64:] if avatar else ''
@@ -122,7 +125,7 @@ class Handler(SimpleHTTPRequestHandler):
             self.end_headers()
             return self.wfile.write(body)
         if parsed.path=='/api/profile-avatar':
-            with LOCK:avatar=read_record()['state'].get('avatar') or ''
+            with LOCK:avatar=self.current_record()['state'].get('avatar') or ''
             if not avatar.startswith(('data:image/jpeg;base64,','data:image/png;base64,','data:image/webp;base64,')):
                 return self.json_response(404,{'error':'Фото профілю не задане'})
             token=hashlib.sha256(avatar.encode()).hexdigest()[:20]
@@ -140,7 +143,7 @@ class Handler(SimpleHTTPRequestHandler):
             self.end_headers()
             return self.wfile.write(raw)
         if parsed.path=='/api/state':
-            with LOCK:record=read_record()
+            with LOCK:record=self.current_record()
             if parse_qs(parsed.query).get('revision',[''])[0]==str(record['revision']):
                 return self.json_response(200,{'revision':record['revision'],'unchanged':True})
             return self.json_response(200,record)
@@ -148,7 +151,7 @@ class Handler(SimpleHTTPRequestHandler):
             return self.json_response(200,json.loads((ROOT/'data'/'example.json').read_text(encoding='utf-8')))
         if parsed.path=='/api/health':return self.json_response(200,{'ok':True,'storage':'server','version':11})
         if parsed.path=='/api/statement.xlsx':
-            with LOCK:record=read_record()
+            with LOCK:record=self.current_record()
             body=statement_xlsx(record['state'],parse_qs(parsed.query))
             self.send_response(200)
             self.send_header('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -194,12 +197,20 @@ class Handler(SimpleHTTPRequestHandler):
             state=payload.get('state')
             validate(state)
             with LOCK:
-                record=read_record()
+                record=self.current_record()
                 if payload.get('revision')!=record['revision']:return self.json_response(409,{'error':'Дані вже змінилися в іншому вікні. Оновіть форму та повторіть зміну.','revision':record['revision']})
                 record={'revision':record['revision']+1,'state':state}
                 write_record(record)
             self.json_response(200,{'revision':record['revision']})
         except (ValueError,TypeError,KeyError) as error:self.json_response(400,{'error':str(error)})
+
+# The same access-control layer protects local and serverless API handlers.
+import sys
+from identity import AuthenticatedHandler
+Handler.state_module = sys.modules[__name__]
+class ProtectedHandler(AuthenticatedHandler, Handler):
+    pass
+Handler = ProtectedHandler
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser()

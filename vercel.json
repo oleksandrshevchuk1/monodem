@@ -5,11 +5,19 @@
   "outputDirectory": "dist",
   "functions": {
     "api/index.py": {
-      "includeFiles": "{server.py,shared_store.py,data/example.json}",
+      "includeFiles": "{server.py,shared_store.py,identity.py,auth_config.py,data/example.json}",
       "maxDuration": 60
     }
   },
   "rewrites": [
+    {
+      "source": "/mono/login.html",
+      "destination": "/login.html"
+    },
+    {
+      "source": "/admin/login.html",
+      "destination": "/login.html"
+    },
     {
       "source": "/api/:path*",
       "destination": "/api/index?endpoint=:path*"
@@ -30,6 +38,22 @@
         {
           "key": "Cache-Control",
           "value": "no-cache"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "same-origin"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
         }
       ]
     }

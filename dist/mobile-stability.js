@@ -23,11 +23,17 @@ function updateInstalledViewport(){
 window.addEventListener('resize',updateInstalledViewport,{passive:true});window.visualViewport?.addEventListener('resize',updateInstalledViewport,{passive:true});window.addEventListener('pageshow',()=>requestAnimationFrame(updateInstalledViewport));document.addEventListener('DOMContentLoaded',()=>requestAnimationFrame(updateInstalledViewport));
 // Show only the ready entry screen (or ready admin), never a transient loading row.
 let stableGlyphsReady=false;Promise.all([...readyReferenceImages,...readyAssetImages,...readyCharacterImages].map(img=>img.decode().catch(()=>{}))).then(()=>{stableGlyphsReady=true;releaseStableBoot()});
-function releaseStableBoot(){if(loading||!stableGlyphsReady||document.documentElement.dataset.runtimeReady!=='true')return;const entry=document.querySelector('.entry-overlay');if(!adminMode&&entry&&entry.dataset.ready!=='true')return;document.documentElement.classList.remove('booting');bootObserver.disconnect()}
+let stableBootReleasePending=false;
+function releaseStableBoot(){
+ if(loading||!stableGlyphsReady||stableBootReleasePending||document.documentElement.dataset.runtimeReady!=='true'||!document.documentElement.classList.contains('booting'))return;
+ const entry=document.querySelector('.entry-overlay');if(!adminMode&&entry&&entry.dataset.ready!=='true')return;
+ const images=[...document.querySelectorAll('#app img,#nav img,.entry-overlay img')].filter(image=>{const r=image.getBoundingClientRect();return r.width>0&&r.height>0&&r.right>0&&r.left<innerWidth&&r.bottom>0&&r.top<innerHeight});
+ stableBootReleasePending=true;Promise.all(images.map(image=>image.decode().catch(()=>{}))).then(()=>{stableBootReleasePending=false;if(loading)return;document.documentElement.classList.remove('booting');bootObserver.disconnect();window.dismissLaunchSplash?.()});
+}
 const bootObserver=new MutationObserver(releaseStableBoot);bootObserver.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['data-ready']});document.addEventListener('DOMContentLoaded',()=>setTimeout(releaseStableBoot,0));
 
-document.documentElement.dataset.appVersion='58';
-const settingsBeforeBuildLabel=appSettingsPage;appSettingsPage=function(){return settingsBeforeBuildLabel()+'<p class="build-version">Версія 58</p>'};
+document.documentElement.dataset.appVersion='59';
+const settingsBeforeBuildLabel=appSettingsPage;appSettingsPage=function(){return settingsBeforeBuildLabel()+'<p class="build-version">Версія 59</p>'};
 
 // Sense has its own full-size identity; transfer badges belong to other banks.
 const recipientBeforeFullSense=recipientPicture;recipientPicture=function(person){const bank=bankPreset(person);return bank.id==='sense'?`<img class="sense-full-logo" src="${bank.logo}" alt="Sense Bank" draggable="false">`:recipientBeforeFullSense(person)};

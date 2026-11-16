@@ -45,3 +45,6 @@ html,body{touch-action:pan-x pan-y}
 .notification-reference>h2{margin-bottom:20px}
 .notification-reference .notification-row.is-read .notification-reference-icon{opacity:.85}
 .notification-reference .notification-row.is-read:first-child .notification-reference-icon{opacity:1}
+
+/* Dragging on the card changes cards or flips it, without scrolling it away. */
+.home .card-carousel,.home .card-face,.card .expanded-card{touch-action:pan-x}

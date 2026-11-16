@@ -6,3 +6,7 @@ qa
 .env*
 data/state*.json
 data/receipt-previews
+
+OWNER-SETUP.txt
+data/identity*.json
+data/tenants

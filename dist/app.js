@@ -22,7 +22,7 @@ async function persist(){sharedSaving=true;document.documentElement.dataset.stor
 async function initializeSharedState(){try{await loadSharedState(true)}catch(e){toast(e.message)}loading=false;render()}
 window.addEventListener('focus',()=>loadSharedState().catch(()=>{}));
 setInterval(()=>{if(document.visibilityState==='visible')loadSharedState().catch(()=>{})},1500);
-window.addEventListener('DOMContentLoaded',initializeSharedState);
+// Initialization follows the authenticated bundle load in auth-gate.js.
 async function change(fn){const old=structuredClone(state);try{await fn();await persist();render();return true}catch(e){state=old;if(e.conflict)await loadSharedState(true);toast(e.message);return false}}
 function toast(t){$('#toast').textContent=t;$('#toast').style.display='block';clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('#toast').style.display='none',3500)}
 function modal(title,html,fn,button='Зберегти'){submit=fn;$('#modal-title').textContent=title;$('#fields').innerHTML=html;$('#error').textContent='';$('#form > .primary').hidden=!fn;$('#form > .primary').textContent=button;if(!$('#modal').open)$('#modal').showModal()}

@@ -1,42 +1,52 @@
 'use strict';
 // A card morph starts and ends at the painted rectangles, not at carousel layout boxes.
 const measureBeforePaintedBounds=measureCardPose;measureCardPose=function(el){const pose=measureBeforePaintedBounds(el),r=el.getBoundingClientRect();pose.center={x:r.x+r.width/2,y:r.y+r.height/2};return pose};
-let preciseCardScene=null,cardProjectionSupported=null;
-function supportsCardProjection(){
- if(cardProjectionSupported!==null)return cardProjectionSupported;
- const probe=document.createElement('div'),w=200,h=126,scale=.8,angle=65*Math.PI/180;Object.assign(probe.style,{position:'fixed',left:'0',top:'0',width:w+'px',height:h+'px',visibility:'hidden',pointerEvents:'none',transform:'translate3d(20px,100px,0) perspective(900px) rotateX(65deg) scale(.8)'});document.body.append(probe);
- const depth=h*scale*Math.sin(angle)/1800,expectedWidth=w*scale/(1-depth),expectedHeight=h*scale*Math.cos(angle)/(1-depth*depth),box=probe.getBoundingClientRect();cardProjectionSupported=Math.abs(box.width-expectedWidth)<.5&&Math.abs(box.height-expectedHeight)<.5;probe.remove();return cardProjectionSupported;
+let preciseCardScene=null;
+function stableCardGeometry(el){
+ const style=getComputedStyle(el),transform=new DOMMatrixReadOnly(style.transform==='none'?undefined:style.transform),origin=style.transformOrigin.split(' ').map(parseFloat);
+ const saved=el.style.getPropertyValue('transform'),priority=el.style.getPropertyPriority('transform');
+ el.style.setProperty('transform','none','important');const layout=el.getBoundingClientRect();
+ if(saved)el.style.setProperty('transform',saved,priority);else el.style.removeProperty('transform');
+ const matrix=new DOMMatrix().translate(layout.x,layout.y).translate(origin[0],origin[1]).multiply(transform).translate(-origin[0],-origin[1]);
+ return {matrix:Array.from(matrix.toFloat64Array()),raw:Array.from(transform.toFloat64Array()),origin,layout:{x:layout.x,y:layout.y},width:layout.width,height:layout.height};
+}
+function cardPlaneBounds(matrix,width,height){
+ const corners=[[0,0],[width,0],[0,height],[width,height]].map(([x,y])=>{const w=matrix.m14*x+matrix.m24*y+matrix.m44;return {x:(matrix.m11*x+matrix.m21*y+matrix.m41)/w,y:(matrix.m12*x+matrix.m22*y+matrix.m42)/w}});
+ const xs=corners.map(p=>p.x),ys=corners.map(p=>p.y),x=Math.min(...xs),y=Math.min(...ys);return {x,y,width:Math.max(...xs)-x,height:Math.max(...ys)-y};
 }
 expandTransition=function(from,to,opening){
- if(!from||!to)return;supportsCardProjection();
- const previous=preciseCardScene,destination=to.getBoundingClientRect(),reduce=shouldReduceMotion(),duration=reduce?100:460;
- const width=opening?to.offsetWidth:from.width,height=width/1.586,base={x:opening?destination.x:from.rect.x,y:opening?destination.y:from.rect.y,width};
- let sourceRect=from.rect,startAngle=opening?65:0;
- if(previous){sourceRect=previous.node.getBoundingClientRect();const m=new DOMMatrixReadOnly(getComputedStyle(previous.node).transform);startAngle=Math.atan2(m.m23,m.m22)*180/Math.PI;previous.motion.cancel();previous.target.style.opacity='';previous.node.remove();previous.backdrop?.remove();previous.header?.remove()}
+ if(!from||!to)return;
+ const previous=preciseCardScene,geometry=stableCardGeometry(to),reduce=shouldReduceMotion(),duration=reduce?100:460;
+ const source=from.geometry,width=geometry.width,height=geometry.height,base={x:geometry.layout.x,y:geometry.layout.y,width,height};
+ const origin=geometry.origin,originMatrix=new DOMMatrix().translate(origin[0],origin[1]);
+ let sourceLayout=source.layout,startRelative=new DOMMatrix().translate(source.origin[0],source.origin[1]).multiply(new DOMMatrix(source.raw)).translate(-source.origin[0],-source.origin[1]).scale(source.width/width,source.height/height);
+ const endRelative=originMatrix.multiply(new DOMMatrix(geometry.raw)).translate(-origin[0],-origin[1]);
+ if(previous){const oldOrigin=previous.origin;sourceLayout=previous.base;startRelative=new DOMMatrixReadOnly(getComputedStyle(previous.node).transform).translate(oldOrigin[0],oldOrigin[1]).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.plane).transform)).translate(-oldOrigin[0],-oldOrigin[1]).scale(previous.base.width/width,previous.base.height/height);previous.motion.cancel();previous.planeMotion.cancel();previous.target.style.opacity='';previous.node.remove();previous.backdrop?.remove()}
+ const sourceRect=cardPlaneBounds(new DOMMatrix().translate(sourceLayout.x,sourceLayout.y).multiply(startRelative),width,height),destination=cardPlaneBounds(new DOMMatrix().translate(base.x,base.y).multiply(endRelative),width,height);
  const node=document.createElement('div');node.className='card-transition soft-card-surface precise-card-surface';
- // Clone the already decoded live artwork; never insert another unresolved logo URL.
- const art=to.querySelector('.bank-card').cloneNode(true);node.append(art);
- Object.assign(node.style,{position:'fixed',left:base.x+'px',top:base.y+'px',width:width+'px',height:height+'px',zIndex:'48',pointerEvents:'none',transformOrigin:cardProjectionSupported?'center center':'0 0'});
- document.body.append(node);
+ const plane=document.createElement('div');plane.className='travelling-card-plane';Object.assign(plane.style,{width:'100%',height:'100%',transformStyle:'preserve-3d',transformOrigin:origin[0]+'px '+origin[1]+'px'});
+ const art=to.querySelector('.bank-card').cloneNode(true);plane.append(art);node.append(plane);
+ Object.assign(node.style,{position:'fixed',left:base.x+'px',top:base.y+'px',width:width+'px',height:height+'px',zIndex:'48',pointerEvents:'none',transformOrigin:'0 0'});document.body.append(node);
  const full=node.querySelector('.card-number-full'),masked=node.querySelector('.card-number-masked');
  for(const [el,a,b] of [[full,opening?0:1,opening?1:0],[masked,opening?1:0,opening?0:1],[node.querySelector('.card-holder'),opening?0:1,opening?1:0]])if(el){el.style.display='block';if(el===masked)Object.assign(el.style,{position:'absolute',left:'0',top:'0'});el.animate([{opacity:a},{opacity:b}],{duration,fill:'both'})}
- const homeAngle=65;
- // Solve perspective projection analytically. Both dimensions and the top-left
- // match the live card exactly, with no layout reads inside the keyframe loop.
- const pose=(rect,angle)=>{if(!cardProjectionSupported)return `translate3d(${rect.x-base.x}px,${rect.y-base.y}px,0) scale(${rect.width/width},${rect.height/height})`;const rad=angle*Math.PI/180,sin=Math.sin(rad),cos=Math.cos(rad),p=900;
-  const half=rect.height/(cos+Math.sqrt(cos*cos+(rect.height*sin/p)**2));
-  const sy=2*half/height,sx=rect.width*(1-half*sin/p)/width;
-  const top=-half*cos/(1+half*sin/p),dx=rect.x+rect.width/2-base.x-width/2,dy=rect.y-base.y-height/2-top;
-  return `translate3d(${dx}px,${dy}px,0) perspective(${p}px) rotateX(${angle}deg) scale(${sx},${sy})`;
- };
- const frames=Array.from({length:17},(_,i)=>{const t=i/16,rect={x:sourceRect.x+(destination.x-sourceRect.x)*t,y:sourceRect.y+(destination.y-sourceRect.y)*t,width:sourceRect.width+(destination.width-sourceRect.width)*t,height:sourceRect.height+(destination.height-sourceRect.height)*t};return {offset:t,transform:pose(rect,startAngle+((opening?0:homeAngle)-startAngle)*t)}});
- node.style.transform=frames[0].transform;
+ // Reuse the exact CSS plane of each live card. Interpolate projected corners,
+ // rather than Safari's axis-aligned 3D bounds, then reveal an identical plane.
+ const startValues=Array.from(startRelative.toFloat64Array()),endValues=Array.from(endRelative.toFloat64Array()),planeFrames=[];
+ const frames=Array.from({length:25},(_,i)=>{const t=i/24,values=startValues.map((v,j)=>v+(endValues[j]-v)*t),matrix=new DOMMatrix(values),paint=cardPlaneBounds(matrix,width,height);
+  const desired={x:sourceRect.x+(destination.x-sourceRect.x)*t,y:sourceRect.y+(destination.y-sourceRect.y)*t,width:sourceRect.width+(destination.width-sourceRect.width)*t,height:sourceRect.height+(destination.height-sourceRect.height)*t};
+  const correction=new DOMMatrix().translate(desired.x-base.x,desired.y-base.y).scale(desired.width/paint.width,desired.height/paint.height).translate(-paint.x,-paint.y);
+  planeFrames.push({offset:t,transform:new DOMMatrix().translate(-origin[0],-origin[1]).multiply(matrix).translate(origin[0],origin[1]).toString()});
+  return {offset:t,transform:correction.toString()};
+ });
+ node.style.transform=frames[0].transform;plane.style.transform=planeFrames[0].transform;
+ art.animate([{boxShadow:from.shadow||'none'},{boxShadow:getComputedStyle(to.querySelector('.bank-card')).boxShadow}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  const rear=!opening&&from.flipped;node.classList.toggle('returning-rear',rear);
  if(rear)art.animate([{transform:'rotateY(180deg)'},{transform:'rotateY(360deg)'}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  const snapshot=from.snapshot;if(snapshot){snapshot.querySelectorAll('.card-face,.expanded-card,.card-header-mini,.transition-nav').forEach(el=>el.style.visibility='hidden');snapshot.style.zIndex='37';document.body.append(snapshot);snapshot.animate([{opacity:1},{opacity:0}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'}).finished.catch(()=>{})}
  to.style.opacity='0';document.documentElement.dataset.gesture='active';operationsNav(opening?1:0,opening?0:1,duration);
  const settings=$('.card-settings');if(opening&&settings)for(const child of settings.children)if(!child.matches('.expanded-card'))child.animate([{opacity:0,transform:'translate3d(0,12px,0)'},{opacity:1,transform:'translate3d(0,0,0)'}],{duration,easing:'cubic-bezier(.32,.72,0,1)'});
- const scene={node,base,target:to,backdrop:snapshot,sourceRect,destinationRect:destination};preciseCardScene=scene;
+ const scene={node,plane,base,origin,target:to,backdrop:snapshot,sourceRect,destinationRect:destination};preciseCardScene=scene;
+ const planeMotion=plane.animate(planeFrames,{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});scene.planeMotion=planeMotion;
  const motion=node.animate(reduce?[{opacity:0},{opacity:1}]:frames,{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});scene.motion=motion;cardTransition=motion;
  motion.finished.then(()=>{if(preciseCardScene!==scene)return;to.style.opacity='';node.remove();snapshot?.remove();preciseCardScene=null;delete document.documentElement.dataset.gesture;restoreOperationsNav()}).catch(()=>{});
 };

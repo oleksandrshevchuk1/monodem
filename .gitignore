@@ -8,3 +8,7 @@ data/receipt-previews/
 .env
 .env.*
 !.env.example
+
+OWNER-SETUP.txt
+data/identity*.json
+data/tenants/
