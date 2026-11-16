@@ -53,3 +53,6 @@
 .reference-operation-body .detail-menu>.menu-row.is-pressed,.reference-operation-body .incoming-menu>.menu-row.is-pressed{background:#ffffff12;border-radius:0}
 
 .reference-operation-body .menu-row.is-pressed,.reference-operation-body .menu-row:active{transition:none!important}
+
+/* Match the original thin 32-point silhouettes inside a consistent 24px slot. */
+.transfer-action-glyph{width:24px;height:24px;margin-right:-2px;stroke-width:1.5;color:#dedede}

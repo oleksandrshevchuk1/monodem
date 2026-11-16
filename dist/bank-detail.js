@@ -1,16 +1,16 @@
 'use strict';
 
-// Reconstructed vector outlines from the recorded transfer action menu.
+// Vector outlines redrawn against RPReplay_Final1794740354.mp4 at 3.58s.
 const transferActionPaths={
- split:'<circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="12" cy="20" r="2"/><path d="M5 7v3l7 4 7-4V7m-7 7v4"/>',
- repeat:'<path d="M18 6a8 8 0 1 0 2 9M13 6h5V1"/>',
- 'save-contact':'<rect x="3" y="4" width="16" height="11" rx="2"/><path d="M3 8h16M3 11h5m-2 7h7"/><circle cx="18" cy="18" r="4"/><path d="M18 16v4m-2-2h4"/>',
- receipt:'<path d="M6 2h9l4 4v16H6Zm9 0v5h4M9 11h7m-7 4h7m-7 4h7"/>',
- regular:'<circle cx="12" cy="12" r="9"/><path d="M12 6v7m0 4v.1"/>',
- installments:'<path d="M10 3a9 9 0 1 0 11 11H10Zm3-1v9h9a9 9 0 0 0-9-9Z"/>',
- 'support-tx':'<path d="M8 7a4 4 0 1 1 6 3.5c-2 1-2 2-2 4m0 4v.1"/>'
+ split:'<path d="M7 5v9a11 11 0 0 0 22 0V5M3 9l4-4 4 4m14 0 4-4 4 4M18 25v10"/>',
+ repeat:'<path d="M22 6a14 14 0 1 0 10 14M16 1l6 5-6 6"/>',
+ 'save-contact':'<path d="M18.6 23H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h21a2 2 0 0 1 2 2v12.25M3 9h25M3 14h25"/><circle cx="26" cy="26" r="8"/><path d="M26 21v10m-5-5h10"/>',
+ receipt:'<path d="M7 2h16l8 8v24H7ZM23 2v9h8M12 8h6m-6 9h14m-14 6h14m-14 6h14"/>',
+ regular:'<circle cx="18" cy="18" r="14"/><path d="M18 10v10l6 4"/>',
+ installments:'<path d="M16 5a14 14 0 1 0 15 15H16ZM20 2v14h14A14 14 0 0 0 20 2Z"/>',
+ 'support-tx':'<path d="M10 10a8 8 0 0 1 16 0c0 5-8 7-8 13v2"/><circle cx="18" cy="32" r="1.35" fill="currentColor" stroke="none"/>'
 };
-const transferActionGlyph=name=>'<svg class="icon transfer-action-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+transferActionPaths[name]+'</svg>';
+const transferActionGlyph=name=>'<svg class="icon transfer-action-glyph" viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+transferActionPaths[name]+'</svg>';
 
 // Bank identities remain opaque and sharp at every size.
 const bankDetailSvg=source=>'data:image/svg+xml;base64,'+btoa(source);
@@ -29,9 +29,9 @@ bankBadge=function(person){const bank=bankPreset(person),source=bank.id==='priva
 const bankNoteGlyph='<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="3" fill="currentColor"/><path d="M10 8h4m-4 5h3" stroke="#252525" stroke-width="2.5" stroke-linecap="round"/></svg>';
 const bankUploadGlyph='<svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 2h8v5a3 3 0 0 0 3 3h3v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm10 0 4 6h-3a1 1 0 0 1-1-1Z"/><path d="m9 15 3-3 3 3m-3-3v7" fill="none" stroke="#252525" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const bankWalletGlyph='<svg class="icon bank-balance-glyph" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="14" fill="#000"/><rect x="6" y="7" width="16" height="14" rx="4" fill="white"/><path d="M22 11h-5a3 3 0 0 0 0 6h5" fill="#000"/><circle cx="18" cy="14" r="1.2" fill="white"/></svg>';
-const bankQuestionGlyph='<svg class="icon" viewBox="0 0 24 28" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M5 7a7 7 0 1 1 11 5c-3 2-4 3-4 7"/><circle cx="12" cy="25" r=".8" fill="currentColor" stroke="none"/></svg>';
-const bankReplyPaymentGlyph='<svg class="icon" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m11 6-7 7 7 7M4 13h12a8 8 0 0 1 8 8"/></svg>';
-const bankBlockUserGlyph='<svg class="icon" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M3 24v-3a9 9 0 0 1 14-7"/><circle cx="21" cy="21" r="5"/><path d="m17.5 24.5 7-7"/></svg>';
+const bankQuestionGlyph=transferActionGlyph('support-tx');
+const bankReplyPaymentGlyph='<svg class="icon transfer-action-glyph" viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 30h17a10 10 0 0 0 0-20H8m7-7-7 7 7 7"/></svg>';
+const bankBlockUserGlyph='<svg class="icon transfer-action-glyph" viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="18" cy="18" r="14.5"/><path d="m7.75 28.25 20.5-20.5"/></svg>';
 const detailBeforeBankReferenceScreens=detail;
 detail=function(){
  const tx=currentTx(),html=detailBeforeBankReferenceScreens();
