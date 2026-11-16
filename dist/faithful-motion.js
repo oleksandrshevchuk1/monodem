@@ -3,30 +3,37 @@
 const measureBeforePaintedBounds=measureCardPose;measureCardPose=function(el){const pose=measureBeforePaintedBounds(el),r=el.getBoundingClientRect();pose.center={x:r.x+r.width/2,y:r.y+r.height/2};return pose};
 let preciseCardScene=null;
 expandTransition=function(from,to,opening){
- if(!from||!to)return;const reduce=shouldReduceMotion(),duration=reduce?140:400,previous=preciseCardScene;
- const destination=to.getBoundingClientRect(),base=previous?.base||{x:opening?destination.x:from.rect.x,y:opening?destination.y:from.rect.y,width:opening?to.offsetWidth:(from.sourceAngle?to.offsetWidth:from.width)};
- const node=previous?.node||document.createElement('div');const oldPose=previous?getComputedStyle(node).transform:null;
- if(previous){previous.motion.cancel();previous.target.style.opacity='';previous.backdrop?.remove();previous.header?.remove();previous.faceMotion?.cancel()}
- else{node.className='card-transition soft-card-surface precise-card-surface';node.innerHTML=cardArtwork(activeCard());Object.assign(node.style,{position:'fixed',left:base.x+'px',top:base.y+'px',width:base.width+'px',height:base.width/1.586+'px',zIndex:'38',pointerEvents:'none'});document.body.append(node)}
- // Match the final artwork before animating; the handoff must not change its paint.
- if(!previous){for(const selector of ['.bank-card','.bank-card-front','.card-brand','.visa','.card-printed-number','.card-holder','.card-glint']){const source=to.querySelector(selector),copy=node.querySelector(selector);if(!source||!copy)continue;const style=getComputedStyle(source);for(const prop of ['background','box-shadow','border-radius','font-size','letter-spacing','line-height','color','display','opacity'])copy.style.setProperty(prop,style.getPropertyValue(prop))}}
- const full=node.querySelector('.card-number-full'),masked=node.querySelector('.card-number-masked');if(full&&masked){full.style.display='inline';masked.style.display='inline';Object.assign(masked.style,{position:'absolute',left:'0',top:'0'});full.animate([{opacity:opening?0:1},{opacity:opening?1:0}],{duration,fill:'both'});masked.animate([{opacity:opening?1:0},{opacity:opening?0:1}],{duration,fill:'both'})}
- const holder=node.querySelector('.card-holder');if(holder){holder.style.display='block';holder.animate([{opacity:opening?0:1},{opacity:opening?1:0}],{duration,fill:'both'})}
- const glint=node.querySelector('.card-glint'),targetGlint=to.querySelector('.card-glint');if(glint&&targetGlint)glint.animate([{opacity:from.glint?.opacity||'.12',transform:from.glint?.transform||'none'},{opacity:getComputedStyle(targetGlint).opacity,transform:getComputedStyle(targetGlint).transform}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
- const poseFor=(rect,logicalWidth,angle)=>{let ratio=logicalWidth/base.width,dx=rect.x+rect.width/2-base.x-base.width/2,dy=rect.y+rect.height/2-base.y-base.width/1.586/2;const pose=()=>`translate3d(${dx}px,${dy}px,0) perspective(900px) rotateX(${angle}deg) scale(${ratio})`;node.style.transform=pose();let actual=node.getBoundingClientRect();ratio*=rect.width/Math.max(1,actual.width);node.style.transform=pose();actual=node.getBoundingClientRect();dx+=rect.x-actual.x;dy+=rect.y-actual.y;return pose()};
- // Interpolate painted rectangles in 2D. Perspective plus scale made the width
- // overshoot halfway through flattening, even when the final boxes matched.
- const rectanglePose=rect=>`translate3d(${rect.x-base.x}px,${rect.y-base.y}px,0) scale(${rect.width/base.width},${rect.height/(base.width/1.586)})`;
- const end=rectanglePose(destination),start=oldPose||rectanglePose(from.rect);node.style.transformOrigin='0 0';node.style.transform=start;
- const snapshot=from.snapshot;if(snapshot){snapshot.querySelectorAll('.card-face,.expanded-card,.card-header-mini,.transition-nav').forEach(el=>el.style.visibility='hidden');snapshot.style.zIndex='37';document.body.append(snapshot);snapshot.animate([{opacity:1,filter:'blur(0px)'},{opacity:0,filter:reduce?'blur(0px)':'blur(4px)'}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'}).finished.catch(()=>{}).finally(()=>snapshot.remove())}
+ if(!from||!to)return;
+ const previous=preciseCardScene,destination=to.getBoundingClientRect(),reduce=shouldReduceMotion(),duration=reduce?100:460;
+ const width=opening?to.offsetWidth:from.width,height=width/1.586,base={x:opening?destination.x:from.rect.x,y:opening?destination.y:from.rect.y,width};
+ let sourceRect=from.rect,startAngle=opening?65:0;
+ if(previous){sourceRect=previous.node.getBoundingClientRect();const m=new DOMMatrixReadOnly(getComputedStyle(previous.node).transform);startAngle=Math.atan2(m.m23,m.m22)*180/Math.PI;previous.motion.cancel();previous.target.style.opacity='';previous.node.remove();previous.backdrop?.remove();previous.header?.remove()}
+ const node=document.createElement('div');node.className='card-transition soft-card-surface precise-card-surface';
+ // Clone the already decoded live artwork; never insert another unresolved logo URL.
+ const art=to.querySelector('.bank-card').cloneNode(true);node.append(art);
+ Object.assign(node.style,{position:'fixed',left:base.x+'px',top:base.y+'px',width:width+'px',height:height+'px',zIndex:'48',pointerEvents:'none',transformOrigin:'center center'});
+ document.body.append(node);
+ const full=node.querySelector('.card-number-full'),masked=node.querySelector('.card-number-masked');
+ for(const [el,a,b] of [[full,opening?0:1,opening?1:0],[masked,opening?1:0,opening?0:1],[node.querySelector('.card-holder'),opening?0:1,opening?1:0]])if(el){el.style.display='block';if(el===masked)Object.assign(el.style,{position:'absolute',left:'0',top:'0'});el.animate([{opacity:a},{opacity:b}],{duration,fill:'both'})}
+ const homeAngle=65;
+ // Solve perspective projection analytically. Both dimensions and the top-left
+ // match the live card exactly, with no layout reads inside the keyframe loop.
+ const pose=(rect,angle)=>{const rad=angle*Math.PI/180,sin=Math.sin(rad),cos=Math.cos(rad),p=900;
+  const half=rect.height/(cos+Math.sqrt(cos*cos+(rect.height*sin/p)**2));
+  const sy=2*half/height,sx=rect.width*(1-half*sin/p)/width;
+  const top=-half*cos/(1+half*sin/p),dx=rect.x+rect.width/2-base.x-width/2,dy=rect.y-base.y-height/2-top;
+  return `translate3d(${dx}px,${dy}px,0) perspective(${p}px) rotateX(${angle}deg) scale(${sx},${sy})`;
+ };
+ const frames=Array.from({length:17},(_,i)=>{const t=i/16,rect={x:sourceRect.x+(destination.x-sourceRect.x)*t,y:sourceRect.y+(destination.y-sourceRect.y)*t,width:sourceRect.width+(destination.width-sourceRect.width)*t,height:sourceRect.height+(destination.height-sourceRect.height)*t};return {offset:t,transform:pose(rect,startAngle+((opening?0:homeAngle)-startAngle)*t)}});
+ node.style.transform=frames[0].transform;
+ const rear=!opening&&from.flipped;node.classList.toggle('returning-rear',rear);
+ if(rear)art.animate([{transform:'rotateY(180deg)'},{transform:'rotateY(360deg)'}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
+ const snapshot=from.snapshot;if(snapshot){snapshot.querySelectorAll('.card-face,.expanded-card,.card-header-mini,.transition-nav').forEach(el=>el.style.visibility='hidden');snapshot.style.zIndex='37';document.body.append(snapshot);snapshot.animate([{opacity:1},{opacity:0}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'}).finished.catch(()=>{})}
  to.style.opacity='0';document.documentElement.dataset.gesture='active';operationsNav(opening?1:0,opening?0:1,duration);
- let header=null;if(!opening){const source=$('.home-top');if(source){const r=source.getBoundingClientRect();header=source.cloneNode(true);header.inert=true;header.classList.add('card-return-header');Object.assign(header.style,{position:'fixed',left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px',zIndex:'47',pointerEvents:'none'});document.body.append(header)}}
- const scene={node,base,target:to,backdrop:snapshot,header,sourceRect:from.rect,destinationRect:destination};preciseCardScene=scene;
- node.classList.toggle('returning-rear',!opening&&from.flipped);
- if(!opening&&from.flipped)scene.faceMotion=node.querySelector('.bank-card').animate([{transform:'rotateY(180deg)'},{transform:'rotateY(360deg)'}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
- const frames=oldPose?[{transform:start},{transform:end}]:Array.from({length:17},(_,i)=>{const p=i/16,rect={x:from.rect.x+(destination.x-from.rect.x)*p,y:from.rect.y+(destination.y-from.rect.y)*p,width:from.rect.width+(destination.width-from.rect.width)*p,height:from.rect.height+(destination.height-from.rect.height)*p};node.style.transformOrigin='center center';return {offset:p,transform:poseFor(rect,base.width,opening?65*(1-p):65*p)}});if(!oldPose)node.style.transform=frames[0].transform;
+ const settings=$('.card-settings');if(opening&&settings)for(const child of settings.children)if(!child.matches('.expanded-card'))child.animate([{opacity:0,transform:'translate3d(0,12px,0)'},{opacity:1,transform:'translate3d(0,0,0)'}],{duration,easing:'cubic-bezier(.32,.72,0,1)'});
+ const scene={node,base,target:to,backdrop:snapshot,sourceRect,destinationRect:destination};preciseCardScene=scene;
  const motion=node.animate(reduce?[{opacity:0},{opacity:1}]:frames,{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});scene.motion=motion;cardTransition=motion;
- motion.finished.then(async()=>{await Promise.all([...to.querySelectorAll('img')].map(img=>img.decode().catch(()=>{})));if(preciseCardScene!==scene)return;requestAnimationFrame(()=>{if(preciseCardScene!==scene)return;const finalRect=to.getBoundingClientRect();if(opening){motion.cancel();Object.assign(node.style,{left:finalRect.left+'px',top:finalRect.top+'px',width:finalRect.width+'px',height:finalRect.height+'px',transform:'none'})}to.style.opacity='';node.remove();snapshot?.remove();header?.remove();preciseCardScene=null;delete document.documentElement.dataset.gesture;restoreOperationsNav()})}).catch(()=>{});
+ motion.finished.then(()=>{if(preciseCardScene!==scene)return;to.style.opacity='';node.remove();snapshot?.remove();preciseCardScene=null;delete document.documentElement.dataset.gesture;restoreOperationsNav()}).catch(()=>{});
 };
 // The card carousel owns only its own strip. The rest of Home opens all operations.
 bindOperationsGesture=function(){};

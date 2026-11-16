@@ -69,3 +69,7 @@ const modalBeforeAnimatedExit=modal;modal=function(...args){finishDialogExit();m
 
 const backBeforeExitGuard=back;back=function(){if(sideEntrance?.isRouteExit)return;return backBeforeExitGuard()};actions.back=()=>back();
 document.documentElement.dataset.runtimeReady='true';updateInstalledViewport();releaseStableBoot();
+
+// Full-height profile sheets start below the viewport, like the supplied recording.
+const profileSheetBeforeRestoredMotion=actions['profile-sheet'];
+actions['profile-sheet']=()=>{profileSheetBeforeRestoredMotion();const sheet=$('#modal');sheet.getAnimations().forEach(a=>a.cancel());if(!shouldReduceMotion())sheet.animate([{transform:'translate3d(0,100%,0)'},{transform:'translate3d(0,0,0)'}],{duration:320,easing:'cubic-bezier(.32,.72,0,1)'});};
