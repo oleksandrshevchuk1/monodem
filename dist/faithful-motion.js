@@ -3,7 +3,7 @@
 const measureBeforePaintedBounds=measureCardPose;measureCardPose=function(el){const pose=measureBeforePaintedBounds(el),r=el.getBoundingClientRect();pose.center={x:r.x+r.width/2,y:r.y+r.height/2};return pose};
 let preciseCardScene=null;
 expandTransition=function(from,to,opening){
- if(!from||!to)return;const reduce=shouldReduceMotion(),duration=reduce?140:280,previous=preciseCardScene;
+ if(!from||!to)return;const reduce=shouldReduceMotion(),duration=reduce?140:400,previous=preciseCardScene;
  const destination=to.getBoundingClientRect(),base=previous?.base||{x:opening?destination.x:from.rect.x,y:opening?destination.y:from.rect.y,width:opening?to.offsetWidth:(from.sourceAngle?to.offsetWidth:from.width)};
  const node=previous?.node||document.createElement('div');const oldPose=previous?getComputedStyle(node).transform:null;
  if(previous){previous.motion.cancel();previous.target.style.opacity='';previous.backdrop?.remove();previous.header?.remove();previous.faceMotion?.cancel()}
@@ -22,8 +22,10 @@ expandTransition=function(from,to,opening){
  to.style.opacity='0';document.documentElement.dataset.gesture='active';operationsNav(opening?1:0,opening?0:1,duration);
  let header=null;if(!opening){const source=$('.home-top');if(source){const r=source.getBoundingClientRect();header=source.cloneNode(true);header.inert=true;header.classList.add('card-return-header');Object.assign(header.style,{position:'fixed',left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px',zIndex:'47',pointerEvents:'none'});document.body.append(header)}}
  const scene={node,base,target:to,backdrop:snapshot,header,sourceRect:from.rect,destinationRect:destination};preciseCardScene=scene;
+ node.classList.toggle('returning-rear',!opening&&from.flipped);
  if(!opening&&from.flipped)scene.faceMotion=node.querySelector('.bank-card').animate([{transform:'rotateY(180deg)'},{transform:'rotateY(360deg)'}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
- const motion=node.animate(reduce?[{opacity:0},{opacity:1}]:[{transform:start},{transform:end}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});scene.motion=motion;cardTransition=motion;
+ const frames=oldPose?[{transform:start},{transform:end}]:Array.from({length:17},(_,i)=>{const p=i/16,rect={x:from.rect.x+(destination.x-from.rect.x)*p,y:from.rect.y+(destination.y-from.rect.y)*p,width:from.rect.width+(destination.width-from.rect.width)*p,height:from.rect.height+(destination.height-from.rect.height)*p};node.style.transformOrigin='center center';return {offset:p,transform:poseFor(rect,base.width,opening?65*(1-p):65*p)}});if(!oldPose)node.style.transform=frames[0].transform;
+ const motion=node.animate(reduce?[{opacity:0},{opacity:1}]:frames,{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});scene.motion=motion;cardTransition=motion;
  motion.finished.then(async()=>{await Promise.all([...to.querySelectorAll('img')].map(img=>img.decode().catch(()=>{})));if(preciseCardScene!==scene)return;requestAnimationFrame(()=>{if(preciseCardScene!==scene)return;const finalRect=to.getBoundingClientRect();if(opening){motion.cancel();Object.assign(node.style,{left:finalRect.left+'px',top:finalRect.top+'px',width:finalRect.width+'px',height:finalRect.height+'px',transform:'none'})}to.style.opacity='';node.remove();snapshot?.remove();header?.remove();preciseCardScene=null;delete document.documentElement.dataset.gesture;restoreOperationsNav()})}).catch(()=>{});
 };
 // The card carousel owns only its own strip. The rest of Home opens all operations.

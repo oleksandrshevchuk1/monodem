@@ -7,7 +7,7 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,*::-webkit-scrollbar{display:non
 #nav{touch-action:manipulation;isolation:isolate}
 @media(hover:none){button:hover{filter:none}}
 
-.glass-history-backdrop{contain:strict}.home-product{contain:layout paint}
+.glass-history-backdrop{contain:strict}.home-product{contain:layout}
 .installed-scroll,.installed-scroll body{height:100%;overflow:hidden!important}
 .pwa-scroll{position:fixed;inset:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:none;-webkit-overflow-scrolling:touch;scrollbar-width:none!important}
 body.document-open .pwa-scroll{overflow:hidden}
@@ -19,3 +19,8 @@ body.document-open .pwa-scroll{overflow:hidden}
 
 html,body{touch-action:pan-x pan-y}
 .pwa-scroll{z-index:36}.installed-scroll #nav{z-index:60}
+
+/* Reserve room for the selected swatch ring and complete product names. */
+.home-product-track{padding-top:4px;padding-bottom:4px}
+.home-product .product-title{white-space:normal;overflow-wrap:normal;min-height:51px;margin-bottom:6px}
+.home-product .product-colors{padding:4px;min-height:18px;flex-shrink:0;margin-bottom:6px}
