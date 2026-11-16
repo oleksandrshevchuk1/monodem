@@ -35,3 +35,13 @@
 
 /* Recover the original raised edge and floating depth on the home card. */
 .card-face{box-shadow:0 6px 0 #080c13,0 35px 28px #030b1b7a}
+
+/* Recorded card materials: cool reflections when tilted, neutral finish when open. */
+.card-face .bank-card-front,.expanded-card .bank-card-front,.soft-card-surface .bank-card-front{background:linear-gradient(180deg,#222 0%,#1a1a1a 48%,#101010 100%)}
+.card-face .is-white .bank-card-front,.expanded-card .is-white .bank-card-front,.soft-card-surface .is-white .bank-card-front{background:linear-gradient(180deg,#f9f8fb 0%,#eff0f3 40%,#e0e4ea 100%)}
+.card-material{position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;background:linear-gradient(180deg,#121a2a 0%,#171c2b 28%,#1c2028 62%,#24262b 90%,#2a2b30 100%)}
+.is-white .card-material{background:linear-gradient(180deg,#888aab 0%,#9698b1 28%,#c1c1d1 67%,#f0f0f3 100%)}
+.card-face .card-material{opacity:1}
+.card-face:has(.is-white){box-shadow:0 6px 0 #777b86,0 35px 28px #030b1b7a}
+.is-white .card-brand{filter:brightness(0)}
+.is-white .card-holder{color:#171719}
