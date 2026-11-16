@@ -15,4 +15,13 @@ for(const bank of demoBanks)if(sharpBankMarks[bank.logo])bank.logo=sharpBankMark
 const renderBeforeSharpMarks=render;render=function(){renderBeforeSharpMarks();document.querySelectorAll('img[src]').forEach(img=>{const source=img.getAttribute('src');if(sharpBankMarks[source])img.src=sharpBankMarks[source]})};render();
 
 const flipBeforeSettledFaces=actions['flip-card'];
-actions['flip-card']=()=>{const card=$('.expanded-card');if(!card)return;const token={};card._faceToken=token;card.classList.add('flipping');flipBeforeSettledFaces();requestAnimationFrame(()=>{const motions=card.querySelector('.bank-card').getAnimations();Promise.allSettled(motions.map(a=>a.finished)).then(()=>{if(card._faceToken===token)card.classList.remove('flipping')})})};
+actions['flip-card']=()=>{
+ const card=$('.expanded-card');if(!card)return;
+ const art=card.querySelector('.bank-card'),start=getComputedStyle(art).transform,token={};
+ card._faceToken=token;card._flipMotion?.cancel();art.style.transition='none';card.classList.add('flipping');
+ flipBeforeSettledFaces();
+ const end=getComputedStyle(art).transform;
+ const motion=art.animate([{transform:start},{transform:end}],{duration:shouldReduceMotion()?1:500,easing:getComputedStyle(document.documentElement).getPropertyValue('--ease-in-out').trim()||'ease-in-out',fill:'both'});
+ card._flipMotion=motion;
+ motion.finished.then(()=>{if(card._faceToken!==token)return;motion.cancel();art.style.transition='';card._flipMotion=null;card.classList.remove('flipping')}).catch(()=>{});
+};
