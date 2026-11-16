@@ -6,7 +6,7 @@
   if(response.ok){location.replace(next);return}
   if(response.status!==401&&response.status!==403)throw Error(value.error||'Не вдалося перевірити доступ.');
   setup=value.setupRequired===true;
-  if(setup){document.querySelector('#heading').textContent='Створення головного кабінету';document.querySelector('#intro').textContent='Введіть одноразовий ключ власника та задайте свій логін і пароль.';document.querySelector('#setup-key-row').hidden=false;form.elements.setupKey.required=true;form.elements.password.minLength=12;form.elements.password.autocomplete='new-password';button.textContent='Створити головний кабінет';document.querySelector('#footnote').textContent='Одноразовий ключ зберігається у приватному файлі OWNER-SETUP.txt.'}
+  if(setup){document.querySelector('#heading').textContent='Створення головного кабінету';document.querySelector('#intro').textContent='Введіть одноразовий ключ власника та задайте свій логін і пароль.';document.querySelector('#setup-key-row').hidden=false;form.elements.setupKey.required=true;form.elements.password.minLength=12;form.elements.password.autocomplete='new-password';button.textContent='Створити головний кабінет';document.querySelector('#footnote').textContent='Одноразовий ключ зберігається у приватному файлі OWNER-SETUP-KEY.txt.'}
  window.dismissLaunchSplash?.();
  }catch(err){error.textContent=err.message;button.disabled=true;window.dismissLaunchSplash?.();return}
  form.onsubmit=async event=>{event.preventDefault();document.activeElement?.blur();window.showLaunchSplash?.();error.textContent='';button.disabled=true;const label=button.textContent;button.textContent='Перевіряємо…';

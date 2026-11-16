@@ -33,7 +33,7 @@ function releaseStableBoot(){
 const bootObserver=new MutationObserver(releaseStableBoot);bootObserver.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['data-ready']});document.addEventListener('DOMContentLoaded',()=>setTimeout(releaseStableBoot,0));
 
 document.documentElement.dataset.appVersion='60';
-const settingsBeforeBuildLabel=appSettingsPage;appSettingsPage=function(){return settingsBeforeBuildLabel()+'<p class="build-version">Версія 59</p>'};
+const settingsBeforeBuildLabel=appSettingsPage;appSettingsPage=function(){return settingsBeforeBuildLabel()+'<p class="build-version">Версія 60</p>'};
 
 // Sense has its own full-size identity; transfer badges belong to other banks.
 const recipientBeforeFullSense=recipientPicture;recipientPicture=function(person){const bank=bankPreset(person);return bank.id==='sense'?`<img class="sense-full-logo" src="${bank.logo}" alt="Sense Bank" draggable="false">`:recipientBeforeFullSense(person)};
