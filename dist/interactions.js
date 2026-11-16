@@ -54,7 +54,7 @@ const normalizedCard=value=>String(value||'').replace(/[\s-]/g,'');
 
 function bankForRecipient(number){const card=normalizedCard(number),own=allCards().find(c=>normalizedCard(c.card)===card),contact=state.contacts.find(c=>normalizedCard(c.card)===card);if(own)return {bankType:'mono',bankName:'monobank',logo:null};if(contact)return {bankType:contact.bankType||'other',bankName:contact.bankName||'',logo:contact.logo||null};const prefix=[...(state.bankDirectory||[])].sort((a,b)=>b.prefix.length-a.prefix.length).find(b=>card.startsWith(b.prefix));return prefix?{bankType:prefix.bankType,bankName:prefix.name,logo:prefix.logo||null}:{bankType:'other',bankName:'Інший банк',logo:null}}
 
-transfer=function(type='card',prefill={}){if(type!=='card')return legacyTransfer(type,prefill);blocked();recipientDraft=prefill.recipient?{...bankForRecipient(prefill.recipient),...prefill}:null;navigate(recipientDraft?'transferAmount':'transfer')};
+transfer=function(type='card',prefill={}){if(type!=='card')return legacyTransfer(type,prefill);blocked();recipientDraft=prefill.recipient?{...bankForRecipient(prefill.recipient),...prefill,amount:prefill.amount?Math.abs(Number(prefill.amount)):''}:null;navigate(recipientDraft?'transferAmount':'transfer')};
 
 function transferSymbol(){return `<svg class="icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h19v17M5 9h19v18H5zM9 14l5 4-5 4m5-4H8"/></svg>`}
 

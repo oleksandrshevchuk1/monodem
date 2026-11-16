@@ -56,13 +56,16 @@ document.querySelector('#modal').addEventListener('close',()=>{if(!document.quer
 // Keep the dialog in the top layer until its exit finishes.
 const animatedDialog=document.querySelector('#modal'),nativeDialogClose=animatedDialog.close.bind(animatedDialog);
 let dialogExit=null;
-function finishDialogExit(){const exit=dialogExit;if(!exit)return;dialogExit=null;exit.motion.cancel();delete animatedDialog.dataset.closing;nativeDialogClose(exit.value)}
+function finishDialogExit(){const exit=dialogExit;if(!exit)return;dialogExit=null;nativeDialogClose(exit.value);exit.motion.cancel();delete animatedDialog.dataset.closing}
 animatedDialog.close=function(value){
  if(!this.open||dialogExit)return;
  if(!['sheet','profile'].includes(this.dataset.kind)||shouldReduceMotion()){nativeDialogClose(value);return}
- this.dataset.closing='true';
- const motion=this.animate([{transform:'translateY(0)',opacity:1},{transform:'translateY(100%)',opacity:0}],{duration:180,easing:'cubic-bezier(.4,0,1,1)',fill:'both'});
+ const pose=getComputedStyle(this),fromTransform=pose.transform,fromOpacity=pose.opacity;this.getAnimations().forEach(animation=>animation.cancel());this.dataset.closing='true';
+ const motion=this.animate([{transform:fromTransform,opacity:fromOpacity},{transform:'translateY(100%)',opacity:0}],{duration:180,easing:'cubic-bezier(.4,0,1,1)',fill:'both'});
  const exit={motion,value};dialogExit=exit;motion.finished.then(()=>{if(dialogExit===exit)finishDialogExit()}).catch(()=>{});
 };
 animatedDialog.addEventListener('cancel',event=>{event.preventDefault();animatedDialog.close()});
 const modalBeforeAnimatedExit=modal;modal=function(...args){finishDialogExit();modalBeforeAnimatedExit(...args);prepareVisibleGlyphs()};
+
+const backBeforeExitGuard=back;back=function(){if(sideEntrance?.isRouteExit)return;return backBeforeExitGuard()};actions.back=()=>back();
+document.documentElement.dataset.runtimeReady='true';updateInstalledViewport();releaseStableBoot();

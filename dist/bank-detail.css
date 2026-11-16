@@ -1,0 +1,36 @@
+.bank-reference-detail{padding-top:calc(var(--safe-header) + 52px);background:#111;min-height:100lvh}
+.bank-reference-detail .reference-operation-pattern{height:calc(var(--safe-header) + 130px)!important;background-size:80px 80px!important}
+.bank-reference-detail[data-direction=expense] .reference-operation-pattern{background:#625bd3 url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj48ZyBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS1vcGFjaXR5PSIuMTQiIHN0cm9rZS13aWR0aD0iMS44Ij48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyNCAyNCkgcm90YXRlKC00MykiPjxyZWN0IHg9Ii0xNiIgeT0iLTEwIiB3aWR0aD0iMzIiIGhlaWdodD0iMjAiIHJ4PSIyIi8+PHBhdGggZD0iTS0xNi00aDMybS0yNSA5aDkiLz48L2c+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoODQgODQpIHJvdGF0ZSgtNDMpIj48cmVjdCB4PSItMTYiIHk9Ii0xMCIgd2lkdGg9IjMyIiBoZWlnaHQ9IjIwIiByeD0iMiIvPjxwYXRoIGQ9Ik0tMTYtNGgzMm0tMjUgOWg5Ii8+PC9nPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDg0IDI0KSByb3RhdGUoLTQzKSI+PHJlY3QgeD0iLTE2IiB5PSItMTAiIHdpZHRoPSIzMiIgaGVpZ2h0PSIyMCIgcng9IjIiLz48Y2lyY2xlIHI9IjUiLz48cGF0aCBkPSJNLTE2LTRoNHYtNm0yOCAxNGgtNHY2Ii8+PC9nPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDI0IDg0KSByb3RhdGUoLTQzKSI+PHJlY3QgeD0iLTE2IiB5PSItMTAiIHdpZHRoPSIzMiIgaGVpZ2h0PSIyMCIgcng9IjIiLz48Y2lyY2xlIHI9IjUiLz48cGF0aCBkPSJNLTE2LTRoNHYtNm0yOCAxNGgtNHY2Ii8+PC9nPjwvZz48L3N2Zz4K) repeat!important;background-size:80px 80px!important}
+.bank-reference-detail[data-direction=income][data-bank=privat] .reference-operation-pattern{background:radial-gradient(ellipse at 50% 45%,#68885f 0%,#81977a 45%,#a0ab9c 100%)!important}
+.bank-reference-detail[data-direction=income]:not([data-bank=privat]):not([data-bank=mono]) .reference-operation-pattern{background:radial-gradient(ellipse at 50% 45%,#708679,#98a69b 100%)!important}
+.bank-reference-detail .reference-operation-head{background:#252525!important;border-radius:18px 18px 0 0!important;padding:47px 16px 18px;overflow:visible!important}
+.bank-reference-detail .reference-operation-avatar{width:64px;height:64px;top:-32px;margin:0;background:#352ca8;box-shadow:0 2px 4px #0001;overflow:visible}
+.bank-reference-detail .reference-operation-avatar>.icon{width:39px;height:39px;color:white}
+.bank-reference-detail .outgoing-bank-avatar>.icon{width:45px;height:45px}
+.bank-reference-detail .reference-operation-avatar .bank-badge{width:25px;height:25px;right:0;bottom:0;background:#dff4d6;opacity:1;object-fit:contain;padding:0;border:0}
+.bank-reference-detail .full-bank-avatar{background:#def3d5;overflow:hidden}
+.bank-reference-detail .full-bank-avatar>img{width:56%;height:56%;object-fit:contain;border-radius:0}
+.bank-reference-detail[data-bank=sense] .full-bank-avatar>img{width:100%;height:100%}
+.bank-reference-detail .reference-operation-head>h1{font-size:16px!important;font-weight:400!important;line-height:22px;margin-bottom:16px}
+.bank-reference-detail .reference-category{gap:8px;margin-bottom:19px}
+.bank-reference-detail .reference-category>span{background:#656565}
+.bank-reference-detail .reference-category>button{background:#4435ba;font-size:13px;font-weight:400;line-height:16px;padding:4px 15px;color:#fff}
+.bank-reference-detail[data-direction=income] .reference-category>button{background:#000}
+.bank-reference-detail .reference-operation-head>p{font-size:14px;line-height:19px;margin-bottom:14px;color:#aaa}
+.bank-reference-detail .reference-operation-amount{font-size:48px;line-height:52px;letter-spacing:-1.2px;font-weight:500;color:#e5e5e5}
+.bank-reference-detail .operation-minor{font-size:.68em;letter-spacing:-.5px}
+.bank-reference-detail .reference-operation-body{background:#111!important;padding:16px}
+.bank-reference-detail .reference-operation-edit,.bank-reference-detail .reference-balance{background:#252525!important;border-radius:20px}
+.bank-reference-detail .reference-operation-edit .icon{color:#8c8c8c}
+.bank-reference-detail .reference-balance{margin-bottom:0;font-weight:400}
+.bank-reference-detail .bank-balance-glyph{width:25px;height:25px;background:none!important;padding:0!important}
+.bank-reference-detail .incoming-menu{background:#252525!important;min-height:calc(100lvh - 540px)}
+.bank-reference-detail .incoming-menu>.menu-row{border-bottom:1px solid #555;margin-left:0}
+.bank-reference-detail .incoming-menu>.menu-row>.icon{color:#e1e1e1}
+#modal[data-closing=true]::backdrop{animation:dialog-backdrop-close 180ms ease-in both}
+@keyframes dialog-backdrop-close{from{background-color:#06071166}to{background-color:#06071100}}
+
+/* Equal gutters above, between and below the operation cards. */
+.bank-reference-detail .reference-operation-body{display:flex;flex-direction:column;gap:16px}
+.bank-reference-detail .reference-operation-body> *{margin-top:0!important;margin-bottom:0!important}
+

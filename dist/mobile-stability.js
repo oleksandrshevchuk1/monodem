@@ -29,11 +29,11 @@ function updateInstalledViewport(){
 window.addEventListener('resize',updateInstalledViewport,{passive:true});window.visualViewport?.addEventListener('resize',updateInstalledViewport,{passive:true});window.addEventListener('pageshow',()=>requestAnimationFrame(updateInstalledViewport));document.addEventListener('DOMContentLoaded',()=>requestAnimationFrame(updateInstalledViewport));
 // Show only the ready entry screen (or ready admin), never a transient loading row.
 let stableGlyphsReady=false;Promise.all([...readyReferenceImages,...readyAssetImages,...readyCharacterImages].map(img=>img.decode().catch(()=>{}))).then(()=>{stableGlyphsReady=true;releaseStableBoot()});
-function releaseStableBoot(){if(loading||!stableGlyphsReady)return;const entry=document.querySelector('.entry-overlay');if(!adminMode&&entry&&entry.dataset.ready!=='true')return;document.documentElement.classList.remove('booting');bootObserver.disconnect()}
+function releaseStableBoot(){if(loading||!stableGlyphsReady||document.documentElement.dataset.runtimeReady!=='true')return;const entry=document.querySelector('.entry-overlay');if(!adminMode&&entry&&entry.dataset.ready!=='true')return;document.documentElement.classList.remove('booting');bootObserver.disconnect()}
 const bootObserver=new MutationObserver(releaseStableBoot);bootObserver.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['data-ready']});document.addEventListener('DOMContentLoaded',()=>setTimeout(releaseStableBoot,0));
 
-document.documentElement.dataset.appVersion='50';
-const settingsBeforeBuildLabel=appSettingsPage;appSettingsPage=function(){return settingsBeforeBuildLabel()+'<p class="build-version">Версія 50</p>'};
+document.documentElement.dataset.appVersion='51';
+const settingsBeforeBuildLabel=appSettingsPage;appSettingsPage=function(){return settingsBeforeBuildLabel()+'<p class="build-version">Версія 51</p>'};
 
 // Sense has its own full-size identity; transfer badges belong to other banks.
 const recipientBeforeFullSense=recipientPicture;recipientPicture=function(person){const bank=bankPreset(person);return bank.id==='sense'?`<img class="sense-full-logo" src="${bank.logo}" alt="Sense Bank" draggable="false">`:recipientBeforeFullSense(person)};
