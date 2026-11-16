@@ -45,3 +45,7 @@
 .card-face:has(.is-white){box-shadow:0 6px 0 #777b86,0 35px 28px #030b1b7a}
 .is-white .card-brand{filter:brightness(0)}
 .is-white .card-holder{color:#171719}
+
+/* Use the same compositing plane before, during and after the morph. */
+.card-face .bank-card-front,.card-face .bank-card-back{contain:none;transform-style:preserve-3d}
+.card-face .bank-card-front{transform:rotateY(0deg) translateZ(.1px)}

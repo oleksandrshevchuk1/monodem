@@ -16,13 +16,13 @@ function cardPlaneBounds(matrix,width,height){
 }
 expandTransition=function(from,to,opening){
  if(!from||!to)return;
- let sourceShadow=from.shadow,shadowWidth=from.geometry.width,materialStart=from.materialOpacity;
+ let sourceShadow=from.shadow,shadowWidth=from.geometry.width,materialStart=from.materialOpacity,faceShadowStart=from.faceShadow;
  const previous=preciseCardScene,geometry=stableCardGeometry(to),reduce=shouldReduceMotion(),duration=reduce?100:460;
  const source=from.geometry,width=geometry.width,height=geometry.height,base={x:geometry.layout.x,y:geometry.layout.y,width,height};
  const origin=geometry.origin,originMatrix=new DOMMatrix().translate(origin[0],origin[1]);
  let sourceLayout=source.layout,startRelative=new DOMMatrix().translate(source.origin[0],source.origin[1]).multiply(new DOMMatrix(source.raw)).translate(-source.origin[0],-source.origin[1]).scale(source.width/width,source.height/height);
  const endRelative=originMatrix.multiply(new DOMMatrix(geometry.raw)).translate(-origin[0],-origin[1]);
- if(previous){const oldMaterial=previous.node.querySelector('.card-material');if(oldMaterial)materialStart=getComputedStyle(oldMaterial).opacity;sourceShadow=getComputedStyle(previous.body).boxShadow;shadowWidth=previous.base.width;const oldOrigin=previous.origin;sourceLayout=previous.base;startRelative=new DOMMatrixReadOnly(getComputedStyle(previous.node).transform).translate(oldOrigin[0],oldOrigin[1]).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.plane).transform)).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.body).transform)).translate(-oldOrigin[0],-oldOrigin[1]).scale(previous.base.width/width,previous.base.height/height);previous.motion.cancel();previous.planeMotion.cancel();previous.target.style.opacity='';previous.node.remove();previous.backdrop?.remove()}
+ if(previous){faceShadowStart=getComputedStyle(previous.node.querySelector('.bank-card-front')).boxShadow;const oldMaterial=previous.node.querySelector('.card-material');if(oldMaterial)materialStart=getComputedStyle(oldMaterial).opacity;sourceShadow=getComputedStyle(previous.body).boxShadow;shadowWidth=previous.base.width;const oldOrigin=previous.origin;sourceLayout=previous.base;startRelative=new DOMMatrixReadOnly(getComputedStyle(previous.node).transform).translate(oldOrigin[0],oldOrigin[1]).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.plane).transform)).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.body).transform)).translate(-oldOrigin[0],-oldOrigin[1]).scale(previous.base.width/width,previous.base.height/height);previous.motion.cancel();previous.planeMotion.cancel();previous.target.style.opacity='';previous.node.remove();previous.backdrop?.remove()}
  const sourceRect=cardPlaneBounds(new DOMMatrix().translate(sourceLayout.x,sourceLayout.y).multiply(startRelative),width,height),destination=cardPlaneBounds(new DOMMatrix().translate(base.x,base.y).multiply(endRelative),width,height);
  const node=document.createElement('div');node.className='card-transition soft-card-surface precise-card-surface';
  const plane=document.createElement('div');plane.className='travelling-card-plane';Object.assign(plane.style,{width:'100%',height:'100%',transformStyle:'preserve-3d',transformOrigin:origin[0]+'px '+origin[1]+'px'});
@@ -44,6 +44,8 @@ expandTransition=function(from,to,opening){
  plane.animate([{borderRadius:((from.cornerRadius||parseFloat(targetRadius))*width/source.width)+'px'},{borderRadius:targetRadius}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  const shadowStart=(sourceShadow||getComputedStyle(to).boxShadow).replace(/(-?(?:\d*\.)?\d+)px/g,(_,value)=>(Number(value)*width/shadowWidth)+'px');
  body.animate([{boxShadow:shadowStart},{boxShadow:getComputedStyle(to).boxShadow}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
+ const front=art.querySelector('.bank-card-front'),targetFront=to.querySelector('.bank-card-front');
+ if(front&&targetFront){const targetShadow=getComputedStyle(targetFront).boxShadow;front.style.boxShadow=targetShadow;front.animate([{boxShadow:faceShadowStart||'none'},{boxShadow:targetShadow}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'})}
  const material=art.querySelector('.card-material'),targetMaterial=to.querySelector('.card-material');
  if(material&&targetMaterial)material.animate([{opacity:materialStart??getComputedStyle(targetMaterial).opacity},{opacity:getComputedStyle(targetMaterial).opacity}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  const reflection=art.querySelector('.card-glint'),targetReflection=to.querySelector('.card-glint');
