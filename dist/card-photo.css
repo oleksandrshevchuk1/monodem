@@ -13,3 +13,12 @@
 .cvv-countdown:before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(#101b1a calc(var(--remaining,1)*1turn),#eef5ef 0);mask:radial-gradient(farthest-side,transparent calc(100% - .85cqw),#000 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - .85cqw),#000 0);z-index:-1}
 .cvv-minutes{display:block;font-size:3cqw;font-weight:500;line-height:1;align-self:end}
 .cvv-countdown small{display:block;font-size:1.65cqw;font-weight:500;line-height:1.2;align-self:start;margin:.2cqw 0 0;padding:0;color:#fff}
+
+/* Center the printed ink, including the trailing tracking space. */
+.card-face .card-printed-number,.expanded-card .card-printed-number,.precise-card-surface .card-printed-number,.soft-card-surface .card-printed-number{left:50%!important;right:auto!important;width:max-content;transform:translateX(calc(-50% + .45cqw));text-align:left}
+/* Photo proportions, adapted to the existing dark card finish. */
+.expanded-card .bank-card:not(.is-white) .bank-card-back,.soft-card-surface .bank-card:not(.is-white) .bank-card-back{background:linear-gradient(160deg,#343b39,#262e2d 55%,#1b2323)}
+.bank-card .magstripe{position:absolute;top:14%;left:0;width:100%;height:20%;margin:0;background:linear-gradient(100deg,#7f8987,#929c99 55%,#78827f)}
+.bank-card .card-expiry{right:5%;bottom:44%;font-size:6cqw;line-height:1;letter-spacing:.15cqw;color:#f3f5f4}
+.bank-card .card-back-number{right:5%;bottom:7%;width:40%;height:20%;border-radius:2cqw;background:radial-gradient(circle,#d0dbd17a .28cqw,transparent .4cqw) 0 0/1.8cqw 1.8cqw,linear-gradient(115deg,#52615e,#73807b);overflow:hidden}
+.bank-card .card-demo-cvv{font-family:DemoInter,sans-serif;font-size:5cqw;line-height:1;right:8%;letter-spacing:0;color:#fff;text-shadow:0 1px 2px #1b252580}
