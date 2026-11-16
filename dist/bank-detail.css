@@ -34,3 +34,11 @@
 .bank-reference-detail .reference-operation-body{display:flex;flex-direction:column;gap:16px}
 .bank-reference-detail .reference-operation-body> *{margin-top:0!important;margin-bottom:0!important}
 
+
+/* One bank image supplies the entire backdrop; no unrelated tint behind it. */
+.bank-reference-detail[data-direction=income] .bank-image-background{background:#252525!important;overflow:hidden;isolation:isolate}
+.bank-image-background>img{display:block;position:absolute;inset:-35%;width:170%;height:170%;max-width:none;object-fit:cover;filter:blur(24px);opacity:.7}
+.bank-reference-detail[data-bank=sense] .reference-operation-avatar{background:#3218ff!important;box-shadow:none;overflow:hidden;border:0}
+.bank-reference-detail[data-bank=sense] .reference-operation-avatar>img{width:100%!important;height:100%!important;object-fit:contain!important;border-radius:0}
+/* Frozen surfaces must not restart descendant entrance effects on reparenting. */
+.side-page-snapshot *{animation:none!important;transition:none!important}
