@@ -10,3 +10,5 @@ data/receipt-previews
 OWNER-SETUP.txt
 data/identity*.json
 data/tenants
+
+OWNER-SETUP-KEY.txt

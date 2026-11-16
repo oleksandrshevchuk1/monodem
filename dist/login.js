@@ -10,6 +10,6 @@
  window.dismissLaunchSplash?.();
  }catch(err){error.textContent=err.message;button.disabled=true;window.dismissLaunchSplash?.();return}
  form.onsubmit=async event=>{event.preventDefault();document.activeElement?.blur();window.showLaunchSplash?.();error.textContent='';button.disabled=true;const label=button.textContent;button.textContent='Перевіряємо…';
-  try{const payload=Object.fromEntries(new FormData(form));const response=await fetch('/api/auth/'+(setup?'setup':'login'),{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(payload)});const value=await response.json();if(!response.ok)throw Error(value.error||'Не вдалося увійти.');form.reset();location.replace(setup&&!location.pathname.startsWith('/mono/')?'/admin/':next)}catch(err){error.textContent=err.message;button.disabled=false;button.textContent=label;window.dismissLaunchSplash?.()}
+  try{const payload=Object.fromEntries(new FormData(form));if(setup)payload.setupKey=String(payload.setupKey||'').replace(/\s+/g,'');const response=await fetch('/api/auth/'+(setup?'setup':'login'),{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(payload)});const value=await response.json();if(!response.ok)throw Error(value.error||'Не вдалося увійти.');form.reset();location.replace(setup&&!location.pathname.startsWith('/mono/')?'/admin/':next)}catch(err){error.textContent=err.message;button.disabled=false;button.textContent=label;window.dismissLaunchSplash?.()}
  };
 })();

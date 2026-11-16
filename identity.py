@@ -176,7 +176,7 @@ class Accounts:
             self.store.delete('session:' + hashlib.sha256(token.encode()).hexdigest())
 
     def bootstrap(self, payload):
-        key = str(payload.get('setupKey', ''))
+        key = re.sub(r'\s+', '', str(payload.get('setupKey', '')))
         if not hmac.compare_digest(hashlib.sha256(key.encode()).hexdigest(), BOOTSTRAP_HASH):
             raise AccessError(403, 'Невірний одноразовий ключ.', 'INVALID_SETUP_KEY')
         login = username(payload.get('login'))

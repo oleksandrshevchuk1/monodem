@@ -32,7 +32,7 @@ function releaseStableBoot(){
 }
 const bootObserver=new MutationObserver(releaseStableBoot);bootObserver.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['data-ready']});document.addEventListener('DOMContentLoaded',()=>setTimeout(releaseStableBoot,0));
 
-document.documentElement.dataset.appVersion='59';
+document.documentElement.dataset.appVersion='60';
 const settingsBeforeBuildLabel=appSettingsPage;appSettingsPage=function(){return settingsBeforeBuildLabel()+'<p class="build-version">Версія 59</p>'};
 
 // Sense has its own full-size identity; transfer badges belong to other banks.
