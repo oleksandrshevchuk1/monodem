@@ -29,15 +29,22 @@ expandTransition=function(from,to,opening){
  Object.assign(node.style,{position:'fixed',left:base.x+'px',top:base.y+'px',width:width+'px',height:height+'px',zIndex:'48',pointerEvents:'none',transformOrigin:'0 0'});document.body.append(node);
  const full=node.querySelector('.card-number-full'),masked=node.querySelector('.card-number-masked');
  for(const [el,a,b] of [[full,opening?0:1,opening?1:0],[masked,opening?1:0,opening?0:1],[node.querySelector('.card-holder'),opening?0:1,opening?1:0]])if(el){el.style.display='block';if(el===masked)Object.assign(el.style,{position:'absolute',left:'0',top:'0'});el.animate([{opacity:a},{opacity:b}],{duration,fill:'both'})}
- // Reuse the exact CSS plane of each live card. Interpolate projected corners,
- // rather than Safari's axis-aligned 3D bounds, then reveal an identical plane.
- const startValues=Array.from(startRelative.toFloat64Array()),endValues=Array.from(endRelative.toFloat64Array()),planeFrames=[];
- const frames=Array.from({length:25},(_,i)=>{const t=i/24,values=startValues.map((v,j)=>v+(endValues[j]-v)*t),matrix=new DOMMatrix(values),paint=cardPlaneBounds(matrix,width,height);
-  const desired={x:sourceRect.x+(destination.x-sourceRect.x)*t,y:sourceRect.y+(destination.y-sourceRect.y)*t,width:sourceRect.width+(destination.width-sourceRect.width)*t,height:sourceRect.height+(destination.height-sourceRect.height)*t};
-  const correction=new DOMMatrix().translate(desired.x-base.x,desired.y-base.y).scale(desired.width/paint.width,desired.height/paint.height).translate(-paint.x,-paint.y);
-  planeFrames.push({offset:t,transform:new DOMMatrix().translate(-origin[0],-origin[1]).multiply(matrix).translate(origin[0],origin[1]).toString()});
-  return {offset:t,transform:correction.toString()};
- });
+ // Interpolate one rigid 3D plane. Independent width/height corrections stretch the artwork.
+ const localMatrix=matrix=>new DOMMatrix().translate(-origin[0],-origin[1]).multiply(matrix).translate(origin[0],origin[1]).toString();
+ const endpoints=[{transform:localMatrix(startRelative)},{transform:localMatrix(endRelative)}];
+ const probe=plane.animate(endpoints,{duration:1000,fill:'both'});probe.pause();
+ const planeFrames=[],frames=[];
+ for(let i=0;i<=48;i++){
+  const t=i/48;probe.currentTime=t*1000;
+  const local=new DOMMatrixReadOnly(getComputedStyle(plane).transform),matrix=originMatrix.multiply(local).translate(-origin[0],-origin[1]);
+  const paint=cardPlaneBounds(matrix,width,height),desiredWidth=sourceRect.width+(destination.width-sourceRect.width)*t;
+  const cx=sourceRect.x+sourceRect.width/2+(destination.x+destination.width/2-sourceRect.x-sourceRect.width/2)*t;
+  const cy=sourceRect.y+sourceRect.height/2+(destination.y+destination.height/2-sourceRect.y-sourceRect.height/2)*t;
+  const scale=desiredWidth/paint.width;
+  const correction=new DOMMatrix().translate(cx-base.x,cy-base.y).scale(scale).translate(-paint.x-paint.width/2,-paint.y-paint.height/2);
+  planeFrames.push({offset:t,transform:local.toString()});frames.push({offset:t,transform:correction.toString()});
+ }
+ probe.cancel();
  node.style.transform=frames[0].transform;plane.style.transform=planeFrames[0].transform;
  const targetArtStyle=getComputedStyle(to.querySelector('.bank-card')),targetRadius=targetArtStyle.borderTopLeftRadius;
  // Keep the same projected corner size when replacing the live card with the moving plane.
@@ -45,7 +52,7 @@ expandTransition=function(from,to,opening){
  art.animate([{borderRadius:((from.cornerRadius||parseFloat(targetRadius))*width/source.width)+'px'},{borderRadius:targetRadius}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  plane.style.borderRadius=targetRadius;
  plane.animate([{borderRadius:((from.cornerRadius||parseFloat(targetRadius))*width/source.width)+'px'},{borderRadius:targetRadius}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
- plane.animate([{boxShadow:from.shadow||'none'},{boxShadow:getComputedStyle(to).boxShadow}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
+ plane.style.boxShadow='none';
  const rear=!opening&&from.flipped;node.classList.toggle('returning-rear',rear);
  if(rear)art.animate([{transform:'rotateY(180deg)'},{transform:'rotateY(360deg)'}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  const snapshot=from.snapshot;if(snapshot){snapshot.querySelectorAll('.card-face,.expanded-card,.card-header-mini,.transition-nav').forEach(el=>el.style.visibility='hidden');snapshot.style.zIndex='37';document.body.append(snapshot);snapshot.animate([{opacity:1},{opacity:0}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'}).finished.catch(()=>{})}
