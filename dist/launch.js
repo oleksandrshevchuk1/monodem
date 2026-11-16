@@ -13,7 +13,7 @@
   await document.fonts.ready;await new Promise(resolve=>setTimeout(resolve,Math.max(0,600-(performance.now()-visibleSince))));
   if(!layer.isConnected||exit||run!==generation)return;
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const animation=layer.animate([{opacity:1},{opacity:0}],{duration:reduce?120:360,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});exit=animation;
+  const animation=layer.animate([{opacity:1},{opacity:0}],{duration:reduce?120:280,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});exit=animation;
   animation.finished.then(()=>{if(exit!==animation)return;layer.remove();exit=null}).catch(()=>{});
  };
 })();

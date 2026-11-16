@@ -1,6 +1,6 @@
 'use strict';
 (async()=>{
- const form=document.querySelector('#login-form'),error=document.querySelector('#auth-error'),button=form.querySelector('button');
+ const form=document.querySelector('#login-form'),error=document.querySelector('#auth-error'),button=form.querySelector('button[type=submit]');
  const next=new URLSearchParams(location.search).get('next')==='admin'||location.pathname.startsWith('/admin/')?'/admin/':'/mono/';let setup=false;if(next==='/admin/'){document.querySelector('#login-manifest').href='/admin-manifest.json';document.querySelector('meta[name=apple-mobile-web-app-title]').content='Адмінка'}
  try{const response=await fetch('/api/auth/session',{credentials:'same-origin',cache:'no-store'});const value=await response.json();
   if(response.ok){location.replace(next);return}
