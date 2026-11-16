@@ -86,3 +86,19 @@ for(const type of ['touchstart','touchmove','touchend','touchcancel','pointerdow
   const handler=app['on'+type];if(handler)handler.call(app,event);
  },{passive:false});
 }
+
+// Request the platform portrait lock; retain an honest fallback on unsupported browsers.
+(()=>{
+ const guard=document.createElement('div');guard.id='portrait-guard';guard.hidden=true;guard.setAttribute('role','status');
+ guard.innerHTML='<svg viewBox="0 0 48 64" aria-hidden="true"><rect x="9" y="2" width="30" height="58" rx="6" fill="none" stroke="currentColor" stroke-width="3"/><path d="M21 53h6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg><p>Поверніть телефон вертикально</p>';
+ document.body.append(guard);
+ const touch=matchMedia('(hover: none) and (pointer: coarse)');let locking=false;const saved=new Map();
+ function landscape(){const type=screen.orientation?.type;if(type)return type.startsWith('landscape');if(typeof window.orientation==='number')return Math.abs(window.orientation)===90;return matchMedia('(orientation: landscape)').matches;}
+ function update(){const show=touch.matches&&landscape();guard.hidden=!show;
+  for(const el of [document.querySelector('#app'),document.querySelector('#nav'),document.querySelector('#modal')].filter(Boolean)){
+   if(show){if(!saved.has(el))saved.set(el,el.inert);el.inert=true;}else if(saved.has(el)){el.inert=saved.get(el);saved.delete(el);}
+  }
+ }
+ async function lock(){if(locking||!touch.matches||!screen.orientation?.lock)return;locking=true;try{await screen.orientation.lock('portrait-primary')}catch{}finally{locking=false;update()}}
+ window.addEventListener('orientationchange',()=>{update();lock()});screen.orientation?.addEventListener?.('change',()=>{update();lock()});window.addEventListener('resize',update);window.addEventListener('pageshow',()=>{update();lock()});document.addEventListener('visibilitychange',()=>{if(!document.hidden){update();lock()}});document.addEventListener('pointerup',lock,{passive:true});touch.addEventListener?.('change',()=>{update();lock()});update();lock();
+})();

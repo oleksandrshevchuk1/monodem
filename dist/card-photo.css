@@ -28,7 +28,7 @@
 /* The shadow belongs to the physical card plane, so flipping a face cannot hide it. */
 .card-face,.expanded-card{border-radius:18px;box-shadow:0 12px 28px #02071140}
 .card-face .bank-card,.expanded-card .bank-card,.precise-card-surface .bank-card{box-shadow:none!important}
-.precise-card-surface .travelling-card-plane{border-radius:18px;box-shadow:0 12px 28px #02071140}
+.precise-card-surface .travelling-card-plane{border-radius:18px;box-shadow:none}
 
 
 
