@@ -139,3 +139,14 @@ body.document-open .receipt-fit,body.document-open .receipt-document-stage{flex:
 .tx-amount{font-family:inherit;font-weight:500}
 .reference-operation-amount,.incoming-operation .reference-operation-amount,.external-bank-incoming .reference-operation-amount{font-family:inherit;font-weight:550}
 .reference-balance,.reference-balance strong{font-weight:400}
+
+/* Keep the recipient header anchored while only the space above the keyboard contracts. */
+#app.transferAmount{position:fixed;inset:0 0 auto;width:100%;height:var(--visible-height,100dvh);min-height:0!important;transition:height 220ms var(--ease-out);overflow:hidden;overscroll-behavior:none}
+#app.transferAmount #screen{height:100%;min-height:0!important;overflow:hidden}
+.amount-entry-page{overflow:hidden;overscroll-behavior:none}
+.amount-entry-footer{transition:padding-bottom 220ms var(--ease-out)}
+.amount-entry-footer>.form-note{display:block;max-height:20px;overflow:hidden;transition:max-height 220ms var(--ease-out),margin 220ms var(--ease-out),opacity 160ms var(--ease-out)}
+.keyboard-open .amount-entry-footer>.form-note{display:block;max-height:0;margin:0;opacity:0}
+@media(prefers-reduced-motion:reduce){#app.transferAmount,.amount-entry-footer,.amount-entry-footer>.form-note{transition:none}}
+
+#transfer-sum:focus-visible{outline:none}

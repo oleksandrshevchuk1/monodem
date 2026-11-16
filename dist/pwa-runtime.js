@@ -93,7 +93,7 @@ for(const type of ['touchstart','touchmove','touchend','touchcancel','pointerdow
  guard.innerHTML='<svg viewBox="0 0 48 64" aria-hidden="true"><rect x="9" y="2" width="30" height="58" rx="6" fill="none" stroke="currentColor" stroke-width="3"/><path d="M21 53h6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg><p>Поверніть телефон вертикально</p>';
  document.body.append(guard);
  const touch=matchMedia('(hover: none) and (pointer: coarse)');let locking=false;const saved=new Map();
- function landscape(){const type=screen.orientation?.type;if(type)return type.startsWith('landscape');if(typeof window.orientation==='number')return Math.abs(window.orientation)===90;return matchMedia('(orientation: landscape)').matches;}
+ function landscape(){if(typeof window.orientation==='number')return Math.abs(window.orientation)===90;const type=screen.orientation?.type,physical=screen.width>screen.height,layout=matchMedia('(orientation: landscape)').matches,keyboard=document.documentElement.classList.contains('keyboard-open');if(type)return type.startsWith('landscape')&&(physical||(layout&&!keyboard));return physical||(layout&&!keyboard);}
  function update(){const show=touch.matches&&landscape();guard.hidden=!show;
   for(const el of [document.querySelector('#app'),document.querySelector('#nav'),document.querySelector('#modal')].filter(Boolean)){
    if(show){if(!saved.has(el))saved.set(el,el.inert);el.inert=true;}else if(saved.has(el)){el.inert=saved.get(el);saved.delete(el);}

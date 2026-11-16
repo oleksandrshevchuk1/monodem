@@ -1,4 +1,17 @@
 'use strict';
+
+// Reconstructed vector outlines from the recorded transfer action menu.
+const transferActionPaths={
+ split:'<circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="12" cy="20" r="2"/><path d="M5 7v3l7 4 7-4V7m-7 7v4"/>',
+ repeat:'<path d="M18 6a8 8 0 1 0 2 9M13 6h5V1"/>',
+ 'save-contact':'<rect x="3" y="4" width="16" height="11" rx="2"/><path d="M3 8h16M3 11h5m-2 7h7"/><circle cx="18" cy="18" r="4"/><path d="M18 16v4m-2-2h4"/>',
+ receipt:'<path d="M6 2h9l4 4v16H6Zm9 0v5h4M9 11h7m-7 4h7m-7 4h7"/>',
+ regular:'<circle cx="12" cy="12" r="9"/><path d="M12 6v7m0 4v.1"/>',
+ installments:'<path d="M10 3a9 9 0 1 0 11 11H10Zm3-1v9h9a9 9 0 0 0-9-9Z"/>',
+ 'support-tx':'<path d="M8 7a4 4 0 1 1 6 3.5c-2 1-2 2-2 4m0 4v.1"/>'
+};
+const transferActionGlyph=name=>'<svg class="icon transfer-action-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+transferActionPaths[name]+'</svg>';
+
 // Bank identities remain opaque and sharp at every size.
 const bankDetailSvg=source=>'data:image/svg+xml;base64,'+btoa(source);
 const privatMark='<path fill="#69ad4d" d="M0 0h100v100H51c0-28-23-51-51-51V29c38 0 69 30 72 51h8V21H21v8H0Z"/><path fill="#080808" d="M0 62h38v38H0Z"/>';
@@ -55,5 +68,14 @@ detail=function(){
  const upload=screen.querySelector('[data-action=reference-upload]');if(upload)upload.querySelector('.icon')?.replaceWith(document.createRange().createContextualFragment(bankUploadGlyph));
  screen.querySelector('.reference-balance>.icon')?.replaceWith(document.createRange().createContextualFragment(bankWalletGlyph));
  screen.querySelector('.incoming-menu [data-action=support-tx]>.icon')?.replaceWith(document.createRange().createContextualFragment(bankQuestionGlyph));
+ if(tx.amount<0)screen.querySelectorAll('.detail-menu>.menu-row>.chevron').forEach(el=>el.remove());
+ if(tx.amount<0)for(const [action] of Object.entries(transferActionPaths))screen.querySelector('.detail-menu [data-action="'+action+'"]>.icon')?.replaceWith(document.createRange().createContextualFragment(transferActionGlyph(action)));
  return template.innerHTML;
 };
+
+// Give touch and pointer users the same full-row feedback, cancelling it when they scroll.
+(()=>{let press=null;const clear=()=>{press?.row.classList.remove('is-pressed');press=null};
+ document.addEventListener('pointerdown',e=>{clear();const row=e.target.closest?.('.reference-operation-body .menu-row');if(row&&e.isPrimary){press={row,x:e.clientX,y:e.clientY};row.classList.add('is-pressed')}},{capture:true,passive:true});
+ document.addEventListener('pointermove',e=>{if(press&&Math.hypot(e.clientX-press.x,e.clientY-press.y)>10)clear()},{passive:true});
+ for(const event of ['pointerup','pointercancel'])document.addEventListener(event,clear,true);window.addEventListener('blur',clear);
+})();

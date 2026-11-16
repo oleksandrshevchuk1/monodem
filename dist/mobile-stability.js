@@ -12,11 +12,18 @@ limitRow=function(title,value,max,image){const amount=text=>Number(String(text).
 function animateLimitIndicators(){document.querySelectorAll('[data-limit-ratio]').forEach(fill=>{const ratio=Number(fill.dataset.limitRatio),color=remainingLimitColor(ratio);fill.style.background=color;fill.style.boxShadow='none';if(!shouldReduceMotion())fill.animate([{transform:'scaleX(1)',backgroundColor:color},{transform:`scaleX(${ratio})`,backgroundColor:color}],{duration:300,easing:'cubic-bezier(.23,1,.32,1)'})});const progress=document.querySelector('.internet-limit progress');if(progress){const card=activeCard(),settings=state.cardSettings[card.id]||{},maximum=Number(settings.limit??10000),spent=internetSpentSinceReset(card.id,settings),ratio=settings.online===false||maximum<=0?0:Math.max(0,1-spent/maximum);progress.value=ratio*100;progress.style.setProperty('--limit-color',remainingLimitColor(ratio))}}
 const flipBeforeLimitColors=actions['flip-card'];actions['flip-card']=()=>{flipBeforeLimitColors();animateLimitIndicators()};
 const renderBeforeMobileStability=render;render=function(){renderBeforeMobileStability();prepareVisibleGlyphs();animateLimitIndicators()};
+let restingViewportHeight=innerHeight;
 function updateInstalledViewport(){
  const root=document.documentElement,viewport=window.visualViewport;
  root.style.setProperty('--visible-height',(viewport?.height||innerHeight)+'px');
- root.classList.toggle('keyboard-open',!!viewport&&innerHeight-viewport.height>120);
- root.style.setProperty('--app-height',innerHeight+'px');
+ const editing=document.activeElement?.matches('input,textarea,[contenteditable=true]');
+ if(!editing)restingViewportHeight=innerHeight;else restingViewportHeight=Math.max(restingViewportHeight,innerHeight);
+ const keyboard=!!editing&&restingViewportHeight-(viewport?.height||innerHeight)>120;
+ root.classList.toggle('keyboard-open',keyboard);
+ root.style.setProperty('--app-height',(keyboard?restingViewportHeight:innerHeight)+'px');
+ if(route.page==='transferAmount'&&!document.querySelector('#modal')?.open){
+  const host=document.querySelector('.pwa-scroll');if(host?.scrollTop)host.scrollTop=0;if(window.scrollY)window.scrollTo(0,0);
+ }
  const nav=document.querySelector('#nav'),height=nav.getBoundingClientRect().height;
  if(height>0)root.style.setProperty('--nav-height',height+'px');
 }
@@ -68,3 +75,6 @@ function fillHistoryInChunks(scene){const list=document.querySelector('#tx-list'
 const renderBeforeScrollAndWardrobe=render;render=function(){renderBeforeScrollAndWardrobe();if(pendingRouteScroll!==null){const scroll=pendingRouteScroll;pendingRouteScroll=null;pageScrollTo({top:scroll,behavior:'instant'})}if(route.page==='appearance'){const existing=document.querySelector('.character-reference-cover>img'),ready=readyCharacterImages[0];if(existing&&ready.complete&&ready.naturalWidth){ready.alt='Кіт у вишиванці';ready.className='wardrobe-character';ready.decoding='sync';existing.replaceWith(ready)}}};
 // The large decoded wardrobe artwork appears at full opacity, without a page clone.
 sidePages.add('appearance');
+
+// Amount entry owns its viewport; focusing a field must not scroll the whole PWA.
+document.addEventListener('focusin',e=>{if(e.target.closest('.amount-entry-page'))requestAnimationFrame(updateInstalledViewport)});document.addEventListener('focusout',()=>requestAnimationFrame(updateInstalledViewport));window.visualViewport?.addEventListener('scroll',()=>{if(route.page==='transferAmount')updateInstalledViewport()},{passive:true});
