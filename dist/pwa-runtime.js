@@ -73,3 +73,16 @@ document.documentElement.dataset.runtimeReady='true';updateInstalledViewport();r
 // Full-height profile sheets start below the viewport, like the supplied recording.
 const profileSheetBeforeRestoredMotion=actions['profile-sheet'];
 actions['profile-sheet']=()=>{profileSheetBeforeRestoredMotion();const sheet=$('#modal');sheet.getAnimations().forEach(a=>a.cancel());if(!shouldReduceMotion())sheet.animate([{transform:'translate3d(0,100%,0)'},{transform:'translate3d(0,0,0)'}],{duration:320,easing:'cubic-bezier(.32,.72,0,1)'});};
+
+// Secondary pages share the reference's existing side transition; tab changes stay immediate.
+for(const name of ['personal','cardDetails','statement','subscriptions','platinum','support'])sidePages.add(name);
+// During an unfinished entrance, an edge touch lands on the scroll host, outside
+// the translated page. Forward only those events so one gesture can reverse it.
+const sideGestureHost=document.querySelector('#pwa-scroll')||document.body;
+for(const type of ['touchstart','touchmove','touchend','touchcancel','pointerdown','pointermove','pointerup','pointercancel']){
+ sideGestureHost.addEventListener(type,event=>{
+  if(!sidePages.has(route.page)||document.querySelector('#modal').open)return;
+  const app=document.querySelector('#app');if(app.contains(event.target))return;
+  const handler=app['on'+type];if(handler)handler.call(app,event);
+ },{passive:false});
+}

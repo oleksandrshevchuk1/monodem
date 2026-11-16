@@ -1,9 +1,14 @@
 'use strict';
 // A card morph starts and ends at the painted rectangles, not at carousel layout boxes.
 const measureBeforePaintedBounds=measureCardPose;measureCardPose=function(el){const pose=measureBeforePaintedBounds(el),r=el.getBoundingClientRect();pose.center={x:r.x+r.width/2,y:r.y+r.height/2};return pose};
-let preciseCardScene=null;
+let preciseCardScene=null,cardProjectionSupported=null;
+function supportsCardProjection(){
+ if(cardProjectionSupported!==null)return cardProjectionSupported;
+ const probe=document.createElement('div'),w=200,h=126,scale=.8,angle=65*Math.PI/180;Object.assign(probe.style,{position:'fixed',left:'0',top:'0',width:w+'px',height:h+'px',visibility:'hidden',pointerEvents:'none',transform:'translate3d(20px,100px,0) perspective(900px) rotateX(65deg) scale(.8)'});document.body.append(probe);
+ const depth=h*scale*Math.sin(angle)/1800,expectedWidth=w*scale/(1-depth),expectedHeight=h*scale*Math.cos(angle)/(1-depth*depth),box=probe.getBoundingClientRect();cardProjectionSupported=Math.abs(box.width-expectedWidth)<.5&&Math.abs(box.height-expectedHeight)<.5;probe.remove();return cardProjectionSupported;
+}
 expandTransition=function(from,to,opening){
- if(!from||!to)return;
+ if(!from||!to)return;supportsCardProjection();
  const previous=preciseCardScene,destination=to.getBoundingClientRect(),reduce=shouldReduceMotion(),duration=reduce?100:460;
  const width=opening?to.offsetWidth:from.width,height=width/1.586,base={x:opening?destination.x:from.rect.x,y:opening?destination.y:from.rect.y,width};
  let sourceRect=from.rect,startAngle=opening?65:0;
@@ -11,14 +16,14 @@ expandTransition=function(from,to,opening){
  const node=document.createElement('div');node.className='card-transition soft-card-surface precise-card-surface';
  // Clone the already decoded live artwork; never insert another unresolved logo URL.
  const art=to.querySelector('.bank-card').cloneNode(true);node.append(art);
- Object.assign(node.style,{position:'fixed',left:base.x+'px',top:base.y+'px',width:width+'px',height:height+'px',zIndex:'48',pointerEvents:'none',transformOrigin:'center center'});
+ Object.assign(node.style,{position:'fixed',left:base.x+'px',top:base.y+'px',width:width+'px',height:height+'px',zIndex:'48',pointerEvents:'none',transformOrigin:cardProjectionSupported?'center center':'0 0'});
  document.body.append(node);
  const full=node.querySelector('.card-number-full'),masked=node.querySelector('.card-number-masked');
  for(const [el,a,b] of [[full,opening?0:1,opening?1:0],[masked,opening?1:0,opening?0:1],[node.querySelector('.card-holder'),opening?0:1,opening?1:0]])if(el){el.style.display='block';if(el===masked)Object.assign(el.style,{position:'absolute',left:'0',top:'0'});el.animate([{opacity:a},{opacity:b}],{duration,fill:'both'})}
  const homeAngle=65;
  // Solve perspective projection analytically. Both dimensions and the top-left
  // match the live card exactly, with no layout reads inside the keyframe loop.
- const pose=(rect,angle)=>{const rad=angle*Math.PI/180,sin=Math.sin(rad),cos=Math.cos(rad),p=900;
+ const pose=(rect,angle)=>{if(!cardProjectionSupported)return `translate3d(${rect.x-base.x}px,${rect.y-base.y}px,0) scale(${rect.width/width},${rect.height/height})`;const rad=angle*Math.PI/180,sin=Math.sin(rad),cos=Math.cos(rad),p=900;
   const half=rect.height/(cos+Math.sqrt(cos*cos+(rect.height*sin/p)**2));
   const sy=2*half/height,sx=rect.width*(1-half*sin/p)/width;
   const top=-half*cos/(1+half*sin/p),dx=rect.x+rect.width/2-base.x-width/2,dy=rect.y-base.y-height/2-top;
