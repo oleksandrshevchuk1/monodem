@@ -16,12 +16,13 @@ function cardPlaneBounds(matrix,width,height){
 }
 expandTransition=function(from,to,opening){
  if(!from||!to)return;
+ let sourceShadow=from.shadow,shadowWidth=from.geometry.width;
  const previous=preciseCardScene,geometry=stableCardGeometry(to),reduce=shouldReduceMotion(),duration=reduce?100:460;
  const source=from.geometry,width=geometry.width,height=geometry.height,base={x:geometry.layout.x,y:geometry.layout.y,width,height};
  const origin=geometry.origin,originMatrix=new DOMMatrix().translate(origin[0],origin[1]);
  let sourceLayout=source.layout,startRelative=new DOMMatrix().translate(source.origin[0],source.origin[1]).multiply(new DOMMatrix(source.raw)).translate(-source.origin[0],-source.origin[1]).scale(source.width/width,source.height/height);
  const endRelative=originMatrix.multiply(new DOMMatrix(geometry.raw)).translate(-origin[0],-origin[1]);
- if(previous){const oldOrigin=previous.origin;sourceLayout=previous.base;startRelative=new DOMMatrixReadOnly(getComputedStyle(previous.node).transform).translate(oldOrigin[0],oldOrigin[1]).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.plane).transform)).translate(-oldOrigin[0],-oldOrigin[1]).scale(previous.base.width/width,previous.base.height/height);previous.motion.cancel();previous.planeMotion.cancel();previous.target.style.opacity='';previous.node.remove();previous.backdrop?.remove()}
+ if(previous){sourceShadow=getComputedStyle(previous.plane).boxShadow;shadowWidth=previous.base.width;const oldOrigin=previous.origin;sourceLayout=previous.base;startRelative=new DOMMatrixReadOnly(getComputedStyle(previous.node).transform).translate(oldOrigin[0],oldOrigin[1]).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.plane).transform)).translate(-oldOrigin[0],-oldOrigin[1]).scale(previous.base.width/width,previous.base.height/height);previous.motion.cancel();previous.planeMotion.cancel();previous.target.style.opacity='';previous.node.remove();previous.backdrop?.remove()}
  const sourceRect=cardPlaneBounds(new DOMMatrix().translate(sourceLayout.x,sourceLayout.y).multiply(startRelative),width,height),destination=cardPlaneBounds(new DOMMatrix().translate(base.x,base.y).multiply(endRelative),width,height);
  const node=document.createElement('div');node.className='card-transition soft-card-surface precise-card-surface';
  const plane=document.createElement('div');plane.className='travelling-card-plane';Object.assign(plane.style,{width:'100%',height:'100%',transformStyle:'preserve-3d',transformOrigin:origin[0]+'px '+origin[1]+'px'});
@@ -41,7 +42,10 @@ expandTransition=function(from,to,opening){
  art.animate([{borderRadius:((from.cornerRadius||parseFloat(targetRadius))*width/source.width)+'px'},{borderRadius:targetRadius}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  plane.style.borderRadius=targetRadius;
  plane.animate([{borderRadius:((from.cornerRadius||parseFloat(targetRadius))*width/source.width)+'px'},{borderRadius:targetRadius}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
- plane.animate([{boxShadow:from.shadow||getComputedStyle(to).boxShadow},{boxShadow:getComputedStyle(to).boxShadow}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
+ const shadowStart=(sourceShadow||getComputedStyle(to).boxShadow).replace(/(-?(?:\d*\.)?\d+)px/g,(_,value)=>(Number(value)*width/shadowWidth)+'px');
+ plane.animate([{boxShadow:shadowStart},{boxShadow:getComputedStyle(to).boxShadow}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
+ const reflection=art.querySelector('.card-glint'),targetReflection=to.querySelector('.card-glint');
+ if(reflection&&targetReflection&&from.glint){const targetStyle=getComputedStyle(targetReflection);reflection.animate([from.glint,{opacity:targetStyle.opacity,transform:targetStyle.transform}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'})}
  const rear=!opening&&from.flipped;node.classList.toggle('returning-rear',rear);
  if(rear)art.animate([{transform:'rotateY(180deg)'},{transform:'rotateY(360deg)'}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  const snapshot=from.snapshot;if(snapshot){snapshot.querySelectorAll('.card-face,.expanded-card,.card-header-mini,.transition-nav').forEach(el=>el.style.visibility='hidden');snapshot.style.zIndex='37';document.body.append(snapshot);snapshot.animate([{opacity:1},{opacity:0}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'}).finished.catch(()=>{})}

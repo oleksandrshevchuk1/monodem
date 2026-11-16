@@ -31,5 +31,7 @@
 .precise-card-surface .travelling-card-plane{border-radius:18px;box-shadow:0 12px 28px #02071140}
 
 
-.expanded-card{transition:box-shadow 140ms var(--ease-out)!important}
-.expanded-card.flipping{box-shadow:0 12px 28px #02071100}
+
+
+/* Recover the original raised edge and floating depth on the home card. */
+.card-face{box-shadow:0 6px 0 #080c13,0 35px 28px #030b1b7a}
