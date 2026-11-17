@@ -63,12 +63,6 @@
 .primary,.secondary,.small-button,.action-circle{transition:transform 160ms var(--ease-out),opacity 160ms var(--ease-out),background-color 160ms ease}
 @media(prefers-reduced-motion:reduce){.primary,.secondary,.small-button,.action-circle{transition:opacity 100ms ease,background-color 100ms ease}.travelling-card-plane{will-change:auto}}
 
-/* Paint each side as one ordered texture before rotating the physical card.
-   Coplanar preserve-3d children let the animated material cover the logos on iOS. */
-.card-face .bank-card-front,.expanded-card .bank-card-front,.soft-card-surface .bank-card-front,
-.card-face .bank-card-back,.expanded-card .bank-card-back,.soft-card-surface .bank-card-back{transform-style:flat!important;isolation:isolate}
+/* Only the printed ink is a flat texture. The physical faces and all 3D motion stay intact. */
 .bank-card-front>.card-material{z-index:0}
-.bank-card-front>.card-brand,.bank-card-front>.visa,.bank-card-front>.card-printed-number,.bank-card-front>.card-holder{z-index:1}
-
-/* Keep the front on the same plane at rest, in transit and after settling. */
-.card-face .bank-card-front,.expanded-card .bank-card-front,.soft-card-surface .bank-card-front{transform:rotateY(0deg)}
+.card-face-ink{position:absolute;inset:0;z-index:1;transform-style:flat;isolation:isolate;backface-visibility:hidden;-webkit-backface-visibility:hidden;pointer-events:none}

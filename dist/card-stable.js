@@ -23,6 +23,6 @@ actions['flip-card']=()=>{
  const end=getComputedStyle(art).transform;
  const motion=art.animate([{transform:start},{transform:end}],{duration:shouldReduceMotion()?1:500,easing:getComputedStyle(document.documentElement).getPropertyValue('--ease-in-out').trim()||'ease-in-out',fill:'both'});
  card._flipMotion=motion;
- const shadow=card.animate([{boxShadow:shadowStart},{offset:.2,boxShadow:'0 12px 28px #02071100'},{offset:.72,boxShadow:'0 12px 28px #02071100'},{boxShadow:'0 12px 28px #02071140'}],{duration:shouldReduceMotion()?1:500,easing:getComputedStyle(document.documentElement).getPropertyValue('--ease-in-out').trim()});card._shadowMotion=shadow;shadow.finished.then(()=>{if(card._shadowMotion===shadow)card._shadowMotion=null}).catch(()=>{});
+ const shadow=card.animate([{boxShadow:shadowStart},{offset:.2,boxShadow:'0 12px 28px #02071100'},{offset:.72,boxShadow:'0 12px 28px #02071100'},{boxShadow:'0 12px 28px #02071140'}],{duration:shouldReduceMotion()?1:640,easing:'linear'});card._shadowMotion=shadow;shadow.finished.then(()=>{if(card._shadowMotion===shadow)card._shadowMotion=null}).catch(()=>{});
  motion.finished.then(()=>{if(card._faceToken!==token)return;motion.cancel();art.style.transition='';card._flipMotion=null;card.classList.remove('flipping')}).catch(()=>{});
 };
