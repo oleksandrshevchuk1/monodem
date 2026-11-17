@@ -66,3 +66,6 @@
 /* Only the printed ink is a flat texture. The physical faces and all 3D motion stay intact. */
 .bank-card-front>.card-material{z-index:0}
 .card-face-ink{position:absolute;inset:0;z-index:1;transform-style:flat;isolation:isolate;backface-visibility:hidden;-webkit-backface-visibility:hidden;pointer-events:none}
+
+/* Hidden faces must also hide the ink; older surface rules force their children visible. */
+.card-face-ink,.card-face-ink *{visibility:inherit!important}
