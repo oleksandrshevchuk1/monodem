@@ -13,6 +13,17 @@
   return points;
  };
  const angle=art=>{const flip=art._cardFlip;if(!flip)return cardFlipped?180:0;const p=flip.motion.effect.getComputedTiming().progress??1;return flip.from+(flip.to-flip.from)*p};
+ // Explicitly select the outward face; Safari can paint a flattened rear through the front.
+ const orientFaces=(node,from,to,timing)=>{
+  const stops=[0,1];
+  for(let angle=-630;angle<=990;angle+=180){const p=(angle-from)/(to-from);if(p>0&&p<1)stops.push(p)}
+  stops.sort((a,b)=>a-b);
+  return ['front','back'].map(side=>{
+   const face=node.querySelector('.bank-card-'+side);
+   const frames=stops.map((offset,i)=>{const at=from+(to-from)*Math.min(1,offset+(i<stops.length-1?1e-7:0));const front=Math.cos(at*Math.PI/180)>0;return {offset,visibility:front===(side==='front')?'visible':'hidden',easing:'steps(1,end)'}});
+   return face.animate(frames,{...timing,fill:'both'});
+  });
+ };
  const measure=measureCardPose;
  measureCardPose=function(el){
   const pose=measure(el),art=el.querySelector('.bank-card');
@@ -83,13 +94,18 @@
 
  expandTransition=function(from,to,opening){
   if(!from?.quad||!to)return;
-  if((!opening&&from.flipped)||(!active&&preciseCardScene))return reverseTransition(from,to,opening);
+  if((!opening&&from.flipped)||(!active&&preciseCardScene)){
+   reverseTransition(from,to,opening);
+   const scene=preciseCardScene;
+   if(!opening&&from.flipped&&scene){const timing=scene.motion.effect.getTiming(),faces=orientFaces(scene.node,180,360,{duration:timing.duration,easing:timing.easing});const start=document.timeline.currentTime;for(const motion of [...scene.node.getAnimations({subtree:true}),...faces])motion.startTime=start}
+   return;
+  }
   active?.cancel();
   // Keep the already decoded artwork, including both faces, across navigation.
   // The retained home button receives only a placeholder; it never becomes visible.
   const sourceArt=from.art;
   if(sourceArt&&sourceArt!==to.querySelector('.bank-card')){
-   sourceArt._cardFlip?.motion.cancel();sourceArt._cardFlip=null;
+   sourceArt._cardFlip?.faces?.forEach(m=>m.cancel());sourceArt._cardFlip?.motion.cancel();sourceArt._cardFlip=null;
    sourceArt.parentElement?.replaceChild(sourceArt.cloneNode(true),sourceArt);
    to.replaceChildren(sourceArt);
   }
@@ -103,7 +119,6 @@
   set(to,'transition','none','important');set(to,'transform','none');set(to,'transform-origin','0 0','important');
   const base=to.getBoundingClientRect(),width=base.width,height=base.height;
   const art=to.querySelector('.bank-card'),material=art.querySelector('.card-material');
-  set(art.querySelector('.bank-card-front'),'transform','translateZ(0)');
   const number=art.querySelector('.card-printed-number');
   if(number)set(number,'width',getComputedStyle(number).width);
   for(const [key,selector,end] of [['full','.card-number-full',opening?1:0],['masked','.card-number-masked',opening?0:1],['holder','.card-holder',opening?1:0]]){
@@ -120,7 +135,9 @@
   if(!opening&&Math.abs(from.angle)>.01){
    for(const face of art.querySelectorAll('.bank-card-front,.bank-card-back'))set(face,'visibility','visible');
    set(art,'transition','none');
-   animate(art,[{transform:`rotateY(${from.angle}deg)`},{transform:`rotateY(${from.angle>90?360:0}deg)`}]);
+   const end=from.angle>90?360:0;
+   animate(art,[{transform:`rotateY(${from.angle}deg)`},{transform:`rotateY(${end}deg)`}]);
+   animations.push(...orientFaces(art,from.angle,end,{duration,easing}));
   }
   const screen=$('#screen'),snapshot=from.snapshot;
   set(screen,'position','relative');set(screen,'z-index','1');
@@ -144,12 +161,14 @@
  actions['flip-card']=()=>{
   const card=$('.expanded-card');if(!card||active)return;
   const art=card.querySelector('.bank-card'),start=angle(art),wasFlipped=cardFlipped;
-  card._flipMotion?.cancel();card._shadowMotion?.cancel();art.style.transition='none';card.classList.add('flipping');
+  art._cardFlip?.faces?.forEach(m=>m.cancel());card._flipMotion?.cancel();card._shadowMotion?.cancel();art.style.transition='none';card.classList.add('flipping');
   flipBeforeSettledFaces();
   if(wasFlipped===cardFlipped){art.style.transition='';card.classList.remove('flipping');return}
   const end=cardFlipped?180:0;
   const motion=art.animate([{transform:`rotateY(${start}deg)`},{transform:`rotateY(${end}deg)`}],{duration:shouldReduceMotion()?100:500,easing:getComputedStyle(document.documentElement).getPropertyValue('--ease-in-out').trim(),fill:'both'});
-  art._cardFlip={from:start,to:end,motion};card._flipMotion=motion;
-  motion.finished.then(()=>{if(card._flipMotion!==motion)return;motion.cancel();art._cardFlip=null;card._flipMotion=null;art.style.transition='';card.classList.remove('flipping')}).catch(()=>{});
+  const faces=orientFaces(art,start,end,{duration:shouldReduceMotion()?100:500,easing:getComputedStyle(document.documentElement).getPropertyValue('--ease-in-out').trim()});
+  const startedAt=document.timeline.currentTime;for(const a of [motion,...faces])a.startTime=startedAt;
+  art._cardFlip={from:start,to:end,motion,faces};card._flipMotion=motion;
+  motion.finished.then(()=>{if(card._flipMotion!==motion)return;motion.cancel();faces.forEach(m=>m.cancel());art._cardFlip=null;card._flipMotion=null;art.style.transition='';card.classList.remove('flipping')}).catch(()=>{});
  };
 })();
