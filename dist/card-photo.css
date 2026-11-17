@@ -49,3 +49,16 @@
 /* Use the same compositing plane before, during and after the morph. */
 .card-face .bank-card-front,.card-face .bank-card-back{contain:none;transform-style:preserve-3d}
 .card-face .bank-card-front{transform:rotateY(0deg) translateZ(.1px)}
+
+/* A single unlit finish: no independent reflection above the moving card. */
+.card-face .card-glint,.expanded-card .card-glint,.precise-card-surface .card-glint{display:none!important}
+.card-face .bank-card-front,.expanded-card .bank-card-front,.precise-card-surface .bank-card-front{box-shadow:none!important}
+/* Keep the physical rim and its shadow in the same composited plane. */
+.precise-card-surface,.travelling-card-plane,.travelling-card-body{overflow:visible;backface-visibility:visible;-webkit-backface-visibility:visible}
+.travelling-card-plane{will-change:transform}
+/* Native transaction rows open without a partial grey press patch. */
+.transaction:active,.transaction.is-pressed{background:transparent!important;border-radius:0}
+.transaction,.transaction *{-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+/* Small feedback uses the shared curve and returns smoothly on release. */
+.primary,.secondary,.small-button,.action-circle{transition:transform 160ms var(--ease-out),opacity 160ms var(--ease-out),background-color 160ms ease}
+@media(prefers-reduced-motion:reduce){.primary,.secondary,.small-button,.action-circle{transition:opacity 100ms ease,background-color 100ms ease}.travelling-card-plane{will-change:auto}}
