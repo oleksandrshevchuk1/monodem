@@ -12,7 +12,7 @@
  const artwork=cardArtwork;
  cardArtwork=function(card){const template=document.createElement('template');template.innerHTML=artwork(card);prepare(template.content.querySelector('.bank-card'));return template.innerHTML};
  const renderBeforeInk=render;
- render=function(){renderBeforeInk();document.querySelectorAll('.bank-card').forEach(prepare)};
+ render=function(){renderBeforeInk();document.querySelectorAll('.bank-card').forEach(prepare);const scene=preciseCardScene;queueMicrotask(()=>{if(scene===preciseCardScene&&!scene?.target.isConnected)scene?.dispose()})};
  const selectFaces=(art,backFirst,timing,transient=false)=>['front','back'].map(side=>{
   const initial=(side==='back')===backFirst?'visible':'hidden',final=initial==='visible'?'hidden':'visible';
   const face=art.querySelector('.bank-card-'+side),token={};
@@ -31,9 +31,8 @@
   const printedOpacity=printedStart?getComputedStyle(printedStart).opacity:from.printedOpacity;
   prepare(to?.querySelector('.bank-card'));originalTransition(from,to,opening);
   const current=preciseCardScene;
+  if(current&&!opening){current.carouselTrack=$('.card-track');current.carouselStartX=new DOMMatrixReadOnly(current.carouselTrack?getComputedStyle(current.carouselTrack).transform:undefined).m41}
   if(current&&to){
-   // Match the native button's layout instead of settling from a differently aligned div.
-   {const old=current.body,motions=old.getAnimations(),body=document.createElement('button');body.type='button';body.tabIndex=-1;body.className=old.className;body.style.cssText=old.style.cssText;body.style.display='block';const ratio=getComputedStyle(to).aspectRatio;if(ratio&&ratio!=='auto'){body.style.aspectRatio=ratio;body.style.height='auto'}body.append(...old.childNodes);old.replaceWith(body);for(const motion of motions)motion.effect.target=body;current.body=body}
    for(const motion of current.body.getAnimations())if(motion.effect.getKeyframes().some(frame=>'boxShadow' in frame))motion.effect.updateTiming({easing:'linear'});
    const timing=current.motion.effect.getTiming(),number=current.node.querySelector('.card-printed-number'),targetNumber=to.querySelector('.card-printed-number');
    if(number&&targetNumber)number.animate([{opacity:printedOpacity??'1'},{opacity:getComputedStyle(targetNumber).opacity}],{duration:timing.duration,easing:timing.easing,fill:'both'});
@@ -43,6 +42,10 @@
   if(preciseCardScene?.body&&to){const surface=getComputedStyle(to);preciseCardScene.body.style.perspective=surface.perspective;preciseCardScene.body.style.perspectiveOrigin=surface.perspectiveOrigin}
   if(!opening&&from.flipped&&preciseCardScene?.node.classList.contains('returning-rear')){const scene=preciseCardScene,rotation=scene.body.getAnimations().find(a=>a.effect.getKeyframes().some(k=>'transform' in k))||scene.motion,timing=rotation.effect.getTiming();const faces=selectFaces(scene.node.querySelector('.bank-card'),true,{duration:timing.duration,easing:timing.easing},true);rotation.ready.then(()=>faces.forEach(a=>a.startTime=rotation.startTime)).catch(()=>{})}
  };
+ // A closing card remains part of the carousel until its final handoff.
+ const moveSwipe=moveHomeSwipe;
+ moveHomeSwipe=function(...args){const result=moveSwipe(...args),scene=preciseCardScene;if(scene?.carouselTrack?.isConnected){scene.swipeOffsetX=new DOMMatrixReadOnly(scene.carouselTrack.style.transform||undefined).m41-scene.carouselStartX;scene.node.style.translate=`${scene.swipeOffsetX}px 0px`}return result};
+ const cleanupStrip=cleanupSwipe;cleanupSwipe=function(...args){const result=cleanupStrip(...args);if(preciseCardScene)document.documentElement.dataset.gesture='active';return result};
  const originalFlip=actions['flip-card'];
  actions['flip-card']=()=>{
   const card=$('.expanded-card'),shadow=card&&getComputedStyle(card).boxShadow,backFirst=cardFlipped;
