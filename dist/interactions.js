@@ -44,7 +44,12 @@ panel.addEventListener('pointerup',end);panel.addEventListener('pointercancel',e
 
 function bindCardCollapse(){const card=$('.expanded-card'),settings=$('.card-settings');if(!card)return;const update=()=>{if(route.page!=='card'||!card.isConnected){window.removeEventListener('scroll',update);return}const y=pageScrollY(),p=Math.min(1,Math.max(0,y/220)),scale=1-(1-64/card.offsetWidth)*p;card.style.transform=`translate3d(0,${y-61*p}px,0) scale(${scale})`;settings.classList.toggle('compact-card-view',p>.85)};window.addEventListener('scroll',update,{passive:true});update()}
 
-const slowFlip=actions['flip-card'];actions['flip-card']=()=>{if(pageScrollY()>30){pageScrollTo({top:0,behavior:shouldReduceMotion()?'instant':'smooth'});return}slowFlip();const panel=$('.payment-settings');if(!panel)return;panel.classList.toggle('internet-limit',cardFlipped);panel.innerHTML=cardFlipped?icon('lock-key')+'<span><span>Ліміт оплат за день</span><progress max="100" value="0" aria-label="Залишок денного ліміту"></progress><small></small></span>':icon('gear')+'<span>Налаштування оплат<small>Додаткові перевірки</small></span>'};
+function paymentPanelIcon(showLimit=false){
+ const settings='M10.5 1.9a3 3 0 0 1 3 0l6.2 3.6a3 3 0 0 1 1.5 2.6v7.8a3 3 0 0 1-1.5 2.6l-6.2 3.6a3 3 0 0 1-3 0l-6.2-3.6a3 3 0 0 1-1.5-2.6V8.1a3 3 0 0 1 1.5-2.6zM12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8z';
+ const globe='M12 1a11 11 0 1 0 0 22 11 11 0 0 0 0-22zM5 6.6l3.1-2.2 2.2-.6 1.8 1.4-.6 1.8-1.9.7-.4 1.6 2.4 1.2 1 1.6-1.8.5-2.8-1-1.6.5-1.4-1.8L4 8.5zm5.7 6.2 2.6.5 2.5 1.6-.9 2.1-1.2.9-.6 2.8-1.4.3-.9-2.7.2-1.8-1.4-1.9zm8-6.2 1.2 1.8.8 2.2-.4 2.1-1.6-.7-1.3-1.9.1-2.1z';
+ return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="${showLimit?globe:settings}"/></svg>`;
+}
+const slowFlip=actions['flip-card'];actions['flip-card']=()=>{if(pageScrollY()>30){pageScrollTo({top:0,behavior:shouldReduceMotion()?'instant':'smooth'});return}slowFlip();const panel=$('.payment-settings');if(!panel)return;panel.classList.toggle('internet-limit',cardFlipped);panel.innerHTML=cardFlipped?paymentPanelIcon(true)+'<span><span>Ліміт оплат за день</span><progress max="100" value="0" aria-label="Залишок денного ліміту"></progress><small></small></span>':paymentPanelIcon()+'<span>Налаштування оплат<small>Додаткові перевірки</small></span>'};
 
 const legacyTransfer=transfer;
 
