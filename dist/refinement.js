@@ -7,16 +7,48 @@ const libraryUIIcon=uiIcon;
 uiIcon=n=>n==='apple-native'?`<img class="icon" src="assets/reference/apple-native.png" alt="" aria-hidden="true">`:libraryUIIcon(n);
 const drawnCard=cardArtwork;
 cardArtwork=c=>drawnCard(c).replace('<div class="bank-card-front">','<div class="bank-card-front"><span class="card-glint" aria-hidden="true"></span>').replace('<div class="card-back-number">'+esc(c.card)+'</div>','<span class="card-expiry" aria-label="Демонстраційний термін дії">'+esc(state.cardSettings?.[c.id]?.demoExpiry||'11/30')+'</span><div class="card-back-number"><span class="card-demo-cvv" aria-label="Демонстраційний CVV">'+esc(state.cardSettings?.[c.id]?.demoCVV||'000')+'</span></div>').replace('<span class="card-holder">','<span class="card-printed-number">'+'<span class="card-number-full">'+esc(c.card||'')+'</span><span class="card-number-masked">'+esc((c.card||'').replace(/^(\d{4})[\s\d]*?(\d{4})$/,'$1 **** **** $2'))+'</span></span><span class="card-holder">').replace(/<div class="card-brand">[\s\S]*?<\/div>/,'<div class="card-brand"><img src="assets/reference/card-brand.png" width="352" height="78" decoding="sync" alt="monobank · Universal Bank"></div>').replace('<span class="visa">VISA</span>','<span class="visa"><img src="assets/reference/visa.png" width="192" height="63" decoding="sync" alt="Visa"></span>');
-let newCardSelected=false,cardDotsVisible=false,cardSlideAnimation,carouselIndex=0,refreshGesture=null;
+let newCardSelected=false,cardSlideAnimation,carouselIndex=0,refreshGesture=null;
 appearance=function(){return `<div class="character-cover"><div class="toolbar"><button class="back" data-action="back" aria-label="Назад">${icon('arrow-left')}</button></div><img src="assets/profile-character.png" alt="Повний видимий у відео персонаж у вишиванці"></div><div class="character-actions"><button data-action="avatar-info">${icon('image')}Змінити фото</button><button data-action="download-character">${icon('download-simple')}Завантажити</button></div><div class="page achievement-page"><div class="achievement-trophy">${icon('star-fill')}</div><h2>Відкрито ${Number(state.achievementCount)||0} нагород з ${Number(state.achievementTotal)||123}</h2><div class="achievement-list">${['Знайомство','Еліта','Попутник','','',''].map((n,i)=>`<button data-action="achievement" data-title="${n||'Нагорода'}"><img src="assets/achievement-${i}.png" alt="${n}"><span>${n}</span></button>`).join('')}</div></div>`};
 actions['avatar-info']=()=>inform('Фото профілю','Фото профілю змінюється в окремій адмінці проєкту.');
 actions['download-character']=async()=>{const response=await fetch('assets/profile-character.png');download(await response.blob(),'demo-character.png')};
 const basicHome=home;
 const cardWhite=c=>c.color?c.color==='white':c.id==='white';
-function selector(){return `<button class="card-selector ${cardDotsVisible?'show-dots':''}" data-action="nav" data-page="cards" aria-label="Усі картки"><span class="selector-label">${icon('wallet')}Усі картки</span><span class="selector-dots">${allCards().map((c,i)=>`<i class="${!newCardSelected&&c.id===activeCard().id?'selected':''}"></i>`).join('')}<b class="${newCardSelected?'selected':''}">+</b></span></button>`}
+function selector(){
+ const cards=allCards(),index=newCardSelected?cards.length:cards.findIndex(card=>card.id===activeCard().id);
+ const markers=cards.map((_,position)=>`<i class="${position===index?'selected':''}"></i>`).join('');
+ return `<button class="card-selector${shouldReduceMotion()?' skip-motion':''}" data-index="${index}" data-action="nav" data-page="cards" aria-label="Усі картки"><span class="selector-label" aria-hidden="true">${icon('wallet')}Усі картки</span><span class="selector-dots" aria-hidden="true">${markers}<b class="${newCardSelected?'selected':''}">+</b></span></button>`;
+}
+let cardSelectorTimer;
+function setCardSelectorIndex(pill,index){
+ if(!pill||Number(pill.dataset.index)===index)return;
+ const dots=pill.querySelector('.selector-dots');
+ dots.querySelector('.selected')?.classList.remove('selected');
+ dots.children[index]?.classList.add('selected');
+ pill.dataset.index=index;
+}
+function settleCardSelector(pill){
+ if(!pill)return;
+ setCardSelectorIndex(pill,carouselIndex);
+ clearTimeout(cardSelectorTimer);
+ cardSelectorTimer=setTimeout(()=>pill.classList.remove('show-dots'),1000);
+}
 function cardSlides(){return `<div class="card-stage card-carousel" id="card-swipe"><div class="card-track">${allCards().map(c=>`<div class="card-slide"><button class="card-face" data-action="show-card" data-id="${c.id}" aria-label="Відкрити ${esc(c.account)}">${cardArtwork(c)}</button></div>`).join('')}<div class="card-slide"><button class="card-face new-card-face" data-action="open-card" aria-label="Відкрити нову картку"><span>${icon('plus-circle-fill')}</span></button></div></div></div>`}
 function homeActions(){return `<div class="home-actions"><button data-action="transfer"><span class="action-circle">${icon('credit-card-fill')}</span>Переказати<br>на картку</button><button data-action="iban"><span class="action-circle">${icon('receipt-fill')}</span>Платіж<br>за IBAN</button><button data-action="nav" data-page="payments"><span class="action-circle">${icon('stack-fill')}</span>Інші<br>платежі</button></div>`}
-home=function(){const html=basicHome(),header=html.slice(0,html.indexOf('<button class="home-balance"')).replace('data-action="nav" data-page="more" aria-label="Профіль"','data-action="profile-sheet" aria-label="Профіль"');const tail=html.slice(html.indexOf('<section class="operation-panel">'));return header+`<div class="refresh-indicator" aria-hidden="true">${icon('arrows-clockwise')}</div><div class="home-content ${newCardSelected?'new-card-selected':''}">${newCardSelected?`<div class="open-card-intro"><h2>Відкрити картку</h2><p>Ви можете відкрити додаткові картки<br>в гривні, доларах та євро</p></div>`:`<button class="home-balance" data-action="topup" aria-label="Поповнити картку">${icon('plus-circle-fill')}<strong>${displayMoney(balance())} ₴</strong></button>`}${cardSlides()}${selector()}${newCardSelected?`<button class="new-card-cta" data-action="open-card">Відкрити картку</button><section class="operation-panel new-card-empty"><h2>Коли відкриєте нову картку,<br>тут буде її виписка</h2></section>`:homeActions()+tail}</div>`};
+let homeFooter=()=>{
+ const html=basicHome();
+ return html.slice(html.indexOf('<div class="useful page">'));
+};
+let homeOperationRows=()=>rows(txFor().slice(0,6));
+function homeAccountContent(preview=false){
+ const tools=newCardSelected
+  ? `<div class="home-actions new-card-actions"><button class="new-card-cta" data-action="open-card">Відкрити нову картку</button></div><section class="operation-panel new-card-empty"><h2>Коли відкриєте нову картку,<br>тут буде її виписка</h2></section>`
+  : homeActions()+`<section class="operation-panel"><div class="section-title"><h2>Операції</h2><button class="pill" data-action="nav" data-page="history">Усі ${icon('caret-right')}</button></div>${homeOperationRows()}</section>`;
+ return `<div class="home-content ${newCardSelected?'new-card-selected':''}">${newCardSelected?`<div class="open-card-intro"><h2>Відкрити картку</h2><p>Ви можете відкрити додаткові картки<br>в гривні, доларах та євро</p></div>`:`<button class="home-balance" data-action="topup" aria-label="Поповнити картку">${icon('plus-circle-fill')}<strong>${displayMoney(balance())} ₴</strong></button>`}${preview?'<div class="card-stage card-carousel"></div><div class="card-selector"></div>':cardSlides()+selector()}${tools}${preview?'':homeFooter()}</div>`;
+}
+home=function(){
+ const header=basicHome(true).replace('data-action="nav" data-page="more" aria-label="Профіль"','data-action="profile-sheet" aria-label="Профіль"');
+ return header+`<div class="refresh-indicator" aria-hidden="true">${icon('arrows-clockwise')}</div>`+homeAccountContent();
+};
 cardsPage=function(){return `<div class="cards-overview"><div class="toolbar"><button class="back" data-action="back" aria-label="Закрити">${icon('x')}</button></div><h1>Усі картки</h1><div class="compact-cards">${allCards().map(c=>`<button class="compact-card" data-action="select-card" data-id="${c.id}"><span class="compact-number">** ${esc(c.card.slice(-4))}</span><span class="compact-art">${cardArtwork(c)}</span><span class="compact-name">${esc(c.account)}</span><strong>${displayMoney(cardBalance(c))} ₴</strong></button>`).join('')}</div><button class="open-card-floating" data-action="open-card">${icon('plus-circle-fill')}Відкрити картку</button></div>`};
 const previousCardPage=cardPage;
 cardPage=function(){return previousCardPage().replace(icon('wallet'),'<img class="icon" src="assets/reference/wallet.png" alt="">')};
@@ -24,12 +56,18 @@ cardPage=function(){return previousCardPage().replace(icon('wallet'),'<img class
 const previousFlip=actions['flip-card'];
 actions['flip-card']=()=>{previousFlip();$('.outside-card-number')?.classList.toggle('visible',cardFlipped)};
 function setCarouselPosition(index){const track=$('.card-track');if(track)track.style.transform=`translate3d(${-index*88}%,0,0)`}
-let finishCardSelection,slideCardTo;
-const standardSelect=actions['select-card'];
-actions['select-card']=async b=>{newCardSelected=false;cardDotsVisible=true;await standardSelect(b)};
+let slideCardTo;
+const homeAccountIntro='.home-balance,.open-card-intro';
+actions['select-card']=button=>{
+ const card=allCards().find(item=>item.id===button.dataset.id);
+ if(!card)return;
+ newCardSelected=false;
+ state.activeCard=card.id;
+ navigate('home');
+};
 actions['copy-visible-card']=async b=>{const c=allCards().find(c=>c.id===b.dataset.id);if(!c)return;try{await navigator.clipboard.writeText(c.card);toast('Номер картки скопійовано')}catch{toast('Копіювання недоступне у цьому браузері')}};
 actions['cycle-card']=()=>slideCardTo(carouselIndex+1);
-actions['show-card']=b=>{if(b.dataset.id!==activeCard().id){slideCardTo(allCards().findIndex(c=>c.id===b.dataset.id));return}navigate('card')};
+actions['show-card']=b=>{if(newCardSelected||b.dataset.id!==activeCard().id){slideCardTo(allCards().findIndex(c=>c.id===b.dataset.id));return}navigate('card')};
 actions['open-card']=()=>navigate('openCard');
 actions['profile-sheet']=()=>{modal('',`<div class="profile-sheet">${button('personal-info','Особисті дані та документи','users')}${button('app-settings','Налаштування застосунку','gear')}<div class="panel">${button('personal-info',esc(state.name),'users','Особисті картки')}${button('service','ФОП','wallet','Дізнатися','data-service="ФОП"')}</div></div>`,null);$('#modal').dataset.kind='profile'};
 function openCardPage(){return toolbar('Відкрити картку')+`<div class="page opening-page"><div class="opening-visual">${icon('cat-fill')}<h2>Підвищити статус картки</h2><p>Нанесіть її на картку або отримайте доступ<br>до інших переваг у демо-проєкті</p></div><h2>Картки</h2><div class="card-products">${[['black','Чорна картка'],['white','Біла картка']].map(([color,title])=>`<button data-action="create-product-card" data-color="${color}"><span>${cardArtwork({id:color,color,account:title,holder:state.holder,card:'0000 0000 0000 0000'})}</span><strong>${title}</strong><small>У гривні · демо</small></button>`).join('')}</div><p class="info">У цьому проєкті відкриваються демонстраційні гривневі картки з нульовим балансом. Долари та євро показані у відео оригінального застосунку.</p></div>`}
@@ -76,32 +114,119 @@ function bindRefresh(){}
 
 const experienceRender=render;
 render=function(){if(!adminMode&&['capital','statcategory','openCard','service'].includes(route.page)){defaults();$('#app').className=route.page;$('#nav').hidden=true;$('#screen').innerHTML=({capital:capitalPage,statcategory:statsCategoryPage,openCard:openCardPage,service:servicePage})[route.page]()}else{experienceRender();if(!adminMode){if(['cards','analytics'].includes(route.page))$('#nav').hidden=true;if(route.page==='home'){bindRefresh();$('#app').classList.toggle('new-card-theme',newCardSelected);$('#app').classList.toggle('white-active',!newCardSelected&&cardWhite(activeCard()))}if(route.page==='analytics')initStats();if(route.page==='card'){let p;$('.expanded-card')?.addEventListener('pointerdown',e=>p={x:e.clientX,y:e.clientY});$('.expanded-card')?.addEventListener('pointerup',e=>{if(p&&Math.abs(e.clientX-p.x)>40&&Math.abs(e.clientY-p.y)<50){actions['flip-card']();e.currentTarget.addEventListener('click',e=>{e.stopPropagation();e.preventDefault()},{once:true,capture:true})}p=null})}}}};
-// One fixed layout: only the card track moves. Labels and panels retain their anchors.
-let swipeLayers=null,cardReleaseVelocity=0;
-function prepareSwipe(){if(swipeLayers)return swipeLayers;const app=$('#app'),track=$('.card-track'),index=newCardSelected?allCards().length:allCards().findIndex(c=>c.id===activeCard().id),background=document.createElement('div');background.className='swipe-gradient';app.prepend(background);swipeLayers={track,width:app.clientWidth,index,background,dx:0,theme:null};document.documentElement.dataset.gesture='active';app.classList.add('card-gesture-active');return swipeLayers}
-function moveHomeSwipe(distance,rubber=true){const l=prepareSwipe(),edge=(l.index===0&&distance>0)||(l.index===allCards().length&&distance<0),dx=edge&&rubber?distance*.2:distance;l.dx=dx;l.track.style.transform=`translate3d(${-l.index*l.width*.88+dx*.88}px,0,0)`;const next=l.index+(dx<0?1:-1);if(l.theme!==next){const c=allCards()[next];l.background.style.background=next===allCards().length?'linear-gradient(180deg,#19192d,#253252 290px,#1e293f 440px,#17191f 600px,#111214 740px)':c&&cardWhite(c)?'linear-gradient(180deg,#1f1038,#322555 235px,#1b284e 410px,#171d2b 550px,#111214 710px)':'linear-gradient(180deg,#10103c,#162858 235px,#10264c 410px,#111c30 550px,#111214 710px)';l.theme=next}l.background.style.opacity=Math.min(1,Math.abs(dx)/l.width)}
-function cleanupSwipe(){if(!swipeLayers)return;swipeLayers.background.remove();$('#app').classList.remove('card-gesture-active');delete document.documentElement.dataset.gesture;swipeLayers=null}
-function refreshSelectedCard(){const app=$('#app');app.classList.toggle('white-active',!newCardSelected&&cardWhite(activeCard()));app.classList.toggle('new-card-theme',newCardSelected);const label=$('.home-balance strong');if(label){label.textContent=displayMoney(balance())+' ₴';if(!shouldReduceMotion())label.animate([{opacity:.25},{opacity:1}],{duration:180,easing:'ease-out'})}const panel=$('.operation-panel');if(panel){const heading=panel.querySelector('.section-title');panel.innerHTML=(heading?.outerHTML||'')+rows(txFor().slice(0,6));if(!shouldReduceMotion())panel.querySelectorAll('.transaction').forEach(el=>el.animate([{opacity:.2},{opacity:1}],{duration:180,easing:'ease-out'}))}const pill=$('.card-selector');if(pill)pill.outerHTML=selector();fitMonetaryLabels()}
-finishCardSelection=async function(index){const old=state.activeCard,wasNew=newCardSelected;newCardSelected=index===allCards().length;cardDotsVisible=true;carouselIndex=index;if(!newCardSelected)state.activeCard=allCards()[index].id;const rebuild=wasNew!==newCardSelected;if(route.page==='home'){if(rebuild){cleanupSwipe();render()}else{refreshSelectedCard();cleanupSwipe()}}else cleanupSwipe();try{await persist()}catch(e){state.activeCard=old;newCardSelected=wasNew;cleanupSwipe();if(e.conflict)await loadSharedState(true);render();toast(e.message)}clearTimeout(finishCardSelection.timer);finishCardSelection.timer=setTimeout(()=>{cardDotsVisible=false;$('.card-selector')?.classList.remove('show-dots')},2400)};
+// The carousel and indicator share the same drag position.
+let swipeLayers=null;
+function prepareSwipe(){if(swipeLayers)return swipeLayers;const app=$('#app'),track=$('.card-track'),cards=allCards(),index=newCardSelected?cards.length:Math.max(0,cards.findIndex(c=>c.id===state.activeCard)),background=document.createElement('div');background.className='swipe-gradient';app.prepend(background);const pill=$('.card-selector');
+ clearTimeout(cardSelectorTimer);
+ pill?.classList.add('show-dots');
+ swipeLayers={track,pill,cards,width:app.clientWidth,index,background,dx:0,theme:null};document.documentElement.dataset.gesture='active';app.classList.add('card-gesture-active');return swipeLayers}
+function cardTrackOffset(layer,dx){return (dx-layer.index*layer.width)*.88}
+function updateSwipeTheme(layer,dx){
+ if(!dx)return;
+ const next=layer.index+(dx<0?1:-1);
+ if(layer.theme===next)return;
+ const card=layer.cards[next];
+ layer.background.style.background=next===layer.cards.length
+  ?'linear-gradient(180deg,#19192d,#253252 290px,#1e293f 440px,#17191f 600px,#111214 740px)'
+  :card&&cardWhite(card)
+   ?'linear-gradient(180deg,#1f1038,#322555 235px,#1b284e 410px,#171d2b 550px,#111214 710px)'
+   :'linear-gradient(180deg,#10103c,#162858 235px,#10264c 410px,#111c30 550px,#111214 710px)';
+ layer.theme=next;
+}
+function moveHomeSwipe(distance,rubber=true){
+ const layer=prepareSwipe();
+ const edge=(layer.index===0&&distance>0)||(layer.index===layer.cards.length&&distance<0);
+ const dx=rubber?(edge?distance*.2:Math.max(-layer.width,Math.min(layer.width,distance))):distance;
+ layer.dx=dx;
+ const indicatedIndex=Math.max(0,Math.min(layer.cards.length,Math.round(layer.index-dx/layer.width)));
+ setCardSelectorIndex(layer.pill,indicatedIndex);
+ layer.track.style.transform=`translate3d(${cardTrackOffset(layer,dx)}px,0,0)`;
+ updateSwipeTheme(layer,dx);
+ layer.background.style.opacity=Math.min(1,Math.abs(dx)/layer.width);
+}
+function cleanupSwipe(){if(!swipeLayers)return;clearTimeout(swipeLayers.wheelTimer);settleCardSelector(swipeLayers.pill);swipeLayers.background.remove();$('#app').classList.remove('card-gesture-active');delete document.documentElement.dataset.gesture;swipeLayers=null}
+function refreshSelectedCard(){
+ const app=$('#app');
+ app.classList.toggle('white-active',!newCardSelected&&cardWhite(activeCard()));
+ app.classList.toggle('new-card-theme',newCardSelected);
+ fitMonetaryLabels();
+}
+function finishCardSelection(index){
+ const cards=allCards();
+ newCardSelected=index===cards.length;
+ carouselIndex=index;
+ if(!newCardSelected)state.activeCard=cards[index].id;
+ const pane=$('.home-content');
+ const preview=swipeLayers?.pages?.find(page=>page.index===index)?.node.firstElementChild;
+ if(route.page==='home'&&preview){
+  for(const slot of [homeAccountIntro,'.home-actions','.operation-panel']){
+   pane.querySelector(slot).replaceWith(preview.querySelector(slot));
+  }
+  pane.classList.toggle('new-card-selected',newCardSelected);
+  cleanupSwipe();
+  refreshSelectedCard();
+ }else{
+  cleanupSwipe();
+  if(route.page==='home')render();
+ }
+}
 
 function physicalSettle(read,write,target,velocity,complete){let frame,cancelled=false;const from=read(),omega=2*Math.PI/.4,offset=from-target,start=performance.now();const tick=now=>{if(cancelled)return;const t=(now-start)/1000,term=velocity+omega*offset,decay=Math.exp(-omega*t),position=target+(offset+term*t)*decay,speed=(velocity-omega*term*t)*decay;write(position);if(t<1.2&&(Math.abs(position-target)>.05||Math.abs(speed)>.5))frame=requestAnimationFrame(tick);else{write(target);complete()}};frame=requestAnimationFrame(tick);return {cancel(){cancelled=true;cancelAnimationFrame(frame)},finish(){cancelled=true;cancelAnimationFrame(frame);write(target)}}}
-slideCardTo=function(index){const l=prepareSwipe();index=Math.max(0,Math.min(allCards().length,index));const target=(l.index-index)*l.width,v=Math.max(-2400,Math.min(2400,cardReleaseVelocity))*(index===l.index ? .2 : 1);cardReleaseVelocity=0;cardSlideAnimation?.cancel();const done=()=>index===l.index?cleanupSwipe():finishCardSelection(index);if(shouldReduceMotion()){moveHomeSwipe(target,false);done();return}cardSlideAnimation=settleCardStrip(()=>l.dx,x=>moveHomeSwipe(x,false),target,done)};
+slideCardTo=function(index){if(document.body.classList.contains('has-glass-history'))return;const l=prepareSwipe();index=Math.max(0,Math.min(allCards().length,index));const target=(l.index-index)*l.width;clearTimeout(l.wheelTimer);cardSlideAnimation?.cancel();const done=()=>index===l.index?cleanupSwipe():finishCardSelection(index);if(shouldReduceMotion()){moveHomeSwipe(target,false);done();return}cardSlideAnimation=settleHomeSwipe(l,target,done)};
 function bindHorizontalGesture(element,{read,write,settle,cancel}){
  let start=null,dragging=false,vertical=false,samples=[],frame=0,pending=0;
  const stopClick=e=>{e.preventDefault();e.stopPropagation()};
- const flush=()=>{cancelAnimationFrame(frame);frame=0;if(start&&dragging)write(pending)};
- element.addEventListener('pointerdown',e=>{if(e.button!==0||start)return;if(element.classList.contains('card-carousel')&&e.clientX-$('#app').getBoundingClientRect().left<=28)return;if(element.classList.contains('home-content')&&(e.target.closest('.operation-panel')||e.clientX-element.getBoundingClientRect().left<=28))return;start={x:e.clientX,y:e.clientY,base:read(),id:e.pointerId};dragging=false;vertical=false;samples=[{x:e.clientX,time:performance.now()}]});
+ const flush=()=>{if(!frame)return;cancelAnimationFrame(frame);frame=0;if(start&&dragging)write(pending)};
+ element.addEventListener('pointerdown',e=>{if(e.button!==0||start)return;if(element.classList.contains('card-carousel')&&(e.clientX-$('#app').getBoundingClientRect().left<=28||document.body.classList.contains('has-glass-history')))return;if(element.classList.contains('home-content')&&(e.target.closest('.operation-panel')||e.clientX-element.getBoundingClientRect().left<=28))return;start={x:e.clientX,y:e.clientY,base:read(),id:e.pointerId};dragging=false;vertical=false;samples=[{x:e.clientX,time:performance.now()}]});
  element.addEventListener('pointermove',e=>{if(!start||e.pointerId!==start.id||vertical)return;const dx=e.clientX-start.x,dy=e.clientY-start.y;if(!dragging&&Math.abs(dy)>8&&Math.abs(dy)>Math.abs(dx)){vertical=true;return}if(!dragging&&Math.abs(dx)>14&&Math.abs(dx)>Math.abs(dy)*1.6){cancel();start.base=read();dragging=true;element.setPointerCapture(e.pointerId)}if(!dragging)return;const time=performance.now();samples.push({x:e.clientX,time});samples=samples.filter(p=>time-p.time<100);pending=start.base+dx;if(!frame)frame=requestAnimationFrame(()=>{frame=0;if(start&&dragging)write(pending)})});
  const end=e=>{if(!start||e.pointerId!==start.id)return;flush();const moved=dragging,first=samples[0],last=samples.at(-1),v=e.type==='pointercancel'?0:last&&first&&performance.now()-last.time<80&&last.time>first.time?(last.x-first.x)/(last.time-first.time)*1000:0;start=null;dragging=false;vertical=false;if(element.hasPointerCapture(e.pointerId))element.releasePointerCapture(e.pointerId);if(moved){element.addEventListener('click',stopClick,{once:true,capture:true});setTimeout(()=>element.removeEventListener('click',stopClick,true),0);settle(v,e.type==='pointercancel'||e.type==='lostpointercapture')}};
  element.addEventListener('pointerup',end);element.addEventListener('pointercancel',end);element.addEventListener('lostpointercapture',e=>{if(start&&e.target===element&&!element.hasPointerCapture(e.pointerId))end(e)})
 }
-bindCardSwipe=function(){const pane=$('.card-carousel');if(!pane)return;carouselIndex=newCardSelected?allCards().length:allCards().findIndex(c=>c.id===activeCard().id);setCarouselPosition(carouselIndex);bindHorizontalGesture(pane,{read:()=>swipeLayers?.dx||0,write:x=>moveHomeSwipe(x),cancel:()=>cardSlideAnimation?.cancel(),settle:(v,cancelled)=>{cardReleaseVelocity=cancelled?0:v;const l=prepareSwipe(),projected=l.dx+v*.12;slideCardTo(l.index+(!cancelled&&Math.abs(projected)>l.width*.25?(projected<0?1:-1):0))}})};
+bindCardSwipe=function(){
+ const pane=$('.card-carousel');
+ if(!pane)return;
+ carouselIndex=newCardSelected?allCards().length:allCards().findIndex(card=>card.id===activeCard().id);
+ setCarouselPosition(carouselIndex);
+ bindHorizontalGesture(pane,{
+  read:()=>swipeLayers?.dx||0,
+  write:dx=>moveHomeSwipe(dx),
+  cancel:()=>{
+   cardSlideAnimation?.cancel();
+   const layer=prepareSwipe();
+   clearTimeout(layer.wheelTimer);
+   layer.input='pointer';
+  },
+  settle:(velocity,cancelled)=>{
+   const layer=prepareSwipe();
+   layer.input=null;
+   const projected=layer.dx+velocity*.12;
+   const direction=!cancelled&&Math.abs(projected)>layer.width*.25?Math.sign(-projected):0;
+   slideCardTo(layer.index+direction);
+  }
+ });
+};
 
 function captureBankSurface(preserveArtwork=false){const app=$('#app'),rect=app.getBoundingClientRect(),surface=document.createElement('div');surface.className='bank-surface-transition';Object.assign(surface.style,{position:'fixed',left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:app.offsetHeight+'px',background:getComputedStyle(app).background,zIndex:37,pointerEvents:'none',overflow:'hidden'});const source=$('#screen'),screen=source.cloneNode(true);screen.removeAttribute('id');screen.classList.add('transition-screen');screen.style.paddingBottom=getComputedStyle(source).paddingBottom;screen.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));const expanded=screen.querySelector('.expanded-card');if(!preserveArtwork){if(expanded)expanded.style.visibility='hidden';screen.querySelector('.card-face[data-id="'+state.activeCard+'"]')?.remove();}surface.append(screen);if(!$('#nav').hidden){const navigation=$('#nav').cloneNode(true);navigation.removeAttribute('id');navigation.classList.add('transition-nav');surface.append(navigation)}surface.inert=true;return surface}
-function fitMonetaryLabels(){for(const [selector,max,min] of [['.home-balance strong',46,26],['.stats-summary>strong',46,24],['.capital-total>strong',38,22],['.compact-card>strong',21,12],['.tx-amount',18,12]]){document.querySelectorAll(selector).forEach(el=>{if(el.dataset.numberMotion==='1')return;el.style.fontSize=max+'px';const available=el.clientWidth;if(available&&el.scrollWidth>available)el.style.fontSize=Math.max(min,Math.floor(max*available/el.scrollWidth))+'px'})}}
+function fitMonetaryLabels(){
+ const labels=[];
+ for(const [selector,max,min] of [['.home-balance strong',46,26],['.stats-summary>strong',46,24],['.capital-total>strong',38,22],['.compact-card>strong',21,12],['.tx-amount',18,12]]){
+  document.querySelectorAll('#screen '+selector).forEach(el=>{
+   if(el.dataset.numberMotion==='1')return;
+   el.style.fontSize=max+'px';
+   labels.push({el,max,min});
+  });
+ }
+ const measurements=labels.map(({el,max,min})=>{
+  const width=el.clientWidth,content=el.scrollWidth;
+  return {el,size:width&&content>width?Math.max(min,Math.floor(max*width/content)):max,max};
+ });
+ for(const {el,size,max} of measurements)if(size<max)el.style.fontSize=size+'px';
+}
 function animateSummaryValue(el,from,to,kind){if(from===to||shouldReduceMotion())return;const available=el.clientWidth,style=getComputedStyle(el),canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');ctx.font=style.font;const label=n=>(kind==='expense'?'−':'')+displayMoney(n)+' ₴',width=Math.max(ctx.measureText(label(from)).width,ctx.measureText(label(to)).width);el.style.fontSize=Math.max(24,Math.min(parseFloat(style.fontSize),parseFloat(style.fontSize)*available/width))+'px';el.dataset.numberMotion='1';const start=performance.now();const step=now=>{if(!el.isConnected)return;const t=Math.min(1,(now-start)/240),n=from+(to-from)*(1-Math.pow(1-t,3));el.textContent=label(n);if(t<1)requestAnimationFrame(step);else{el.textContent=label(to);delete el.dataset.numberMotion}};requestAnimationFrame(step)}
+let amountFitFrame=0;
 const beforeAmountRender=render;
-render=function(){const previous=route.page==='analytics'?new Map([...document.querySelectorAll('.stats-summary')].map(x=>[x.dataset.kind,Number(x.dataset.total)])):null;beforeAmountRender();requestAnimationFrame(()=>{fitMonetaryLabels();if(previous?.size)document.querySelectorAll('.stats-summary').forEach(x=>{if(previous.has(x.dataset.kind))animateSummaryValue(x.querySelector(':scope>strong'),previous.get(x.dataset.kind),Number(x.dataset.total),x.dataset.kind)})});document.fonts.ready.then(fitMonetaryLabels)};
+render=function(){const previous=route.page==='analytics'?new Map([...document.querySelectorAll('.stats-summary')].map(x=>[x.dataset.kind,Number(x.dataset.total)])):null;beforeAmountRender();cancelAnimationFrame(amountFitFrame);amountFitFrame=requestAnimationFrame(()=>{fitMonetaryLabels();if(previous?.size)document.querySelectorAll('.stats-summary').forEach(x=>{if(previous.has(x.dataset.kind))animateSummaryValue(x.querySelector(':scope>strong'),previous.get(x.dataset.kind),Number(x.dataset.total),x.dataset.kind)})})};
+document.fonts.addEventListener('loadingdone',fitMonetaryLabels);
 
 render();
 

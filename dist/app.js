@@ -13,11 +13,23 @@ function shouldReduceMotion(){const mode=motionMode();return mode==='reduced'||(
 function compareTransactions(a,b){return ((b.date||'')+'T'+(b.time||'00:00')).localeCompare((a.date||'')+'T'+(a.time||'00:00'))||Number(b.createdAt||0)-Number(a.createdAt||0)||state.transactions.indexOf(b)-state.transactions.indexOf(a)}
 
 const mainCard=()=>({id:'main',account:state.account,card:state.card,opening:state.opening,holder:state.mainHolder||state.holder,color:state.mainColor||'black'}),allCards=()=>[mainCard(),...state.extraCards],activeCard=()=>allCards().find(c=>c.id===state.activeCard)||mainCard(),txFor=(id=activeCard().id)=>state.transactions.filter(t=>(t.cardId||'main')===id).sort(compareTransactions),balance=()=>activeCard().opening+txFor().reduce((s,t)=>s+t.amount,0),currentTx=()=>state.transactions.find(t=>t.id===route.id);
+function firstBlackCardId(data){
+ if(data.mainColor!=='white')return 'main';
+ return data.extraCards?.find(card=>card.color?card.color==='black':card.id!=='white')?.id||'main';
+}
+function applyLoadedState(next){
+ if(!adminMode){
+  const previous=state.activeCard;
+  const hasPrevious=previous==='main'||next.extraCards?.some(card=>card.id===previous);
+  next.activeCard=!loading&&hasPrevious?previous:firstBlackCardId(next);
+ }
+ state=next;
+}
 let serverRevision=0,sharedLoading=false,sharedSaving=false;
 const blobCache=new WeakMap();
 async function serializeState(){const files=await Promise.all(state.files.map(async f=>{if(typeof f.blob==='string')return f;let data=blobCache.get(f.blob);if(!data){data=new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(Error('Не вдалося прочитати вкладення'));r.readAsDataURL(f.blob)});blobCache.set(f.blob,data)}return {...f,blob:await data}}));return {...state,files}}
 async function hydrateState(value){const files=await Promise.all((value.files||[]).map(async f=>{if(typeof f.blob!=='string')return f;const blob=await(await fetch(f.blob)).blob();blobCache.set(blob,Promise.resolve(f.blob));return {...f,blob}}));return {...value,files}}
-async function loadSharedState(force=false){if(sharedLoading||sharedSaving||(!force&&($('#modal').open||document.documentElement.dataset.gesture==='active'||document.documentElement.dataset.editing==='true')))return;sharedLoading=true;try{const r=await fetch('/api/state'+(!force&&serverRevision?'?revision='+serverRevision:''),{cache:'no-store'});if(!r.ok)throw Error('Локальний сервер недоступний. Запустіть python server.py');const record=await r.json();if(!record.unchanged&&!sharedSaving&&(force||!$('#modal').open)){const next=await hydrateState(record.state);if(!sharedSaving&&(force||(!$('#modal').open&&document.documentElement.dataset.gesture!=='active'&&document.documentElement.dataset.editing!=='true'))){state=next;serverRevision=record.revision;if(!loading)render()}}document.documentElement.dataset.storage='saved'}catch(e){document.documentElement.dataset.storage='offline';throw e}finally{sharedLoading=false}}
+async function loadSharedState(force=false){if(sharedLoading||sharedSaving||(!force&&($('#modal').open||document.documentElement.dataset.gesture==='active'||document.documentElement.dataset.editing==='true')))return;sharedLoading=true;try{const r=await fetch('/api/state'+(!force&&serverRevision?'?revision='+serverRevision:''),{cache:'no-store'});if(!r.ok)throw Error('Локальний сервер недоступний. Запустіть python server.py');const record=await r.json();if(!record.unchanged&&!sharedSaving&&(force||!$('#modal').open)){const next=await hydrateState(record.state);if(!sharedSaving&&(force||(!$('#modal').open&&document.documentElement.dataset.gesture!=='active'&&document.documentElement.dataset.editing!=='true'))){applyLoadedState(next);serverRevision=record.revision;if(!loading)render()}}document.documentElement.dataset.storage='saved'}catch(e){document.documentElement.dataset.storage='offline';throw e}finally{sharedLoading=false}}
 async function persist(){sharedSaving=true;document.documentElement.dataset.storage='saving';try{const r=await fetch('/api/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({revision:serverRevision,state:await serializeState()})});const result=await r.json();if(!r.ok){const e=Error(result.error||'Не вдалося зберегти дані');e.conflict=r.status===409;throw e}serverRevision=result.revision;document.documentElement.dataset.storage='saved'}catch(e){document.documentElement.dataset.storage='offline';throw e}finally{sharedSaving=false}}
 async function initializeSharedState(){try{await loadSharedState(true)}catch(e){toast(e.message)}loading=false;render()}
 window.addEventListener('focus',()=>loadSharedState().catch(()=>{}));
