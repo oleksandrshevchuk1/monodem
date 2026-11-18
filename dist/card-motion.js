@@ -33,15 +33,12 @@
    // The name was not visible on the starting rear face and is absent on the home card.
    if(!opening&&from.flipAngle>90)current.node.querySelector('.card-holder')?.style.setProperty('display','none','important');
   }
-  if(preciseCardScene?.body&&to){const surface=getComputedStyle(to);preciseCardScene.body.style.perspective=surface.perspective;preciseCardScene.body.style.perspectiveOrigin=surface.perspectiveOrigin}
+
  };
  // A closing card remains part of the carousel until its final handoff.
  const moveSwipe=moveHomeSwipe;
  moveHomeSwipe=function(...args){const result=moveSwipe(...args),scene=preciseCardScene;if(scene?.carouselTrack?.isConnected){scene.swipeOffsetX=new DOMMatrixReadOnly(scene.carouselTrack.style.transform||undefined).m41-scene.carouselStartX;scene.node.style.translate=`${scene.swipeOffsetX}px 0px`}return result};
  const cleanupStrip=cleanupSwipe;cleanupSwipe=function(...args){const result=cleanupStrip(...args);if(preciseCardScene)document.documentElement.dataset.gesture='active';return result};
- function flipShadowOpacity(angle){
-  return Math.max(0,Math.min(1,(Math.abs(angle-90)-8)/17));
- }
  function cardAngle(art){
   const transform=getComputedStyle(art).transform;
   if(transform==='none')return 0;
@@ -72,22 +69,19 @@
   previousShadow?.remove();
   card.prepend(shadow);
   card.classList.add('flipping');
-  const shadowFrames=[{offset:0,opacity:flipShadowOpacity(start)}];
-  for(const angle of end>start?[65,82,98,115]:[115,98,82,65]){
-   const offset=(angle-start)/(end-start);
-   if(offset>0&&offset<1)shadowFrames.push({offset,opacity:flipShadowOpacity(angle)});
-  }
-  shadowFrames.push({offset:1,opacity:1});
-  const shade=shadow.animate(shadowFrames,timing);
+  // Keep the shadow fully hidden during the turn, then restore it as the face settles.
+  const shade=shadow.animate([{offset:0,opacity:0},{offset:.88,opacity:0},{offset:1,opacity:1}],{...timing,easing:'linear'});
   const faces=['front','back'].map(side=>{
    const face=art.querySelector('.bank-card-'+side);
-   const visibility=angle=>(angle>90)===(side==='back')?'visible':'hidden';
-   const final=visibility(end),initial=crossing<=0?final:visibility(start);
-   const frames=[{offset:0,visibility:initial,easing:'steps(1,end)'}];
-   if(crossing>0&&crossing<1)frames.push({offset:crossing,visibility:final});
-   frames.push({offset:1,visibility:final});
+   const opacity=angle=>(angle>90)===(side==='back')?1:0;
+   const final=opacity(end),initial=crossing<=0?final:opacity(start);
+   const frames=[{offset:0,opacity:initial,easing:'steps(1,end)'}];
+   if(crossing>0&&crossing<1)frames.push({offset:crossing,opacity:final});
+   frames.push({offset:1,opacity:final});
    return face.animate(frames,timing);
   });
+  const startTime=document.timeline.currentTime;
+  if(startTime!==null)for(const motion of [turn,shade,...faces])motion.startTime=startTime;
   card._flipMotion=turn;
   const cleanup=()=>{
    shade.cancel();

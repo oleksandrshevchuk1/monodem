@@ -65,16 +65,20 @@
 
 /* Only the printed ink is a flat texture. The physical faces and all 3D motion stay intact. */
 .bank-card-front>.card-material{z-index:0}
-.card-face-ink{position:absolute;inset:0;z-index:1;transform-style:flat;isolation:isolate;backface-visibility:hidden;-webkit-backface-visibility:hidden;pointer-events:none}
+.card-face-ink{position:absolute;inset:0;z-index:1;transform-style:flat;backface-visibility:hidden;-webkit-backface-visibility:hidden;pointer-events:none}
 
 /* Hidden faces must also hide the ink; older surface rules force their children visible. */
 .card-face-ink,.card-face-ink *{visibility:inherit!important}
 
-/* The turning layer owns the faces. The shadow has its own opacity track. */
-.expanded-card.flipping{box-shadow:none}
+/* Render each face and its ink as a flat image on the turning card.
+   Mirroring the rear within that plane avoids nested backface culling on iOS. */
+.expanded-card.flipping{box-shadow:none!important}
 .card-motion-shadow{position:absolute;inset:0;border-radius:inherit;pointer-events:none}
-.returning-rear :is(.bank-card-front,.bank-card-back,.card-face-ink){
+:is(.expanded-card,.returning-rear) .bank-card{transform-style:flat}
+:is(.expanded-card,.precise-card-surface) :is(.bank-card-front,.bank-card-back,.card-face-ink){
  backface-visibility:visible;
  -webkit-backface-visibility:visible;
  transform-style:flat;
 }
+:is(.expanded-card,.returning-rear) .bank-card-front{transform:none}
+:is(.expanded-card,.returning-rear) .bank-card-back{transform:scaleX(-1)}

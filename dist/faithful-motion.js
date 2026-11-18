@@ -69,7 +69,7 @@ expandTransition=function(from,to,opening){
   const yaw=startAngle-360;
   const rotate=(angle,roll)=>`rotateZ(${roll}deg) rotateY(${angle}deg)`;
   const duration=350,easing='cubic-bezier(.32,.25,.6,.82)',timing={duration,easing,fill:'both'};
-  body.animate([
+  const turn=body.animate([
    {transform:rotate(yaw,0)},
    {offset:.19,transform:rotate(Math.min(yaw,-214),-18)},
    {offset:.50,transform:rotate(-270,-34)},
@@ -78,14 +78,16 @@ expandTransition=function(from,to,opening){
    {transform:rotate(-360,0)}
   ],timing);
   // Both faces switch at the exact keyframe where the card is edge-on.
-  for(const side of ['front','back']){
+  const faces=['front','back'].map(side=>{
    const initial=side==='back'?1:0,final=1-initial;
-   art.querySelector('.bank-card-'+side).animate([
+   return art.querySelector('.bank-card-'+side).animate([
     {offset:0,opacity:initial,easing:'steps(1,end)'},
     {offset:.5,opacity:final},
     {offset:1,opacity:final}
    ],timing);
-  }
+  });
+  const startTime=document.timeline.currentTime;
+  if(startTime!==null)for(const motion of [turn,...faces])motion.startTime=startTime;
   const shadow=document.createElement('span');
   shadow.className='card-motion-shadow';
   shadow.style.boxShadow=targetShadow;
@@ -95,7 +97,7 @@ expandTransition=function(from,to,opening){
   plane.style.perspective=`${(from.cardPerspective||1000)*width/source.width}px`;
   body.animate([{transform:`rotateY(${startAngle}deg)`},{transform:'rotateY(0deg)'}],{duration,easing:landingEase,fill:'both'});
  }
- const snapshot=from.snapshot;if(snapshot){snapshot.querySelectorAll('.expanded-card,.card-header-mini,.transition-nav').forEach(el=>el.style.visibility='hidden');snapshot.style.zIndex='37';document.body.append(snapshot);snapshot.animate([{opacity:1},{opacity:0}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'}).finished.catch(()=>{})}
+ const snapshot=from.snapshot;if(snapshot){snapshot.querySelectorAll('.expanded-card,.card-header-mini,.transition-nav').forEach(el=>el.style.visibility='hidden');snapshot.style.zIndex='37';snapshot.style.maxHeight=Math.max(0,innerHeight-parseFloat(snapshot.style.top))+'px';document.body.append(snapshot);snapshot.animate([{opacity:1},{opacity:0}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'}).finished.catch(()=>{})}
  const targetVisibility=to.style.visibility;to.style.visibility='hidden';document.documentElement.dataset.gesture='active';operationsNav(opening?1:0,opening?0:1,duration);
  const scene={node,plane,body,base,origin,target:to,targetVisibility,backdrop:snapshot,sourceRect,destinationRect:destination};preciseCardScene=scene;
  scene.dispose=()=>{if(scene.disposed)return;scene.disposed=true;to.style.visibility=targetVisibility;const tracks=[...node.getAnimations({subtree:true}),...(snapshot?.getAnimations()||[])];node.remove();snapshot?.remove();for(const track of tracks)track.cancel();if(preciseCardScene===scene){preciseCardScene=null;if(!swipeLayers)delete document.documentElement.dataset.gesture;restoreOperationsNav()}};
