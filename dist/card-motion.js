@@ -40,9 +40,13 @@
  moveHomeSwipe=function(...args){const result=moveSwipe(...args),scene=preciseCardScene;if(scene?.carouselTrack?.isConnected){scene.swipeOffsetX=new DOMMatrixReadOnly(scene.carouselTrack.style.transform||undefined).m41-scene.carouselStartX;scene.node.style.translate=`${scene.swipeOffsetX}px 0px`}return result};
  const cleanupStrip=cleanupSwipe;cleanupSwipe=function(...args){const result=cleanupStrip(...args);if(preciseCardScene)document.documentElement.dataset.gesture='active';return result};
  function cardAngle(art){
-  const transform=getComputedStyle(art).transform;
-  if(transform==='none')return 0;
-  return Math.acos(Math.max(-1,Math.min(1,new DOMMatrixReadOnly(transform).m11)))*180/Math.PI;
+  const angle=side=>{
+   const transform=getComputedStyle(art.querySelector('.bank-card-'+side)).transform;
+   const cosine=transform==='none'?1:new DOMMatrixReadOnly(transform).m11;
+   return Math.acos(Math.max(0,Math.min(1,cosine)))*180/Math.PI;
+  };
+  const front=angle('front');
+  return front<89.999?front:180-angle('back');
  }
  const flip=actions['flip-card'];
  actions['flip-card']=()=>{
@@ -53,15 +57,32 @@
   flip();
   if(cardFlipped===wasFlipped)return;
 
-  card._flipMotion?.cancel();
+  card._flipMotion?.forEach(motion=>motion.cancel());
   card.classList.remove('flipping');
   if(shouldReduceMotion())return;
   const end=cardFlipped?180:0;
   const duration=500*Math.abs(end-start)/180;
   if(duration<1)return;
   const timing={duration,easing:getComputedStyle(document.documentElement).getPropertyValue('--ease-in-out').trim(),fill:'both'};
-  const turn=art.animate([{transform:`rotateY(${start}deg)`},{transform:`rotateY(${end}deg)`}],timing);
+  // Faces meet edge-on. The hidden face stays edge-on until its half of the turn,
+  // so WebKit never has to swap visibility or paint the back of either layer.
   const crossing=(90-start)/(end-start);
+  const faces=['front','back'].map((side,index)=>{
+   const face=art.querySelector('.bank-card-'+side);
+   const pose=angle=>{
+    const yaw=index?Math.max(90,angle)-180:Math.min(90,angle);
+    return `perspective(1000px) rotateY(${yaw}deg)`;
+   };
+   const opacity=angle=>Math.max(0,Math.min(1,(index?angle-90:90-angle)/2));
+   const frames=[{offset:0,transform:pose(start),opacity:opacity(start)}];
+   const edge=index?92:88;
+   const nearEdge=(edge-start)/(end-start);
+   if(nearEdge>0&&nearEdge<crossing)frames.push({offset:nearEdge,transform:pose(edge),opacity:1});
+   if(crossing>0&&crossing<1)frames.push({offset:crossing,transform:pose(90),opacity:0});
+   if(nearEdge>crossing&&nearEdge>0&&nearEdge<1)frames.push({offset:nearEdge,transform:pose(edge),opacity:1});
+   frames.push({offset:1,transform:pose(end),opacity:opacity(end)});
+   return face.animate(frames,timing);
+  });
   const previousShadow=card.querySelector('.card-motion-shadow');
   const shadow=document.createElement('span');
   shadow.className='card-motion-shadow';
@@ -71,28 +92,18 @@
   card.classList.add('flipping');
   // Keep the shadow fully hidden during the turn, then restore it as the face settles.
   const shade=shadow.animate([{offset:0,opacity:0},{offset:.88,opacity:0},{offset:1,opacity:1}],{...timing,easing:'linear'});
-  const faces=['front','back'].map(side=>{
-   const face=art.querySelector('.bank-card-'+side);
-   const opacity=angle=>(angle>90)===(side==='back')?1:0;
-   const final=opacity(end),initial=crossing<=0?final:opacity(start);
-   const frames=[{offset:0,opacity:initial,easing:'steps(1,end)'}];
-   if(crossing>0&&crossing<1)frames.push({offset:crossing,opacity:final});
-   frames.push({offset:1,opacity:final});
-   return face.animate(frames,timing);
-  });
   const startTime=document.timeline.currentTime;
-  if(startTime!==null)for(const motion of [turn,shade,...faces])motion.startTime=startTime;
-  card._flipMotion=turn;
+  if(startTime!==null)for(const motion of [shade,...faces])motion.startTime=startTime;
+  card._flipMotion=faces;
   const cleanup=()=>{
    shade.cancel();
    shadow.remove();
    for(const motion of faces)motion.cancel();
-   if(card._flipMotion!==turn)return;
+   if(card._flipMotion!==faces)return;
    card._flipMotion=null;
    card.classList.remove('flipping');
-   turn.cancel();
   };
-  turn.finished.then(cleanup,cleanup);
+  faces[0].finished.then(cleanup,cleanup);
  };
  document.querySelectorAll('.bank-card').forEach(prepare);
 })();
