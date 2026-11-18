@@ -141,10 +141,12 @@ expandTransition=function(from,to,opening){
  const raw=new DOMMatrix(geometry.raw);
  const camera=raw.m24?-raw.m23/raw.m24:900;
  const pitch=Math.atan2(raw.m23,raw.m22-raw.m42*raw.m24);
- const planeFrames=[{transform:startPlane.toString()},{transform:endPlane.toString()}];
+ // Position and pose share one compositor track and the same transform origin.
+ const planeFrames=[{transform:rearStart.toString()},{transform:endPlane.toString()}];
  const landingEase=rear?'linear':'cubic-bezier(.32,.72,0,1)';
  const frames=[{transform:new DOMMatrix().translate(sourceLayout.x-base.x,sourceLayout.y-base.y).toString()},{transform:new DOMMatrix().toString()}];
- node.style.transform=frames[reduceRear||rear?1:0].transform;
+ node.style.transform=frames[reduce&&!reduceRear?0:1].transform;
+ if(reduce&&!reduceRear)planeFrames[0].transform=startPlane.toString();
  plane.style.transform=rear?endPlane.toString():planeFrames[reduceRear?1:0].transform;
  const targetArtStyle=getComputedStyle(to.querySelector('.bank-card')),targetRadius=targetArtStyle.borderTopLeftRadius;
  // Keep shadows and corner masks on static layers during the transform.
@@ -174,7 +176,8 @@ expandTransition=function(from,to,opening){
  }
  const snapshot=from.snapshot;
  if(snapshot){
-  snapshot.querySelectorAll('.expanded-card,.card-header-mini,.transition-nav').forEach(el=>el.style.setProperty('opacity','0','important'));
+  snapshot.querySelector('.transition-nav')?.remove();
+  snapshot.querySelectorAll('.expanded-card,.card-header-mini').forEach(el=>el.style.setProperty('opacity','0','important'));
   snapshot.style.zIndex='37';snapshot.style.maxHeight=Math.max(0,innerHeight-parseFloat(snapshot.style.top))+'px';document.body.append(snapshot);
   const fade=snapshot.animate([{opacity:1},{opacity:0}],{duration,easing:landingEase,fill:'both'});
   fade.finished.catch(()=>{});
@@ -186,7 +189,7 @@ expandTransition=function(from,to,opening){
  const planeMotion=rear?animateRearCard(scene,art,shadow,rearStart,endPlane,camera,pitch,startAngle):
   reduceRear?null:plane.animate(planeFrames,scene.timing);scene.planeMotion=planeMotion;
  const motionFrames=reduce?[{opacity:0},{opacity:1}]:frames;
- const motion=rear?planeMotion:node.animate(motionFrames,scene.timing);scene.motion=motion;cardTransition=motion;
+ const motion=reduce?node.animate(motionFrames,scene.timing):planeMotion;scene.motion=motion;cardTransition=motion;
  // Collect after the caller adds its face/ink tracks; never discard a still-moving layer.
  Promise.resolve().then(()=>{
   const tracks=[...node.getAnimations({subtree:true}),...(snapshot?.getAnimations()||[])];

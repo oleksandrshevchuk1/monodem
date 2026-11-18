@@ -123,12 +123,15 @@
  color:#000;
  text-shadow:none;
 }
-:is(.card-face,.expanded-card,.precise-card-surface,.soft-card-surface) .is-white .card-printed-number{
- color:#191a20;
- font-size:7cqw!important;
- letter-spacing:.65cqw!important;
+:is(.card-face,.expanded-card,.precise-card-surface,.soft-card-surface) .bank-card .card-printed-number{
+ left:7.3%!important;
+ transform:none;
+ font-size:7.25cqw!important;
+ letter-spacing:.46cqw!important;
 }
-:is(.expanded-card,.precise-card-surface,.soft-card-surface) .is-white .card-holder{
+.bank-card.is-white .card-printed-number{color:#191a20}
+:is(.expanded-card,.precise-card-surface,.soft-card-surface) .bank-card .card-holder{
+ left:7.3%;
  font-size:clamp(13px,4.6cqw,18px);
  letter-spacing:.23cqw;
  max-width:68%;

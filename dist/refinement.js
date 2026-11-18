@@ -207,10 +207,26 @@ bindCardSwipe=function(){
 };
 
 function captureBankSurface(preserveArtwork=false){const app=$('#app'),rect=app.getBoundingClientRect(),surface=document.createElement('div');surface.className='bank-surface-transition';Object.assign(surface.style,{position:'fixed',left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:app.offsetHeight+'px',background:getComputedStyle(app).background,zIndex:37,pointerEvents:'none',overflow:'hidden'});const source=$('#screen'),screen=source.cloneNode(true);screen.removeAttribute('id');screen.classList.add('transition-screen');screen.style.paddingBottom=getComputedStyle(source).paddingBottom;screen.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));const expanded=screen.querySelector('.expanded-card');if(!preserveArtwork){if(expanded)expanded.style.visibility='hidden';screen.querySelector('.card-face[data-id="'+state.activeCard+'"]')?.remove();}surface.append(screen);if(!$('#nav').hidden){const navigation=$('#nav').cloneNode(true);navigation.removeAttribute('id');navigation.classList.add('transition-nav');surface.append(navigation)}surface.inert=true;return surface}
-function fitMonetaryLabels(){for(const [selector,max,min] of [['.home-balance strong',46,26],['.stats-summary>strong',46,24],['.capital-total>strong',38,22],['.compact-card>strong',21,12],['.tx-amount',18,12]]){document.querySelectorAll(selector).forEach(el=>{if(el.dataset.numberMotion==='1')return;el.style.fontSize=max+'px';const available=el.clientWidth;if(available&&el.scrollWidth>available)el.style.fontSize=Math.max(min,Math.floor(max*available/el.scrollWidth))+'px'})}}
+function fitMonetaryLabels(){
+ const labels=[];
+ for(const [selector,max,min] of [['.home-balance strong',46,26],['.stats-summary>strong',46,24],['.capital-total>strong',38,22],['.compact-card>strong',21,12],['.tx-amount',18,12]]){
+  document.querySelectorAll('#screen '+selector).forEach(el=>{
+   if(el.dataset.numberMotion==='1')return;
+   el.style.fontSize=max+'px';
+   labels.push({el,max,min});
+  });
+ }
+ const measurements=labels.map(({el,max,min})=>{
+  const width=el.clientWidth,content=el.scrollWidth;
+  return {el,size:width&&content>width?Math.max(min,Math.floor(max*width/content)):max,max};
+ });
+ for(const {el,size,max} of measurements)if(size<max)el.style.fontSize=size+'px';
+}
 function animateSummaryValue(el,from,to,kind){if(from===to||shouldReduceMotion())return;const available=el.clientWidth,style=getComputedStyle(el),canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');ctx.font=style.font;const label=n=>(kind==='expense'?'−':'')+displayMoney(n)+' ₴',width=Math.max(ctx.measureText(label(from)).width,ctx.measureText(label(to)).width);el.style.fontSize=Math.max(24,Math.min(parseFloat(style.fontSize),parseFloat(style.fontSize)*available/width))+'px';el.dataset.numberMotion='1';const start=performance.now();const step=now=>{if(!el.isConnected)return;const t=Math.min(1,(now-start)/240),n=from+(to-from)*(1-Math.pow(1-t,3));el.textContent=label(n);if(t<1)requestAnimationFrame(step);else{el.textContent=label(to);delete el.dataset.numberMotion}};requestAnimationFrame(step)}
+let amountFitFrame=0;
 const beforeAmountRender=render;
-render=function(){const previous=route.page==='analytics'?new Map([...document.querySelectorAll('.stats-summary')].map(x=>[x.dataset.kind,Number(x.dataset.total)])):null;beforeAmountRender();requestAnimationFrame(()=>{fitMonetaryLabels();if(previous?.size)document.querySelectorAll('.stats-summary').forEach(x=>{if(previous.has(x.dataset.kind))animateSummaryValue(x.querySelector(':scope>strong'),previous.get(x.dataset.kind),Number(x.dataset.total),x.dataset.kind)})});document.fonts.ready.then(fitMonetaryLabels)};
+render=function(){const previous=route.page==='analytics'?new Map([...document.querySelectorAll('.stats-summary')].map(x=>[x.dataset.kind,Number(x.dataset.total)])):null;beforeAmountRender();cancelAnimationFrame(amountFitFrame);amountFitFrame=requestAnimationFrame(()=>{fitMonetaryLabels();if(previous?.size)document.querySelectorAll('.stats-summary').forEach(x=>{if(previous.has(x.dataset.kind))animateSummaryValue(x.querySelector(':scope>strong'),previous.get(x.dataset.kind),Number(x.dataset.total),x.dataset.kind)})})};
+document.fonts.addEventListener('loadingdone',fitMonetaryLabels);
 
 render();
 
