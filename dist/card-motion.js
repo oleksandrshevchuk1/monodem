@@ -1,5 +1,7 @@
 'use strict';
 
+const cardTurnEase = 'ease';
+
 function animateCardFaces(art,start,end,perspective,timing){
  // Keep the painted faces on the same perspective axis and exchange them edge-on.
   const crossing=(90-start)/(end-start);
@@ -9,9 +11,9 @@ function animateCardFaces(art,start,end,perspective,timing){
     const yaw=index?Math.max(90,angle)-180:Math.min(90,angle);
     return `perspective(${perspective}px) rotateY(${yaw}deg)`;
    };
-   const opacity=angle=>Math.max(0,Math.min(1,(index?angle-90:90-angle)/2));
+   const opacity=angle=>Math.max(0,Math.min(1,(index?angle-90:90-angle)));
    const frames=[{offset:0,transform:pose(start),opacity:opacity(start)}];
-   const edge=index?92:88;
+   const edge=index?91:89;
    const nearEdge=(edge-start)/(end-start);
    if(nearEdge>0&&nearEdge<crossing)frames.push({offset:nearEdge,transform:pose(edge),opacity:1});
    if(crossing>0&&crossing<1)frames.push({offset:crossing,transform:pose(90),opacity:0});
@@ -90,9 +92,9 @@ function animateCardFaces(art,start,end,perspective,timing){
   card.classList.remove('flipping');
   if(shouldReduceMotion())return;
   const end=cardFlipped?180:0;
-  const duration=500*Math.abs(end-start)/180;
+  const duration=600*Math.abs(end-start)/180;
   if(duration<1)return;
-  const timing={duration,easing:getComputedStyle(document.documentElement).getPropertyValue('--ease-in-out').trim(),fill:'both'};
+  const timing={duration,easing:cardTurnEase,fill:'both'};
   const faces=animateCardFaces(art,start,end,1000,timing);
   const previousShadow=card.querySelector('.card-motion-shadow');
   const shadow=document.createElement('span');

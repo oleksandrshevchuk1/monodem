@@ -50,8 +50,17 @@
 .card-face .bank-card-front,.card-face .bank-card-back{contain:none;transform-style:preserve-3d}
 .card-face .bank-card-front{transform:rotateY(0deg) translateZ(.1px)}
 
-/* A single unlit finish: no independent reflection above the moving card. */
-.card-face .card-glint,.expanded-card .card-glint,.precise-card-surface .card-glint{display:none!important}
+/* A short reflection along the lower bevel travels with the front face. */
+:is(.card-face,.expanded-card,.precise-card-surface) .card-glint{
+ inset:auto 0 0;
+ height:2px;
+ border-radius:0 0 18px 18px;
+ background:linear-gradient(90deg,transparent 21%,#fff0 27%,#fff9 47%,#fffc 52%,#fff0 72%);
+ opacity:0;
+ transform:none;
+ z-index:1;
+}
+.card-face .card-glint{opacity:.45}
 .card-face .bank-card-front,.expanded-card .bank-card-front,.precise-card-surface .bank-card-front{box-shadow:none!important}
 /* Keep the physical rim and its shadow in the same composited plane. */
 .precise-card-surface,.travelling-card-plane,.travelling-card-body{overflow:visible;backface-visibility:visible;-webkit-backface-visibility:visible}

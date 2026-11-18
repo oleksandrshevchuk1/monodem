@@ -16,7 +16,7 @@ function cardPlaneBounds(matrix,width,height){
 }
 expandTransition=function(from,to,opening){
  if(!from||!to)return;
- let materialStart=from.materialOpacity;
+ let materialStart=from.materialOpacity,reflectionStart=from.glint;
  const previous=preciseCardScene,geometry=stableCardGeometry(to),reduce=shouldReduceMotion(),duration=reduce?100:460;
  const startAngle=opening||previous?0:from.flipAngle??(from.flipped?180:0);
  const returningFromBack=startAngle>=90;
@@ -27,7 +27,7 @@ expandTransition=function(from,to,opening){
  const origin=geometry.origin,originMatrix=new DOMMatrix().translate(origin[0],origin[1]);
  let sourceLayout=source.layout,startRelative=new DOMMatrix().translate(source.origin[0],source.origin[1]).multiply(new DOMMatrix(source.raw)).translate(-source.origin[0],-source.origin[1]).scale(source.width/width,source.height/height);
  const endRelative=originMatrix.multiply(new DOMMatrix(geometry.raw)).translate(-origin[0],-origin[1]);
- if(previous){const oldMaterial=previous.node.querySelector('.card-material');if(oldMaterial)materialStart=getComputedStyle(oldMaterial).opacity;const oldOrigin=previous.origin;sourceLayout=previous.base;startRelative=new DOMMatrix().translate(previous.swipeOffsetX||0,0).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.node).transform)).translate(oldOrigin[0],oldOrigin[1]).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.plane).transform)).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.body).transform)).translate(-oldOrigin[0],-oldOrigin[1]).scale(previous.base.width/width,previous.base.height/height);previous.dispose()}
+ if(previous){const oldMaterial=previous.node.querySelector('.card-material');if(oldMaterial)materialStart=getComputedStyle(oldMaterial).opacity;const oldReflection=previous.node.querySelector('.card-glint');if(oldReflection){const style=getComputedStyle(oldReflection);reflectionStart={opacity:style.opacity,transform:style.transform}}const oldOrigin=previous.origin;sourceLayout=previous.base;startRelative=new DOMMatrix().translate(previous.swipeOffsetX||0,0).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.node).transform)).translate(oldOrigin[0],oldOrigin[1]).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.plane).transform)).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.body).transform)).translate(-oldOrigin[0],-oldOrigin[1]).scale(previous.base.width/width,previous.base.height/height);previous.dispose()}
  const sourceRect=cardPlaneBounds(new DOMMatrix().translate(sourceLayout.x,sourceLayout.y).multiply(startRelative),width,height),destination=cardPlaneBounds(new DOMMatrix().translate(base.x,base.y).multiply(endRelative),width,height);
  const node=document.createElement('div');node.className='card-transition soft-card-surface precise-card-surface';
  const plane=document.createElement('div');plane.className='travelling-card-plane';Object.assign(plane.style,{width:'100%',height:'100%',transformStyle:'preserve-3d',transformOrigin:origin[0]+'px '+origin[1]+'px'});
@@ -59,12 +59,11 @@ expandTransition=function(from,to,opening){
  const material=art.querySelector('.card-material'),targetMaterial=to.querySelector('.card-material');
  if(material&&targetMaterial)material.animate([{opacity:materialStart??getComputedStyle(targetMaterial).opacity},{opacity:getComputedStyle(targetMaterial).opacity}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  const reflection=art.querySelector('.card-glint'),targetReflection=to.querySelector('.card-glint');
- if(reflection&&targetReflection&&from.glint){const targetStyle=getComputedStyle(targetReflection);reflection.animate([from.glint,{opacity:targetStyle.opacity,transform:targetStyle.transform}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'})}
+ if(reflection&&targetReflection&&reflectionStart){const targetStyle=getComputedStyle(targetReflection);reflection.animate([reflectionStart,{opacity:targetStyle.opacity,transform:targetStyle.transform}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'})}
  node.classList.toggle('returning-rear',rear);
  if(rear){
   const perspective=(from.cardPerspective||1000)*width/source.width;
-  const duration=350,easing=getComputedStyle(document.documentElement).getPropertyValue('--ease-in-out').trim();
-  animateCardFaces(art,startAngle,0,perspective,{duration,easing,fill:'both'});
+  animateCardFaces(art,startAngle,0,perspective,{duration:350,easing:cardTurnEase,fill:'both'});
   const shadow=document.createElement('span');
   shadow.className='card-motion-shadow';
   shadow.style.boxShadow=targetShadow;
