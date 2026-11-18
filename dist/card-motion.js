@@ -13,17 +13,12 @@
  cardArtwork=function(card){const template=document.createElement('template');template.innerHTML=artwork(card);prepare(template.content.querySelector('.bank-card'));return template.innerHTML};
  const renderBeforeInk=render;
  render=function(){renderBeforeInk();document.querySelectorAll('.bank-card').forEach(prepare);const scene=preciseCardScene;queueMicrotask(()=>{if(scene===preciseCardScene&&!scene?.target.isConnected)scene?.dispose()})};
- const selectFaces=(art,backFirst,timing)=>['front','back'].map(side=>{
-  const initial=(side==='back')===backFirst?'visible':'hidden',final=initial==='visible'?'hidden':'visible';
-  const face=art.querySelector('.bank-card-'+side),token={};
-  face._inkCullBase??={back:face.style.backfaceVisibility,webkit:face.style.webkitBackfaceVisibility};face._inkCullToken=token;
-  face.style.backfaceVisibility=face.style.webkitBackfaceVisibility='visible';
-  const motion=face.animate([{offset:0,visibility:initial,easing:'steps(1,end)'},{offset:.5,visibility:final},{offset:1,visibility:final}],{...timing,fill:'both'});
-  const restore=()=>{if(face._inkCullToken!==token)return;face.style.backfaceVisibility=face._inkCullBase.back;face.style.webkitBackfaceVisibility=face._inkCullBase.webkit;delete face._inkCullBase;delete face._inkCullToken};
-  motion.finished.then(restore,restore);return motion;
- });
  const measure=measureCardPose;
- measureCardPose=function(el){const pose=measure(el),number=el.querySelector('.card-printed-number');pose.printedOpacity=number?getComputedStyle(number).opacity:'1';if(pose.flipped)pose.cardPerspective=parseFloat(getComputedStyle(el).perspective);return pose};
+ measureCardPose=function(el){const pose=measure(el),number=el.querySelector('.card-printed-number');pose.printedOpacity=number?getComputedStyle(number).opacity:'1';if(el.matches('.expanded-card')){
+   const art=el.querySelector('.bank-card');
+   pose.flipAngle=cardAngle(art);
+   pose.cardPerspective=parseFloat(getComputedStyle(el).perspective);
+  }return pose};
  const originalTransition=expandTransition;
  expandTransition=function(from,to,opening){
   if(!from||!to)return;
@@ -33,11 +28,10 @@
   const current=preciseCardScene;
   if(current&&!opening){current.carouselTrack=$('.card-track');current.carouselStartX=new DOMMatrixReadOnly(current.carouselTrack?getComputedStyle(current.carouselTrack).transform:undefined).m41}
   if(current&&to){
-   for(const motion of current.body.getAnimations())if(motion.effect.getKeyframes().some(frame=>'boxShadow' in frame))motion.effect.updateTiming({easing:'linear'});
    const timing=current.motion.effect.getTiming(),number=current.node.querySelector('.card-printed-number'),targetNumber=to.querySelector('.card-printed-number');
    if(number&&targetNumber)number.animate([{opacity:printedOpacity??'1'},{opacity:getComputedStyle(targetNumber).opacity}],{duration:timing.duration,easing:timing.easing,fill:'both'});
    // The name was not visible on the starting rear face and is absent on the home card.
-   if(!opening&&from.flipped)current.node.querySelector('.card-holder')?.style.setProperty('display','none','important');
+   if(!opening&&from.flipAngle>90)current.node.querySelector('.card-holder')?.style.setProperty('display','none','important');
   }
   if(preciseCardScene?.body&&to){const surface=getComputedStyle(to);preciseCardScene.body.style.perspective=surface.perspective;preciseCardScene.body.style.perspectiveOrigin=surface.perspectiveOrigin}
  };
@@ -45,12 +39,48 @@
  const moveSwipe=moveHomeSwipe;
  moveHomeSwipe=function(...args){const result=moveSwipe(...args),scene=preciseCardScene;if(scene?.carouselTrack?.isConnected){scene.swipeOffsetX=new DOMMatrixReadOnly(scene.carouselTrack.style.transform||undefined).m41-scene.carouselStartX;scene.node.style.translate=`${scene.swipeOffsetX}px 0px`}return result};
  const cleanupStrip=cleanupSwipe;cleanupSwipe=function(...args){const result=cleanupStrip(...args);if(preciseCardScene)document.documentElement.dataset.gesture='active';return result};
- const originalFlip=actions['flip-card'];
+ function cardAngle(art){
+  const transform=getComputedStyle(art).transform;
+  if(transform==='none')return 0;
+  return Math.acos(Math.max(-1,Math.min(1,new DOMMatrixReadOnly(transform).m11)))*180/Math.PI;
+ }
+ const flip=actions['flip-card'];
  actions['flip-card']=()=>{
-  const card=$('.expanded-card'),shadow=card&&getComputedStyle(card).boxShadow,backFirst=cardFlipped;
-  card?._inkFaces?.forEach(a=>a.cancel());originalFlip();
-  // Keep the full original rotation, without its unrelated shadow brightness pulse.
-  if(card){card._shadowMotion?.cancel();card._shadowMotion=null;if(shadow)card.style.boxShadow=shadow;if(cardFlipped!==backFirst&&card._flipMotion){const motion=card._flipMotion,timing=motion.effect.getTiming(),faces=selectFaces(card.querySelector('.bank-card'),backFirst,{duration:timing.duration,easing:timing.easing});card._inkFaces=faces;motion.ready.then(()=>faces.forEach(a=>a.startTime=motion.startTime)).catch(()=>{});motion.finished.then(()=>faces.forEach(a=>a.cancel()),()=>faces.forEach(a=>a.cancel()))}}
+  const card=$('#app .expanded-card');
+  if(!card)return;
+  const art=card.querySelector('.bank-card');
+  const start=cardAngle(art),wasFlipped=cardFlipped;
+  flip();
+  if(cardFlipped===wasFlipped)return;
+
+  card._flipMotion?.cancel();
+  card.classList.remove('flipping');
+  if(shouldReduceMotion())return;
+  const end=cardFlipped?180:0;
+  const duration=500*Math.abs(end-start)/180;
+  if(duration<1)return;
+  const timing={duration,easing:getComputedStyle(document.documentElement).getPropertyValue('--ease-in-out').trim(),fill:'both'};
+  const turn=art.animate([{transform:`rotateY(${start}deg)`},{transform:`rotateY(${end}deg)`}],timing);
+  const crossing=(90-start)/(end-start);
+  card.classList.add('flipping');
+  const faces=['front','back'].map(side=>{
+   const face=art.querySelector('.bank-card-'+side);
+   const visibility=angle=>(angle>90)===(side==='back')?'visible':'hidden';
+   const final=visibility(end),initial=crossing<=0?final:visibility(start);
+   const frames=[{offset:0,visibility:initial,easing:'steps(1,end)'}];
+   if(crossing>0&&crossing<1)frames.push({offset:crossing,visibility:final});
+   frames.push({offset:1,visibility:final});
+   return face.animate(frames,timing);
+  });
+  card._flipMotion=turn;
+  const cleanup=()=>{
+   for(const motion of faces)motion.cancel();
+   if(card._flipMotion!==turn)return;
+   card._flipMotion=null;
+   card.classList.remove('flipping');
+   turn.cancel();
+  };
+  turn.finished.then(cleanup,cleanup);
  };
  document.querySelectorAll('.bank-card').forEach(prepare);
 })();

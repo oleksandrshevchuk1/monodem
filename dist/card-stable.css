@@ -12,3 +12,10 @@
 /* Do not leave the hidden side composited over the settled face on WebKit. */
 .card-face .bank-card-back,.expanded-card:not(.flipped):not(.flipping) .bank-card-back{visibility:hidden}
 .expanded-card.flipped:not(.flipping) .bank-card-front{visibility:hidden}
+
+/* The flip controller culls each face at the angle where it turns edge-on. */
+.expanded-card .bank-card{transition:none!important}
+.expanded-card.flipping :is(.bank-card-front,.bank-card-back){
+ backface-visibility:visible;
+ -webkit-backface-visibility:visible;
+}

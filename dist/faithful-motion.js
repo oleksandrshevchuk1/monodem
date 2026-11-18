@@ -16,16 +16,18 @@ function cardPlaneBounds(matrix,width,height){
 }
 expandTransition=function(from,to,opening){
  if(!from||!to)return;
- let sourceShadow=from.shadow,shadowWidth=from.geometry.width,materialStart=from.materialOpacity,faceShadowStart=from.faceShadow;
+ let materialStart=from.materialOpacity;
  const previous=preciseCardScene,geometry=stableCardGeometry(to),reduce=shouldReduceMotion(),duration=reduce?100:460;
- const returningFromBack=!opening&&from.flipped&&!previous;
+ const startAngle=opening||previous?0:from.flipAngle??(from.flipped?180:0);
+ const returningFromBack=startAngle>=90;
+ const interruptedFront=startAngle>.1&&!returningFromBack&&!reduce;
  const rear=returningFromBack&&!reduce;
  const reduceRear=returningFromBack&&reduce;
  const source=from.geometry,width=geometry.width,height=geometry.height,base={x:geometry.layout.x,y:geometry.layout.y,width,height};
  const origin=geometry.origin,originMatrix=new DOMMatrix().translate(origin[0],origin[1]);
  let sourceLayout=source.layout,startRelative=new DOMMatrix().translate(source.origin[0],source.origin[1]).multiply(new DOMMatrix(source.raw)).translate(-source.origin[0],-source.origin[1]).scale(source.width/width,source.height/height);
  const endRelative=originMatrix.multiply(new DOMMatrix(geometry.raw)).translate(-origin[0],-origin[1]);
- if(previous){faceShadowStart=getComputedStyle(previous.node.querySelector('.bank-card-front')).boxShadow;const oldMaterial=previous.node.querySelector('.card-material');if(oldMaterial)materialStart=getComputedStyle(oldMaterial).opacity;sourceShadow=getComputedStyle(previous.body).boxShadow;shadowWidth=previous.base.width;const oldOrigin=previous.origin;sourceLayout=previous.base;startRelative=new DOMMatrix().translate(previous.swipeOffsetX||0,0).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.node).transform)).translate(oldOrigin[0],oldOrigin[1]).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.plane).transform)).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.body).transform)).translate(-oldOrigin[0],-oldOrigin[1]).scale(previous.base.width/width,previous.base.height/height);previous.dispose()}
+ if(previous){const oldMaterial=previous.node.querySelector('.card-material');if(oldMaterial)materialStart=getComputedStyle(oldMaterial).opacity;const oldOrigin=previous.origin;sourceLayout=previous.base;startRelative=new DOMMatrix().translate(previous.swipeOffsetX||0,0).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.node).transform)).translate(oldOrigin[0],oldOrigin[1]).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.plane).transform)).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.body).transform)).translate(-oldOrigin[0],-oldOrigin[1]).scale(previous.base.width/width,previous.base.height/height);previous.dispose()}
  const sourceRect=cardPlaneBounds(new DOMMatrix().translate(sourceLayout.x,sourceLayout.y).multiply(startRelative),width,height),destination=cardPlaneBounds(new DOMMatrix().translate(base.x,base.y).multiply(endRelative),width,height);
  const node=document.createElement('div');node.className='card-transition soft-card-surface precise-card-surface';
  const plane=document.createElement('div');plane.className='travelling-card-plane';Object.assign(plane.style,{width:'100%',height:'100%',transformStyle:'preserve-3d',transformOrigin:origin[0]+'px '+origin[1]+'px'});
@@ -38,7 +40,7 @@ expandTransition=function(from,to,opening){
  // Let the compositor interpolate the two exact poses as one continuous 3D transform.
  const planeFrames=[{transform:localMatrix(startRelative)},{transform:localMatrix(endRelative)}];
  // Keep the turn edge-on to the same camera before pitching the visible front into Home.
- const pitchStart=.36,landingEase='cubic-bezier(.32,.72,0,1)';
+ const pitchStart=.30,landingEase='cubic-bezier(.32,.72,0,1)';
  if(rear)planeFrames.splice(1,0,{offset:pitchStart,transform:planeFrames[0].transform,easing:landingEase});
  const frames=[{transform:new DOMMatrix().translate(sourceLayout.x-base.x,sourceLayout.y-base.y).toString()},{transform:new DOMMatrix().toString()}];
  if(rear){
@@ -49,15 +51,10 @@ expandTransition=function(from,to,opening){
  }
  node.style.transform=frames[reduceRear?1:0].transform;plane.style.transform=planeFrames[reduceRear?1:0].transform;
  const targetArtStyle=getComputedStyle(to.querySelector('.bank-card')),targetRadius=targetArtStyle.borderTopLeftRadius;
- // Keep the same projected corner size when replacing the live card with the moving plane.
+ // Keep shadows and corner masks on static layers during the transform.
  art.style.borderRadius=targetRadius;
- art.animate([{borderRadius:((from.cornerRadius||parseFloat(targetRadius))*width/source.width)+'px'},{borderRadius:targetRadius}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  plane.style.borderRadius=targetRadius;
- plane.animate([{borderRadius:((from.cornerRadius||parseFloat(targetRadius))*width/source.width)+'px'},{borderRadius:targetRadius}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
- const shadowStart=(sourceShadow||getComputedStyle(to).boxShadow).replace(/(-?(?:\d*\.)?\d+)px/g,(_,value)=>(Number(value)*width/shadowWidth)+'px');
- body.animate([{boxShadow:shadowStart},{boxShadow:getComputedStyle(to).boxShadow}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
- const front=art.querySelector('.bank-card-front'),targetFront=to.querySelector('.bank-card-front');
- if(front&&targetFront){const targetShadow=getComputedStyle(targetFront).boxShadow;front.style.boxShadow=targetShadow;front.animate([{boxShadow:faceShadowStart||'none'},{boxShadow:targetShadow}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'})}
+ body.style.boxShadow=getComputedStyle(to).boxShadow;
  const material=art.querySelector('.card-material'),targetMaterial=to.querySelector('.card-material');
  if(material&&targetMaterial)material.animate([{opacity:materialStart??getComputedStyle(targetMaterial).opacity},{opacity:getComputedStyle(targetMaterial).opacity}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  const reflection=art.querySelector('.card-glint'),targetReflection=to.querySelector('.card-glint');
@@ -67,17 +64,20 @@ expandTransition=function(from,to,opening){
   const perspective=(from.cardPerspective||1000)*width/source.width;
   plane.style.perspective=`${perspective}px`;
   plane.style.perspectiveOrigin='50% 50%';
+  const yaw=startAngle===180?-180:-360+startAngle;
   body.animate([
-   {'--card-return-yaw':'-180deg','--card-return-roll':'0deg'},
-   {offset:.19,'--card-return-yaw':'-214deg','--card-return-roll':'-18deg'},
-   {offset:.50,'--card-return-yaw':'-270deg','--card-return-roll':'-34deg'},
+   {'--card-return-yaw':yaw+'deg','--card-return-roll':'0deg'},
+   {offset:.19,'--card-return-yaw':Math.min(yaw,-214)+'deg','--card-return-roll':'-18deg'},
+   {offset:.50,'--card-return-yaw':Math.min(yaw,-270)+'deg','--card-return-roll':'-34deg'},
    {offset:.78,'--card-return-yaw':'-330deg','--card-return-roll':'17deg'},
    {'--card-return-yaw':'-360deg','--card-return-roll':'0deg'}
   ],{duration:350,easing:'cubic-bezier(.32,.25,.6,.82)',fill:'both'});
+ }else if(interruptedFront){
+  plane.style.perspective=`${(from.cardPerspective||1000)*width/source.width}px`;
+  body.animate([{transform:`rotateY(${startAngle}deg)`},{transform:'rotateY(0deg)'}],{duration,easing:landingEase,fill:'both'});
  }
- const snapshot=from.snapshot;if(snapshot){snapshot.querySelectorAll('.card-face,.expanded-card,.card-header-mini,.transition-nav').forEach(el=>el.style.visibility='hidden');snapshot.style.zIndex='37';document.body.append(snapshot);snapshot.animate([{opacity:1},{opacity:0}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'}).finished.catch(()=>{})}
+ const snapshot=from.snapshot;if(snapshot){snapshot.querySelectorAll('.expanded-card,.card-header-mini,.transition-nav').forEach(el=>el.style.visibility='hidden');snapshot.style.zIndex='37';document.body.append(snapshot);snapshot.animate([{opacity:1},{opacity:0}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'}).finished.catch(()=>{})}
  const targetVisibility=to.style.visibility;to.style.visibility='hidden';document.documentElement.dataset.gesture='active';operationsNav(opening?1:0,opening?0:1,duration);
- const settings=$('.card-settings');if(opening&&settings)for(const child of settings.children)if(!child.matches('.expanded-card'))child.animate([{opacity:0,transform:'translate3d(0,12px,0)'},{opacity:1,transform:'translate3d(0,0,0)'}],{duration,easing:'cubic-bezier(.32,.72,0,1)'});
  const scene={node,plane,body,base,origin,target:to,targetVisibility,backdrop:snapshot,sourceRect,destinationRect:destination};preciseCardScene=scene;
  scene.dispose=()=>{if(scene.disposed)return;scene.disposed=true;to.style.visibility=targetVisibility;const tracks=[...node.getAnimations({subtree:true}),...(snapshot?.getAnimations()||[])];node.remove();snapshot?.remove();for(const track of tracks)track.cancel();if(preciseCardScene===scene){preciseCardScene=null;if(!swipeLayers)delete document.documentElement.dataset.gesture;restoreOperationsNav()}};
  const planeMotion=reduceRear?null:plane.animate(planeFrames,{duration,easing:rear?'linear':landingEase,fill:'both'});scene.planeMotion=planeMotion;
@@ -97,7 +97,7 @@ function bindHomeAllOperations(){homeOperationsCleanup?.();const app=$('#app');l
  homeOperationsCleanup=()=>{app.removeEventListener('pointerdown',pd);document.removeEventListener('pointermove',pm);document.removeEventListener('pointerup',pu);document.removeEventListener('pointercancel',pu);app.removeEventListener('touchstart',ts);document.removeEventListener('touchmove',tm);document.removeEventListener('touchend',te);document.removeEventListener('touchcancel',te);homeOperationsCleanup=null};
 }
 const detailBeforeOriginalPatterns=detail;detail=function(){const t=currentTx(),template=document.createElement('template');template.innerHTML=detailBeforeOriginalPatterns();if(!t)return template.innerHTML;template.content.querySelectorAll('.operation-pattern-glyphs').forEach(el=>el.remove());const pattern=template.content.querySelector('.reference-operation-pattern');if(pattern)pattern.dataset.originalPattern=t.amount>0?'income':'expense';if(t.amount>0){template.content.querySelectorAll('.receipt-link,[data-action=share-receipt],[data-action=receipt]').forEach(el=>el.remove());const generic=template.content.querySelector('.incoming-avatar img[src$="incoming-symbol.png"]');if(generic)generic.src='assets/reference/incoming-generic-reference.png'}return template.innerHTML};
-cardPage=function(){const c=activeCard(),settings=state.cardSettings[c.id]||{};return `<div class="toolbar card-close"><button class="back" data-action="back" aria-label="Закрити">${icon('x')}</button></div><div class="page card-settings"><button class="expanded-card ${cardFlipped?'flipped':''}" data-action="flip-card" aria-label="Перевернути картку">${cardArtwork(c)}</button><button class="payment-settings" data-action="payment-settings"><img class="icon" src="assets/reference/gear.png" alt=""><span>Налаштування оплат<small>Додаткові перевірки</small></span></button><h2>${esc(c.account)}</h2><section class="settings-group">${button('apple-pay','Налаштування Apple Pay','gear','Обрати скін картки — у нас їх багато').replace(icon('gear'),uiIcon('apple-native'))}${button('toggle-block',settings.blocked?'Розблокувати картку':'Заблокувати картку','lock-key','Ви завжди зможете її розблокувати')}${button('credit-info','Змінити кредитний ліміт','wallet',`Поточний ліміт ${displayMoney(state.creditLimit)} ₴`)}</section><section class="settings-group">${button('nav','Підписки та сервіси','arrows-clockwise','Керування списаннями з картки','data-page="subscriptions"').replace(icon('arrows-clockwise'),'<svg class="icon subscription-mark" viewBox="0 0 28 28" aria-hidden="true"><text x="2" y="22">@</text></svg>')}</section><section class="settings-group">${button('plastic','Випустити пластикову картку','credit-card-fill')}${button('reissue','Перевипустити картку','arrow-square-in')}${button('card-status','Підвищити статус картки','star')}${button('pin-info','Налаштування ПІН-коду','magnifying-glass')}${button('nav','Додаткові картки','credit-card','Картки mono та АТБ','data-page="cards"')}${button('card-details','Реквізити картки','receipt','Для поповнення за IBAN')}${button('card-statement','Надіслати виписку за карткою','receipt-fill')}</section></div>`};
+cardPage=function(){const c=activeCard(),settings=state.cardSettings[c.id]||{};return `<div class="toolbar card-close"><button class="back" data-action="back" aria-label="Р—Р°РєСЂРёС‚Рё">${icon('x')}</button></div><div class="page card-settings"><button class="expanded-card ${cardFlipped?'flipped':''}" data-action="flip-card" aria-label="РџРµСЂРµРІРµСЂРЅСѓС‚Рё РєР°СЂС‚РєСѓ">${cardArtwork(c)}</button><button class="payment-settings" data-action="payment-settings"><img class="icon" src="assets/reference/gear.png" alt=""><span>РќР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ РѕРїР»Р°С‚<small>Р”РѕРґР°С‚РєРѕРІС– РїРµСЂРµРІС–СЂРєРё</small></span></button><h2>${esc(c.account)}</h2><section class="settings-group">${button('apple-pay','РќР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ Apple Pay','gear','РћР±СЂР°С‚Рё СЃРєС–РЅ РєР°СЂС‚РєРё вЂ” Сѓ РЅР°СЃ С—С… Р±Р°РіР°С‚Рѕ').replace(icon('gear'),uiIcon('apple-native'))}${button('toggle-block',settings.blocked?'Р РѕР·Р±Р»РѕРєСѓРІР°С‚Рё РєР°СЂС‚РєСѓ':'Р—Р°Р±Р»РѕРєСѓРІР°С‚Рё РєР°СЂС‚РєСѓ','lock-key','Р’Рё Р·Р°РІР¶РґРё Р·РјРѕР¶РµС‚Рµ С—С— СЂРѕР·Р±Р»РѕРєСѓРІР°С‚Рё')}${button('credit-info','Р—РјС–РЅРёС‚Рё РєСЂРµРґРёС‚РЅРёР№ Р»С–РјС–С‚','wallet',`РџРѕС‚РѕС‡РЅРёР№ Р»С–РјС–С‚ ${displayMoney(state.creditLimit)} в‚ґ`)}</section><section class="settings-group">${button('nav','РџС–РґРїРёСЃРєРё С‚Р° СЃРµСЂРІС–СЃРё','arrows-clockwise','РљРµСЂСѓРІР°РЅРЅСЏ СЃРїРёСЃР°РЅРЅСЏРјРё Р· РєР°СЂС‚РєРё','data-page="subscriptions"').replace(icon('arrows-clockwise'),'<svg class="icon subscription-mark" viewBox="0 0 28 28" aria-hidden="true"><text x="2" y="22">@</text></svg>')}</section><section class="settings-group">${button('plastic','Р’РёРїСѓСЃС‚РёС‚Рё РїР»Р°СЃС‚РёРєРѕРІСѓ РєР°СЂС‚РєСѓ','credit-card-fill')}${button('reissue','РџРµСЂРµРІРёРїСѓСЃС‚РёС‚Рё РєР°СЂС‚РєСѓ','arrow-square-in')}${button('card-status','РџС–РґРІРёС‰РёС‚Рё СЃС‚Р°С‚СѓСЃ РєР°СЂС‚РєРё','star')}${button('pin-info','РќР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ РџР†Рќ-РєРѕРґСѓ','magnifying-glass')}${button('nav','Р”РѕРґР°С‚РєРѕРІС– РєР°СЂС‚РєРё','credit-card','РљР°СЂС‚РєРё mono С‚Р° РђРўР‘','data-page="cards"')}${button('card-details','Р РµРєРІС–Р·РёС‚Рё РєР°СЂС‚РєРё','receipt','Р”Р»СЏ РїРѕРїРѕРІРЅРµРЅРЅСЏ Р·Р° IBAN')}${button('card-statement','РќР°РґС–СЃР»Р°С‚Рё РІРёРїРёСЃРєСѓ Р·Р° РєР°СЂС‚РєРѕСЋ','receipt-fill')}</section></div>`};
 actions['card-status']=()=>navigate('platinum');actions['card-statement']=()=>navigate('statement');
 const renderBeforeMainOperations=render;render=function(){homeOperationsCleanup?.();renderBeforeMainOperations();if(!adminMode&&route.page==='home')bindHomeAllOperations()};
 render();
