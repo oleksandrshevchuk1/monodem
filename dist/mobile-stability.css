@@ -129,7 +129,7 @@ body.document-open .receipt-fit,body.document-open .receipt-document-stage{flex:
 .glass-history-image{will-change:opacity;contain:layout paint}
 .glass-history-sharp{filter:none!important;transform:none!important;opacity:1!important;will-change:auto}
 
-.all-operations-page .tx-amount,.transfer-archive .tx-amount{font-weight:650}
+.drawer-operations .transaction,.transfer-archive .transaction{content-visibility:auto;contain-intrinsic-size:auto 74px}
 
 /* Match the original large bust, with the lower torso behind the action panel. */
 .wardrobe-layout .character-reference-cover{position:relative;height:calc(var(--safe-header) + clamp(310px,88vw,360px));padding-top:var(--safe-header);overflow:hidden;isolation:isolate}
@@ -150,3 +150,5 @@ body.document-open .receipt-fit,body.document-open .receipt-document-stage{flex:
 @media(prefers-reduced-motion:reduce){#app.transferAmount,.amount-entry-footer,.amount-entry-footer>.form-note{transition:none}}
 
 #transfer-sum:focus-visible{outline:none}
+
+.card-operations .history-card-identity > strong{font-weight:600}
