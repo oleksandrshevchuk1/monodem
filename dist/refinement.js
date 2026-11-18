@@ -149,7 +149,6 @@ function refreshSelectedCard(){
  const app=$('#app');
  app.classList.toggle('white-active',!newCardSelected&&cardWhite(activeCard()));
  app.classList.toggle('new-card-theme',newCardSelected);
- fitMonetaryLabels();
 }
 function finishCardSelection(index){
  const cards=allCards();
@@ -207,11 +206,12 @@ bindCardSwipe=function(){
 };
 
 function captureBankSurface(preserveArtwork=false){const app=$('#app'),rect=app.getBoundingClientRect(),surface=document.createElement('div');surface.className='bank-surface-transition';Object.assign(surface.style,{position:'fixed',left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:app.offsetHeight+'px',background:getComputedStyle(app).background,zIndex:37,pointerEvents:'none',overflow:'hidden'});const source=$('#screen'),screen=source.cloneNode(true);screen.removeAttribute('id');screen.classList.add('transition-screen');screen.style.paddingBottom=getComputedStyle(source).paddingBottom;screen.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));const expanded=screen.querySelector('.expanded-card');if(!preserveArtwork){if(expanded)expanded.style.visibility='hidden';screen.querySelector('.card-face[data-id="'+state.activeCard+'"]')?.remove();}surface.append(screen);if(!$('#nav').hidden){const navigation=$('#nav').cloneNode(true);navigation.removeAttribute('id');navigation.classList.add('transition-nav');surface.append(navigation)}surface.inert=true;return surface}
-function fitMonetaryLabels(){
+function fitMonetaryLabels(root=$('#screen')){
+ if(!root)return;
  const labels=[];
  for(const [selector,max,min] of [['.home-balance strong',46,26],['.stats-summary>strong',46,24],['.capital-total>strong',38,22],['.compact-card>strong',21,12],['.tx-amount',18,12]]){
-  document.querySelectorAll('#screen '+selector).forEach(el=>{
-   if(el.dataset.numberMotion==='1')return;
+  root.querySelectorAll(selector).forEach(el=>{
+   if(el.dataset.numberMotion==='1'||el.closest('.all-operations-page'))return;
    el.style.fontSize=max+'px';
    labels.push({el,max,min});
   });
@@ -226,7 +226,7 @@ function animateSummaryValue(el,from,to,kind){if(from===to||shouldReduceMotion()
 let amountFitFrame=0;
 const beforeAmountRender=render;
 render=function(){const previous=route.page==='analytics'?new Map([...document.querySelectorAll('.stats-summary')].map(x=>[x.dataset.kind,Number(x.dataset.total)])):null;beforeAmountRender();cancelAnimationFrame(amountFitFrame);amountFitFrame=requestAnimationFrame(()=>{fitMonetaryLabels();if(previous?.size)document.querySelectorAll('.stats-summary').forEach(x=>{if(previous.has(x.dataset.kind))animateSummaryValue(x.querySelector(':scope>strong'),previous.get(x.dataset.kind),Number(x.dataset.total),x.dataset.kind)})})};
-document.fonts.addEventListener('loadingdone',fitMonetaryLabels);
+document.fonts.addEventListener('loadingdone',()=>fitMonetaryLabels());
 
 render();
 
