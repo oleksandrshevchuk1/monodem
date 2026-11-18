@@ -80,13 +80,14 @@
 .card-face-ink,.card-face-ink *{visibility:inherit!important}
 
 /* Each live face is a flat, prepainted plane. A local camera avoids nested 3D layers. */
+.expanded-card.flipping{box-shadow:none!important}
+.card-motion-shadow{position:absolute;inset:0;border-radius:inherit;pointer-events:none}
 .expanded-card :is(.bank-card-front,.bank-card-back){
  backface-visibility:visible;
  -webkit-backface-visibility:visible;
  transform-style:flat;
- transition:none!important;
+ will-change:transform;
 }
-.expanded-card .bank-card{transition:none!important}
 .expanded-card .bank-card-front,.expanded-card.flipped .bank-card-back{
  transform:perspective(1000px) rotateY(0deg);
  opacity:1;
