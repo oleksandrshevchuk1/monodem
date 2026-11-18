@@ -129,7 +129,7 @@ body.document-open .receipt-fit,body.document-open .receipt-document-stage{flex:
 .glass-history-image{will-change:opacity;contain:layout paint}
 .glass-history-sharp{filter:none!important;transform:none!important;opacity:1!important;will-change:auto}
 
-.transfer-archive .transaction{content-visibility:auto;contain-intrinsic-size:auto 74px}
+.drawer-operations .transaction,.transfer-archive .transaction{content-visibility:auto;contain-intrinsic-size:auto 74px}
 
 /* Match the original large bust, with the lower torso behind the action panel. */
 .wardrobe-layout .character-reference-cover{position:relative;height:calc(var(--safe-header) + clamp(310px,88vw,360px));padding-top:var(--safe-header);overflow:hidden;isolation:isolate}

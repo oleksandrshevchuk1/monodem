@@ -47,7 +47,7 @@ html,body{touch-action:pan-x pan-y}
 .notification-reference .notification-row.is-read:first-child .notification-reference-icon{opacity:1}
 
 /* Dragging on the card changes cards or flips it, without scrolling it away. */
-.home .card-carousel,.home .card-face{touch-action:pan-y pinch-zoom}.card .expanded-card{touch-action:pan-x}
+.home .card-carousel,.home .card-face,.card .expanded-card{touch-action:pan-x}
 
 #portrait-guard{position:fixed;inset:0;z-index:11000;background:#080d24;color:#eef2ff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center;font:500 18px/1.4 DemoInter,system-ui,sans-serif;touch-action:none}
 #portrait-guard[hidden]{display:none}
