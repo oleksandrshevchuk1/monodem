@@ -68,7 +68,7 @@ expandTransition=function(from,to,opening){
  // Let the compositor interpolate the two exact poses as one continuous 3D transform.
  const planeFrames=[{transform:localMatrix(startRelative)},{transform:localMatrix(endRelative)}];
  // Start translation, tilt and turn together and let them settle on the same beat.
- const landingEase=rear?'ease-out':'cubic-bezier(.32,.72,0,1)';
+ const landingEase='cubic-bezier(.32,.72,0,1)';
  const frames=[{transform:new DOMMatrix().translate(sourceLayout.x-base.x,sourceLayout.y-base.y).toString()},{transform:new DOMMatrix().toString()}];
  node.style.transform=frames[reduceRear?1:0].transform;plane.style.transform=planeFrames[reduceRear?1:0].transform;
  const targetArtStyle=getComputedStyle(to.querySelector('.bank-card')),targetRadius=targetArtStyle.borderTopLeftRadius;
@@ -85,7 +85,17 @@ expandTransition=function(from,to,opening){
  const rearTracks=[];
  if(rear){
   const perspective=(from.cardPerspective||1000)*width/source.width;
-  rearTracks.push(...animateCardFaces(art,startAngle,0,perspective,{duration,easing:landingEase,fill:'both'}));
+  rearTracks.push(...animateCardFaces(art,startAngle,0,perspective,{duration,easing:'cubic-bezier(.25,.48,.3,1)',fill:'both'}));
+  // Bank toward the visible rear, pass edge-on, then level the front into the carousel.
+  const rearWeight=(startAngle-90)/90;
+  rearTracks.push(body.animate([
+   {offset:0,transform:'rotateZ(0deg)',easing:'ease-out'},
+   {offset:.10,transform:`rotateZ(${-28*rearWeight}deg)`,easing:'ease-in-out'},
+   {offset:.23,transform:`rotateZ(${-16*rearWeight}deg)`,easing:'ease-out'},
+   {offset:.42,transform:`rotateZ(${19*rearWeight}deg)`,easing:'ease-out'},
+   {offset:.76,transform:'rotateZ(0deg)'},
+   {offset:1,transform:'rotateZ(0deg)'}
+  ],{duration,fill:'both'}));
   const shadow=document.createElement('span');
   shadow.className='card-motion-shadow';
   shadow.style.boxShadow=targetShadow;
