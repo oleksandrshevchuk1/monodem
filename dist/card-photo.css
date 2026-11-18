@@ -111,3 +111,37 @@
 .returning-rear .card-number-full{display:none}
 .returning-rear .card-number-masked{display:inline}
 .card-face-ink > :is(.card-brand,.visa){background-position:center;background-repeat:no-repeat;background-size:contain}
+
+/* Light artwork follows the white card through the opening and flip. */
+:is(.expanded-card,.precise-card-surface,.soft-card-surface) .is-white :is(.bank-card-front,.bank-card-back){
+ background:linear-gradient(#fafafa,#e5e8ee);
+}
+.bank-card.is-white .magstripe{background:#aeb8c2}
+.bank-card.is-white .card-back-number,.is-white .cvv-countdown{background:#c2c5cb}
+.is-white .cvv-countdown::before{background:conic-gradient(#24252b calc(var(--remaining,1)*1turn),#a9adb6 0)}
+.bank-card.is-white :is(.card-expiry,.card-demo-cvv,.cvv-countdown,.cvv-countdown small){
+ color:#000;
+ text-shadow:none;
+}
+:is(.card-face,.expanded-card,.precise-card-surface,.soft-card-surface) .is-white .card-printed-number{
+ color:#191a20;
+ font-size:7cqw!important;
+ letter-spacing:.65cqw!important;
+}
+:is(.expanded-card,.precise-card-surface,.soft-card-surface) .is-white .card-holder{
+ font-size:clamp(13px,4.6cqw,18px);
+ letter-spacing:.23cqw;
+ max-width:68%;
+}
+
+#app.card.white-active{background:linear-gradient(#150f1d,#252449 360px,#303965 780px)}
+#app.card.white-active .card-settings .settings-group{background:#a6b0ef22}
+#app.card.white-active .card-settings .payment-settings{background:#191d3d}
+.card-settings > .payment-settings{
+ box-sizing:border-box;
+ min-height:72px;
+ padding-block:8px;
+}
+.card-settings > .payment-settings > .icon{flex:none}
+.card-settings > .payment-settings > span{min-width:0}
+.card-settings > .internet-limit progress{margin-block:3px}
