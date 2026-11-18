@@ -41,7 +41,7 @@ function projectCardCorners(quad,width,height){
 const rearCardPoses=[
  [0,0,180,0,0],
  [.11,.42,130,-21,.03],
- [.26,.59,91,-27,.12],
+ [.26,.59,90,-27,.12],
  [.42,.73,48,24,.59],
  [.60,.88,12,16,.91],
  [.74,.97,2,8,.97],
@@ -60,15 +60,21 @@ function rearCardTravelFrames(start,end,camera,pitch,angle){
  }));
 }
 
-function revealRearCardFront(art,shadow,timing){
- const revealStart=.67,revealEnd=.73;
+function revealRearCardFront(art,shadow,angle,timing){
+ // The rotations are linear through the edge. Match visibility to that same interpolation.
+ const edgeYaw=90*180/angle;
+ const next=rearCardPoses.findIndex(([, , yaw])=>yaw<=edgeYaw);
+ const [before, , beforeYaw]=rearCardPoses[Math.max(0,next-1)];
+ const [after, , afterYaw]=rearCardPoses[next];
+ const edge=next>0?before+(after-before)*(beforeYaw-edgeYaw)/(beforeYaw-afterYaw):0;
  for(const [side,opacity] of [['front',1],['back',0]]){
   const face=art.querySelector('.bank-card-'+side);
-  face.animate([
-   {opacity:1-opacity},{offset:revealStart,opacity:1-opacity},{offset:revealEnd,opacity},{opacity}
+  face.style.opacity=String(opacity);
+  if(edge>0)face.animate([
+   {opacity:1-opacity,easing:'steps(1,end)'},{offset:edge,opacity},{opacity}
   ],timing);
  }
- shadow.animate([{opacity:0},{offset:.82,opacity:0,easing:'ease-out'},{opacity:1}],timing);
+ shadow.animate([{opacity:0},{offset:edge,opacity:0,easing:'ease-out'},{opacity:1}],timing);
 }
 
 expandTransition=function(from,to,opening){
@@ -176,7 +182,7 @@ expandTransition=function(from,to,opening){
  const planeMotion=reduceRear?null:plane.animate(planeFrames,{duration,easing:landingEase,fill:'both'});scene.planeMotion=planeMotion;
  const motionFrames=reduce?[{opacity:0},{opacity:1}]:frames;
  const motion=rear?planeMotion:node.animate(motionFrames,scene.timing);scene.motion=motion;cardTransition=motion;
- if(rear)revealRearCardFront(art,shadow,scene.timing);
+ if(rear)revealRearCardFront(art,shadow,startAngle,scene.timing);
  // Collect after the caller adds its face/ink tracks; never discard a still-moving layer.
  Promise.resolve().then(()=>{
   const tracks=[...node.getAnimations({subtree:true}),...(snapshot?.getAnimations()||[])];
