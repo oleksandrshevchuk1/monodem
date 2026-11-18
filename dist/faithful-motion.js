@@ -18,6 +18,9 @@ expandTransition=function(from,to,opening){
  if(!from||!to)return;
  let sourceShadow=from.shadow,shadowWidth=from.geometry.width,materialStart=from.materialOpacity,faceShadowStart=from.faceShadow;
  const previous=preciseCardScene,geometry=stableCardGeometry(to),reduce=shouldReduceMotion(),duration=reduce?100:460;
+ const returningFromBack=!opening&&from.flipped&&!previous;
+ const rear=returningFromBack&&!reduce;
+ const reduceRear=returningFromBack&&reduce;
  const source=from.geometry,width=geometry.width,height=geometry.height,base={x:geometry.layout.x,y:geometry.layout.y,width,height};
  const origin=geometry.origin,originMatrix=new DOMMatrix().translate(origin[0],origin[1]);
  let sourceLayout=source.layout,startRelative=new DOMMatrix().translate(source.origin[0],source.origin[1]).multiply(new DOMMatrix(source.raw)).translate(-source.origin[0],-source.origin[1]).scale(source.width/width,source.height/height);
@@ -34,8 +37,17 @@ expandTransition=function(from,to,opening){
  const localMatrix=matrix=>new DOMMatrix().translate(-origin[0],-origin[1]).multiply(matrix).translate(origin[0],origin[1]).toString();
  // Let the compositor interpolate the two exact poses as one continuous 3D transform.
  const planeFrames=[{transform:localMatrix(startRelative)},{transform:localMatrix(endRelative)}];
+ // Keep the turn edge-on to the same camera before pitching the visible front into Home.
+ const pitchStart=.36,landingEase='cubic-bezier(.32,.72,0,1)';
+ if(rear)planeFrames.splice(1,0,{offset:pitchStart,transform:planeFrames[0].transform,easing:landingEase});
  const frames=[{transform:new DOMMatrix().translate(sourceLayout.x-base.x,sourceLayout.y-base.y).toString()},{transform:new DOMMatrix().toString()}];
- node.style.transform=frames[0].transform;plane.style.transform=planeFrames[0].transform;
+ if(rear){
+  const drop=(destination.y+destination.height/2-sourceRect.y-sourceRect.height/2)*.55;
+  // Cancel the carousel layout's centering translation as its pitch comes in.
+  frames[0].easing='cubic-bezier(.35,.5,.45,1)';
+  frames.splice(1,0,{offset:pitchStart,transform:new DOMMatrix().translate(sourceLayout.x-base.x,sourceLayout.y-base.y+drop).toString(),easing:landingEase});
+ }
+ node.style.transform=frames[reduceRear?1:0].transform;plane.style.transform=planeFrames[reduceRear?1:0].transform;
  const targetArtStyle=getComputedStyle(to.querySelector('.bank-card')),targetRadius=targetArtStyle.borderTopLeftRadius;
  // Keep the same projected corner size when replacing the live card with the moving plane.
  art.style.borderRadius=targetRadius;
@@ -50,15 +62,26 @@ expandTransition=function(from,to,opening){
  if(material&&targetMaterial)material.animate([{opacity:materialStart??getComputedStyle(targetMaterial).opacity},{opacity:getComputedStyle(targetMaterial).opacity}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  const reflection=art.querySelector('.card-glint'),targetReflection=to.querySelector('.card-glint');
  if(reflection&&targetReflection&&from.glint){const targetStyle=getComputedStyle(targetReflection);reflection.animate([from.glint,{opacity:targetStyle.opacity,transform:targetStyle.transform}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'})}
- const rear=!opening&&from.flipped&&!previous;node.classList.toggle('returning-rear',rear);
- if(rear)body.animate([{transform:'rotateY(180deg)'},{transform:'rotateY(360deg)'}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
+ node.classList.toggle('returning-rear',rear);
+ if(rear){
+  const perspective=(from.cardPerspective||1000)*width/source.width;
+  plane.style.perspective=`${perspective}px`;
+  plane.style.perspectiveOrigin='50% 50%';
+  body.animate([
+   {'--card-return-yaw':'-180deg','--card-return-roll':'0deg'},
+   {offset:.19,'--card-return-yaw':'-214deg','--card-return-roll':'-18deg'},
+   {offset:.50,'--card-return-yaw':'-270deg','--card-return-roll':'-34deg'},
+   {offset:.78,'--card-return-yaw':'-330deg','--card-return-roll':'17deg'},
+   {'--card-return-yaw':'-360deg','--card-return-roll':'0deg'}
+  ],{duration:350,easing:'cubic-bezier(.32,.25,.6,.82)',fill:'both'});
+ }
  const snapshot=from.snapshot;if(snapshot){snapshot.querySelectorAll('.card-face,.expanded-card,.card-header-mini,.transition-nav').forEach(el=>el.style.visibility='hidden');snapshot.style.zIndex='37';document.body.append(snapshot);snapshot.animate([{opacity:1},{opacity:0}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'}).finished.catch(()=>{})}
  const targetVisibility=to.style.visibility;to.style.visibility='hidden';document.documentElement.dataset.gesture='active';operationsNav(opening?1:0,opening?0:1,duration);
  const settings=$('.card-settings');if(opening&&settings)for(const child of settings.children)if(!child.matches('.expanded-card'))child.animate([{opacity:0,transform:'translate3d(0,12px,0)'},{opacity:1,transform:'translate3d(0,0,0)'}],{duration,easing:'cubic-bezier(.32,.72,0,1)'});
  const scene={node,plane,body,base,origin,target:to,targetVisibility,backdrop:snapshot,sourceRect,destinationRect:destination};preciseCardScene=scene;
  scene.dispose=()=>{if(scene.disposed)return;scene.disposed=true;to.style.visibility=targetVisibility;const tracks=[...node.getAnimations({subtree:true}),...(snapshot?.getAnimations()||[])];node.remove();snapshot?.remove();for(const track of tracks)track.cancel();if(preciseCardScene===scene){preciseCardScene=null;if(!swipeLayers)delete document.documentElement.dataset.gesture;restoreOperationsNav()}};
- const planeMotion=plane.animate(planeFrames,{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});scene.planeMotion=planeMotion;
- const motion=node.animate(reduce?[{opacity:0},{opacity:1}]:frames,{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});scene.motion=motion;cardTransition=motion;
+ const planeMotion=reduceRear?null:plane.animate(planeFrames,{duration,easing:rear?'linear':landingEase,fill:'both'});scene.planeMotion=planeMotion;
+ const motion=node.animate(reduce?[{opacity:0},{opacity:1}]:frames,{duration,easing:rear?'linear':landingEase,fill:'both'});scene.motion=motion;cardTransition=motion;
  // Collect after the caller adds its face/ink tracks; never discard a still-moving layer.
  Promise.resolve().then(()=>Promise.allSettled([...node.getAnimations({subtree:true}),...(snapshot?.getAnimations()||[])].filter(a=>a.effect?.getTiming().iterations!==Infinity).map(a=>a.finished))).then(()=>requestAnimationFrame(()=>scene.dispose()));
 };

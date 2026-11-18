@@ -69,3 +69,17 @@
 
 /* Hidden faces must also hide the ink; older surface rules force their children visible. */
 .card-face-ink,.card-face-ink *{visibility:inherit!important}
+
+/* A single yaw value rotates the rear return and selects its visible face. */
+@property --card-return-yaw{syntax:"<angle>";inherits:true;initial-value:-180deg}
+@property --card-return-roll{syntax:"<angle>";inherits:false;initial-value:0deg}
+.returning-rear .travelling-card-body{
+ transform:rotateZ(var(--card-return-roll)) rotateY(var(--card-return-yaw));
+}
+.returning-rear :is(.bank-card-front,.bank-card-back,.card-face-ink){
+ backface-visibility:visible;
+ -webkit-backface-visibility:visible;
+ transform-style:flat;
+}
+.returning-rear .bank-card-front{opacity:clamp(0,calc(0.5 + 100000 * cos(var(--card-return-yaw))),1)}
+.returning-rear .bank-card-back{opacity:clamp(0,calc(0.5 - 100000 * cos(var(--card-return-yaw))),1)}
