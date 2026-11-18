@@ -158,8 +158,10 @@ function finishCardSelection(index){
  const pane=$('.home-content');
  const preview=swipeLayers?.pages?.find(page=>page.index===index)?.node.firstElementChild;
  if(route.page==='home'&&preview){
-  for(const slot of [homeAccountIntro,'.home-actions','.operation-panel']){
-   pane.querySelector(slot).replaceWith(preview.querySelector(slot));
+  for(const selector of [homeAccountIntro,'.home-actions','.operation-panel']){
+   const incoming=preview.querySelector(selector);
+   incoming.style.transform='';
+   pane.querySelector(selector).replaceWith(incoming);
   }
   pane.classList.toggle('new-card-selected',newCardSelected);
   cleanupSwipe();

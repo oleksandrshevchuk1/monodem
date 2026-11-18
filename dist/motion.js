@@ -54,7 +54,8 @@ prepareSwipe=function(){
  const layer=prepareAccountSwipe();
  if(layer.pages)return layer;
  const pane=$('.home-content');
- layer.movingContent=[...pane.children].filter(el=>el.matches(homeAccountIntro+',.home-actions,.operation-panel'));
+ const movingSlots=homeAccountIntro+',.home-actions,.operation-panel';
+ layer.movingContent=[...pane.children].filter(el=>el.matches(movingSlots));
  layer.pages=[];
  for(const index of [layer.index-1,layer.index+1]){
   if(index<0||index>allCards().length)continue;
@@ -64,8 +65,10 @@ prepareSwipe=function(){
   preview.className='account-swipe-preview';
   preview.inert=true;
   preview.append(content);
-  preview.style.transform=`translate3d(${(index-layer.index)*layer.width}px,0,0)`;
-  layer.pages.push({node:preview,index});
+  const slots=[...content.children].filter(el=>el.matches(movingSlots));
+  const offset=(index-layer.index)*layer.width;
+  for(const slot of slots)slot.style.transform=`translate3d(${offset}px,0,0)`;
+  layer.pages.push({node:preview,index,slots,offset});
  }
  pane.append(...layer.pages.map(page=>page.node));
  fitMonetaryLabels(pane,'.account-swipe-preview ');
@@ -76,7 +79,10 @@ moveHomeSwipe=function(distance,rubber=true){
  const layer=swipeLayers;
  const translation=`translate3d(${layer.dx}px,0,0)`;
  for(const element of layer.movingContent)element.style.transform=translation;
- for(const {node,index} of layer.pages)node.style.transform=`translate3d(${(index-layer.index)*layer.width+layer.dx}px,0,0)`;
+ for(const {slots,offset} of layer.pages){
+  const position=`translate3d(${offset+layer.dx}px,0,0)`;
+  for(const slot of slots)slot.style.transform=position;
+ }
 };
 cleanupSwipe=function(){
  if(swipeLayers){
@@ -96,9 +102,8 @@ function settleHomeSwipe(layer,target,complete){
  updateSwipeTheme(layer,from||target);
  const track=animateX(layer.track,cardTrackOffset(layer,from),cardTrackOffset(layer,target));
  const animations=[track,...layer.movingContent.map(element=>animateX(element,from,target))];
- for(const {node,index} of layer.pages){
-  const offset=(index-layer.index)*layer.width;
-  animations.push(animateX(node,offset+from,offset+target));
+ for(const {slots,offset} of layer.pages){
+  for(const slot of slots)animations.push(animateX(slot,offset+from,offset+target));
  }
  animations.push(layer.background.animate([
   {opacity:Math.min(1,Math.abs(from)/layer.width)},
