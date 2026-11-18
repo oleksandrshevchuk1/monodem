@@ -98,11 +98,14 @@
  backface-visibility:visible;
  -webkit-backface-visibility:visible;
 }
-.returning-rear .bank-card{transform-style:flat}
 .precise-card-surface :is(.bank-card-front,.bank-card-back){
  backface-visibility:visible;
  -webkit-backface-visibility:visible;
  transform-style:flat;
 }
-.returning-rear .bank-card-front,.returning-rear .bank-card-back{will-change:transform}
+.returning-rear .bank-card{
+ overflow:visible;
+ container-type:normal;
+ transform-style:preserve-3d;
+}
 .card-face-ink > :is(.card-brand,.visa){background-position:center;background-repeat:no-repeat;background-size:contain}

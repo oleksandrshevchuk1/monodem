@@ -21,7 +21,6 @@ function settleInterruptedPwa(){
  if(swipeLayers){const index=swipeLayers.index;cleanupSwipe();if(route.page==='home')setCarouselPosition(index)}
  if(typeof glassHistory!=='undefined'&&glassHistory){const scene=glassHistory;scene.motions.forEach(motion=>motion.cancel());if(route.page==='home')cleanupGlassHistory(scene);else if(route.page==='history'){setGlassHistoryProgress(scene,1);finishSideHistoryOpen(scene)}}
  if(typeof preciseCardScene!=='undefined'&&preciseCardScene){
-  preciseCardScene.rearFlight?.finish();
   for(const motion of [...preciseCardScene.node.getAnimations({subtree:true}),...(preciseCardScene.backdrop?.getAnimations()||[])])if(motion.effect?.getTiming().iterations!==Infinity)motion.finish();
  }
  if(typeof sideEntrance!=='undefined'&&sideEntrance){try{sideEntrance.finish()}catch{}}
