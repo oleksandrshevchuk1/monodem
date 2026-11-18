@@ -23,7 +23,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,DemoInter,'Helvetica Neue',Ari
   z-index: -1;
   border-radius: 20px;
   background: #091a3266;
-  transition: transform 200ms var(--ease-out);
 }
 .selector-label,
 .selector-dots {
@@ -32,10 +31,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,DemoInter,'Helvetica Neue',Ari
   align-items: center;
   gap: 6px;
   pointer-events: none;
-  transition: opacity 150ms var(--ease-out);
+  filter: blur(0);
+  transition: opacity 180ms var(--ease-out), filter 180ms var(--ease-out);
 }
 .selector-label .icon { width: 15px; height: 15px; opacity: .75; }
-.selector-dots { opacity: 0; }
+.selector-dots { opacity: 0; filter: blur(4px); }
 .selector-dots i {
   flex: 0 0 5px;
   height: 5px;
@@ -45,13 +45,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,DemoInter,'Helvetica Neue',Ari
 }
 .selector-dots b { font-size: 15px; line-height: 1; opacity: .6; }
 .selector-dots .selected { color: #fff; opacity: 1; }
-.card-selector.show-dots::before { transform: scaleX(var(--selector-compact-scale, .52)); }
-.card-selector.show-dots .selector-label { opacity: 0; }
-.card-selector.show-dots .selector-dots { opacity: 1; }
-.card-selector.skip-motion::before,
+.card-selector.show-dots .selector-label { opacity: 0; filter: blur(4px); }
+.card-selector.show-dots .selector-dots { opacity: 1; filter: blur(0); }
 .card-selector.skip-motion :is(.selector-label, .selector-dots) { transition: none; }
 @media (prefers-reduced-motion: reduce) {
-  .card-selector::before,
   .card-selector :is(.selector-label, .selector-dots) { transition: none; }
 }
 .home-content>.home-actions{margin:28px 14px 13px}.home-actions button{font-size:13px;line-height:15px}.action-circle .icon{width:25px;height:27px}.open-card-intro{margin-top:88px;height:62px;text-align:center}.open-card-intro h2{font-size:19px;font-weight:600;padding-top:2px}.open-card-intro p{color:#a6aec7;font-size:13px;line-height:17px;margin-top:13px}.new-card-cta{background:#ffffff28;display:block;margin:0;width:100%;min-height:52px;padding:12px 18px;border-radius:40px;font-size:16px}.new-card-empty{display:grid;place-items:center;text-align:center}.new-card-empty h2{font-size:16px;line-height:21px;font-weight:600}.refresh-indicator{position:absolute;left:calc(50% - 14px);top:80px;width:28px;height:28px;display:grid;place-items:center;background:#fff;border-radius:50%;opacity:0;z-index:1}.refresh-indicator .icon{width:21px;height:21px;filter:brightness(0) saturate(100%) invert(45%) sepia(90%) saturate(1800%) hue-rotate(325deg)}.refreshing .refresh-indicator{animation:refresh-spin 500ms linear;opacity:1!important}@keyframes refresh-spin{to{transform:rotate(360deg)}}

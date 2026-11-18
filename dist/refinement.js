@@ -15,9 +15,8 @@ const basicHome=home;
 const cardWhite=c=>c.color?c.color==='white':c.id==='white';
 function selector(){
  const cards=allCards(),index=newCardSelected?cards.length:cards.findIndex(card=>card.id===activeCard().id);
- const compactScale=Math.min(1, Math.max(54, 25+cards.length*11)/104);
  const markers=cards.map((_,position)=>`<i class="${position===index?'selected':''}"></i>`).join('');
- return `<button class="card-selector${shouldReduceMotion()?' skip-motion':''}" style="--selector-compact-scale:${compactScale}" data-index="${index}" data-action="nav" data-page="cards" aria-label="Усі картки"><span class="selector-label" aria-hidden="true">${icon('wallet')}Усі картки</span><span class="selector-dots" aria-hidden="true">${markers}<b class="${newCardSelected?'selected':''}">+</b></span></button>`;
+ return `<button class="card-selector${shouldReduceMotion()?' skip-motion':''}" data-index="${index}" data-action="nav" data-page="cards" aria-label="Усі картки"><span class="selector-label" aria-hidden="true">${icon('wallet')}Усі картки</span><span class="selector-dots" aria-hidden="true">${markers}<b class="${newCardSelected?'selected':''}">+</b></span></button>`;
 }
 let cardSelectorTimer;
 function setCardSelectorIndex(pill,index){
