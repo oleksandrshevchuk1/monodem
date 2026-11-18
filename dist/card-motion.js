@@ -13,17 +13,25 @@
  cardArtwork=function(card){const template=document.createElement('template');template.innerHTML=artwork(card);prepare(template.content.querySelector('.bank-card'));return template.innerHTML};
  const renderBeforeInk=render;
  render=function(){renderBeforeInk();document.querySelectorAll('.bank-card').forEach(prepare);const scene=preciseCardScene;queueMicrotask(()=>{if(scene===preciseCardScene&&!scene?.target.isConnected)scene?.dispose()})};
- const selectFaces=(art,backFirst,timing,transient=false)=>['front','back'].map(side=>{
+ const selectFaces=(art,backFirst,timing,transient=false,switchAt=.5)=>['front','back'].map(side=>{
   const initial=(side==='back')===backFirst?'visible':'hidden',final=initial==='visible'?'hidden':'visible';
   const face=art.querySelector('.bank-card-'+side),token={};
   face._inkCullBase??={back:face.style.backfaceVisibility,webkit:face.style.webkitBackfaceVisibility};face._inkCullToken=token;
   face.style.backfaceVisibility=face.style.webkitBackfaceVisibility='visible';
-  const motion=face.animate([{offset:0,visibility:initial,easing:'steps(1,end)'},{offset:.5,visibility:final},{offset:1,visibility:final}],{...timing,fill:'both'});
+  const motion=face.animate([{offset:0,visibility:initial,easing:'steps(1,end)'},{offset:switchAt,visibility:final},{offset:1,visibility:final}],{...timing,fill:'both'});
   const restore=()=>{if(face._inkCullToken!==token)return;face.style.backfaceVisibility=face._inkCullBase.back;face.style.webkitBackfaceVisibility=face._inkCullBase.webkit;delete face._inkCullBase;delete face._inkCullToken};
   if(transient)motion.finished.catch(restore);else motion.finished.then(restore,restore);return motion;
  });
  const measure=measureCardPose;
- measureCardPose=function(el){const pose=measure(el),number=el.querySelector('.card-printed-number');pose.printedOpacity=number?getComputedStyle(number).opacity:'1';return pose};
+ measureCardPose=function(el){
+  const pose=measure(el),number=el.querySelector('.card-printed-number');
+  pose.printedOpacity=number?getComputedStyle(number).opacity:'1';
+  if(el.matches('.expanded-card')){
+   const matrix=new DOMMatrixReadOnly(getComputedStyle(el.querySelector('.bank-card')).transform);
+   pose.returnAngle=Math.min(180,Math.abs(Math.atan2(matrix.m13,matrix.m11)*180/Math.PI));
+  }
+  return pose;
+ };
  const originalTransition=expandTransition;
  expandTransition=function(from,to,opening){
   if(!from||!to)return;
@@ -37,10 +45,13 @@
    const timing=current.motion.effect.getTiming(),number=current.node.querySelector('.card-printed-number'),targetNumber=to.querySelector('.card-printed-number');
    if(number&&targetNumber)number.animate([{opacity:printedOpacity??'1'},{opacity:getComputedStyle(targetNumber).opacity}],{duration:timing.duration,easing:timing.easing,fill:'both'});
    // The name was not visible on the starting rear face and is absent on the home card.
-   if(!opening&&from.flipped)current.node.querySelector('.card-holder')?.style.setProperty('display','none','important');
+   if(!opening&&from.returnAngle>90)current.node.querySelector('.card-holder')?.style.setProperty('display','none','important');
   }
   if(preciseCardScene?.body&&to){const surface=getComputedStyle(to);preciseCardScene.body.style.perspective=surface.perspective;preciseCardScene.body.style.perspectiveOrigin=surface.perspectiveOrigin}
-  if(!opening&&from.flipped&&preciseCardScene?.node.classList.contains('returning-rear')){const scene=preciseCardScene,rotation=scene.body.getAnimations().find(a=>a.effect.getKeyframes().some(k=>'transform' in k))||scene.motion,timing=rotation.effect.getTiming();const faces=selectFaces(scene.node.querySelector('.bank-card'),true,{duration:timing.duration,easing:timing.easing},true);rotation.ready.then(()=>faces.forEach(a=>a.startTime=rotation.startTime)).catch(()=>{})}
+  if(current?.faceSwitch){
+   const {rotation}=current,timing=rotation.effect.getTiming();
+   selectFaces(current.node.querySelector('.bank-card'),true,{duration:timing.duration,easing:timing.easing},true,current.faceSwitch);
+  }
  };
  // A closing card remains part of the carousel until its final handoff.
  const moveSwipe=moveHomeSwipe;
