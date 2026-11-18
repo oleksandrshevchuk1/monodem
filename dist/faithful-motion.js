@@ -98,6 +98,10 @@ function rearCloseAnimation(plane,art,source,destination,width,height,sourceWidt
 
 expandTransition=function(from,to,opening){
  if(!from||!to)return;
+ if(!opening&&from.flipped){
+  preciseCardScene?.dispose();
+  return;
+ }
  let materialStart=from.materialOpacity,reflectionStart=from.glint;
  const previous=preciseCardScene,geometry=stableCardGeometry(to),reduce=shouldReduceMotion();
  const startAngle=opening||previous?0:from.flipAngle??(from.flipped?180:0);
