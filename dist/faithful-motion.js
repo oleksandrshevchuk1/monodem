@@ -22,6 +22,70 @@ function cardPlaneBounds(matrix,width,height){
  return {x,y,width:Math.max(...xs)-x,height:Math.max(...ys)-y};
 }
 
+// Screen-space corners traced from the supplied 30 fps recording, in face order.
+const rearFlightFrames=[
+ [0,[[12,87],[287,87],[287,260],[12,260]]],
+ [33,[[10,130],[259,75],[291,244],[42,291]]],
+ [67,[[29,169],[215,70],[276,218],[83,311]]],
+ [100,[[70,205],[158,75],[242,213],[137,325]]],
+ [133,[[113,104],[191,197],[194,326],[126,245]]],
+ [165,[[65,121],[211,310],[207,313],[61,124]]],
+ [167,[[61,124],[65,121],[211,310],[207,313]]],
+ [200,[[42,152],[171,235],[247,317],[80,211]]],
+ [233,[[34,182],[210,246],[267,312],[63,247]]],
+ [267,[[35,206],[223,242],[275,305],[35,268]]],
+ [300,[[44,226],[230,242],[272,301],[21,282]]],
+ [333,[[51,239],[246,241],[275,296],[23,294]]],
+ [367,[[55,240],[248,240],[276,297],[22,297]]]
+];
+const rearFlightTurn=167;
+
+function projectCardCorners(quad,width,height){
+ const [[x0,y0],[x1,y1],[x2,y2],[x3,y3]]=quad;
+ const dx1=x1-x2,dx2=x3-x2,dy1=y1-y2,dy2=y3-y2;
+ const dx=x0-x1+x2-x3,dy=y0-y1+y2-y3;
+ const determinant=dx1*dy2-dx2*dy1;
+ const g=(dx*dy2-dx2*dy)/determinant,h=(dx1*dy-dx*dy1)/determinant;
+ return new DOMMatrix([
+  (x1-x0+g*x1)/width,(y1-y0+g*y1)/width,0,g/width,
+  (x3-x0+h*x3)/height,(y3-y0+h*y3)/height,0,h/height,
+  0,0,1,0,x0,y0,0,1
+ ]);
+}
+
+function playRearFlight(plane,art,motion,source,destination,width,height,localMatrix,landing){
+ const referenceStart=rearFlightFrames[0][1];
+ const [landingTime,referenceEnd]=rearFlightFrames.at(-1);
+ const scale=(source[1][0]-source[0][0])/(referenceStart[1][0]-referenceStart[0][0]);
+ const center=(corners,axis)=>corners.reduce((sum,point)=>sum+point[axis],0)/4;
+ const fit=(corners,reference)=>[0,1].map(axis=>center(corners,axis)-center(reference,axis)*scale);
+ const startOffset=fit(source,referenceStart),endOffset=fit(destination,referenceEnd);
+ const frames=rearFlightFrames.map(([time,quad])=>{
+  if(time===0)return [time,source];
+  if(time===landingTime)return [time,destination];
+  const progress=time/landingTime;
+  return [time,quad.map(point=>point.map((value,axis)=>value*scale+startOffset[axis]+(endOffset[axis]-startOffset[axis])*progress))];
+ });
+ const front=art.querySelector('.bank-card-front'),back=art.querySelector('.bank-card-back');
+ back.style.transform='none';
+ let frame;
+ const render=()=>{
+  const time=motion.currentTime??0;
+  const rear=time<rearFlightTurn;
+  front.style.opacity=rear?'0':'1';back.style.opacity=rear?'1':'0';
+  if(time>=landingTime){plane.style.transform=landing;return}
+  const next=frames.findIndex(([offset])=>offset>time);
+  const [start,from]=frames[next-1],[end,to]=frames[next];
+  // Swap corner order at the thin edge without interpolating through a crossed quad.
+  const progress=end===rearFlightTurn?0:(time-start)/(end-start);
+  const quad=from.map((point,i)=>point.map((value,axis)=>value+(to[i][axis]-value)*progress));
+  plane.style.transform=localMatrix(projectCardCorners(quad,width,height));
+  frame=requestAnimationFrame(render);
+ };
+ render();
+ return ()=>cancelAnimationFrame(frame);
+}
+
 expandTransition=function(from,to,opening){
  if(!from||!to)return;
  let materialStart=from.materialOpacity,reflectionStart=from.glint;
@@ -30,8 +94,9 @@ expandTransition=function(from,to,opening){
  const returningFromBack=startAngle>=90;
  const interruptedFront=startAngle>.1&&!returningFromBack&&!reduce;
  const rear=returningFromBack&&!reduce;
+ const tracedRear=rear&&startAngle>=179;
  const reduceRear=returningFromBack&&reduce;
- const duration=reduce?100:rear?380:460;
+ const duration=reduce?100:tracedRear?425:rear?380:460;
 
  const source=from.geometry,width=geometry.width,height=geometry.height,base={x:geometry.layout.x,y:geometry.layout.y,width,height};
  const origin=geometry.origin,originMatrix=new DOMMatrix().translate(origin[0],origin[1]);
@@ -84,29 +149,31 @@ expandTransition=function(from,to,opening){
  node.classList.toggle('returning-rear',rear);
  const rearTracks=[];
  if(rear){
-  const perspective=(from.cardPerspective||1000)*width/source.width;
-  rearTracks.push(...animateCardFaces(art,startAngle,0,perspective,{duration,easing:'cubic-bezier(.28,.25,.28,1)',fill:'both'}));
-  // Pitch into the diagonal edge before revealing the already tilted front.
-  const rearWeight=(startAngle-90)/90;
-  const poses=[
-   [0,0,0,'ease-out'],
-   [.16,-24,-8,'ease-in-out'],
-   [.31,-36,9,'ease-in-out'],
-   [.43,15,11,'ease-out'],
-   [.60,8,9,'ease-out'],
-   [.82,0,0,'linear'],
-   [1,0,0,'linear']
-  ];
-  rearTracks.push(body.animate(poses.map(([offset,roll,pitch,easing])=>({
-   offset,easing,transform:`rotateZ(${roll*rearWeight}deg) rotateX(${pitch*rearWeight}deg)`
-  })),{duration,fill:'both'}));
+  if(!tracedRear){
+   const perspective=(from.cardPerspective||1000)*width/source.width;
+   rearTracks.push(...animateCardFaces(art,startAngle,0,perspective,{duration,easing:'cubic-bezier(.28,.25,.28,1)',fill:'both'}));
+   // Pitch into the diagonal edge before revealing the already tilted front.
+   const rearWeight=(startAngle-90)/90;
+   const poses=[
+    [0,0,0,'ease-out'],
+    [.16,-24,-8,'ease-in-out'],
+    [.31,-36,9,'ease-in-out'],
+    [.43,15,11,'ease-out'],
+    [.60,8,9,'ease-out'],
+    [.82,0,0,'linear'],
+    [1,0,0,'linear']
+   ];
+   rearTracks.push(body.animate(poses.map(([offset,roll,pitch,easing])=>({
+    offset,easing,transform:`rotateZ(${roll*rearWeight}deg) rotateX(${pitch*rearWeight}deg)`
+   })),{duration,fill:'both'}));
+  }
   const shadow=document.createElement('span');
   shadow.className='card-motion-shadow';
   shadow.style.boxShadow=targetShadow;
   plane.prepend(shadow);
   // Use elapsed time so the flight easing cannot reveal the landing shadow early.
   rearTracks.push(shadow.animate([
-   {opacity:0},{offset:.86,opacity:0,easing:'ease-out'},{opacity:1}
+   {opacity:0},{offset:tracedRear?rearFlightFrames.at(-1)[0]/duration:.86,opacity:0,easing:'ease-out'},{opacity:1}
   ],{duration,fill:'both'}));
  }else if(interruptedFront){
   plane.style.perspective=`${(from.cardPerspective||1000)*width/source.width}px`;
@@ -122,11 +189,16 @@ expandTransition=function(from,to,opening){
  }
  const targetVisibility=to.style.visibility;to.style.visibility='hidden';document.documentElement.dataset.gesture='active';operationsNav(opening?1:0,opening?0:1,duration);
  const scene={node,plane,body,base,origin,target:to,targetVisibility,backdrop:snapshot,sourceRect,destinationRect:destination};preciseCardScene=scene;
- scene.dispose=()=>{if(scene.disposed)return;scene.disposed=true;to.style.visibility=targetVisibility;const tracks=[...node.getAnimations({subtree:true}),...(snapshot?.getAnimations()||[])];node.remove();snapshot?.remove();for(const track of tracks)track.cancel();if(preciseCardScene===scene){preciseCardScene=null;if(!swipeLayers)delete document.documentElement.dataset.gesture;restoreOperationsNav()}};
- const planeMotion=reduceRear?null:plane.animate(planeFrames,{duration,easing:landingEase,fill:'both'});scene.planeMotion=planeMotion;
- const motion=node.animate(reduce?[{opacity:0},{opacity:1}]:frames,{duration,easing:landingEase,fill:'both'});scene.motion=motion;cardTransition=motion;
+ scene.dispose=()=>{if(scene.disposed)return;scene.disposed=true;scene.stopRearFlight?.();to.style.visibility=targetVisibility;const tracks=[...node.getAnimations({subtree:true}),...(snapshot?.getAnimations()||[])];node.remove();snapshot?.remove();for(const track of tracks)track.cancel();if(preciseCardScene===scene){preciseCardScene=null;if(!swipeLayers)delete document.documentElement.dataset.gesture;restoreOperationsNav()}};
+ const planeMotion=reduceRear||tracedRear?null:plane.animate(planeFrames,{duration,easing:landingEase,fill:'both'});scene.planeMotion=planeMotion;
+ const motionFrames=tracedRear?[frames[1],frames[1]]:reduce?[{opacity:0},{opacity:1}]:frames;
+ const motion=node.animate(motionFrames,{duration,easing:landingEase,fill:'both'});scene.motion=motion;cardTransition=motion;
+ if(tracedRear){
+  const startInBase=new DOMMatrix().translate(sourceLayout.x-base.x,sourceLayout.y-base.y).multiply(startRelative);
+  scene.stopRearFlight=playRearFlight(plane,art,motion,cardPlaneCorners(startInBase,width,height),cardPlaneCorners(endRelative,width,height),width,height,localMatrix,planeFrames[1].transform);
+ }
  if(rear&&document.timeline.currentTime!==null){
-  for(const track of [motion,planeMotion,...rearTracks])track.startTime=document.timeline.currentTime;
+  for(const track of [motion,planeMotion,...rearTracks])if(track)track.startTime=document.timeline.currentTime;
  }
  // Collect after the caller adds its face/ink tracks; never discard a still-moving layer.
  Promise.resolve().then(()=>Promise.allSettled([...node.getAnimations({subtree:true}),...(snapshot?.getAnimations()||[])].filter(a=>a.effect?.getTiming().iterations!==Infinity).map(a=>a.finished))).then(()=>requestAnimationFrame(()=>scene.dispose()));
