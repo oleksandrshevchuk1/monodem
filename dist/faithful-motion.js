@@ -70,7 +70,7 @@ function limitCardPerspective(quad){
  return affine.map((point,i)=>point.map((value,axis)=>value+(i%2?-1:1)*warp[axis]*strength));
 }
 
-function rearCloseAnimation(plane,art,source,destination,width,height,sourceWidth,landing,startTime,timing){
+function rearCloseAnimation(plane,art,shadow,source,destination,width,height,sourceWidth,landing,startTime){
  const [landingTime,referenceEnd]=rearFlightFrames.at(-1);
  const firstSegment=rearFlightFrames.findIndex(([time])=>time>startTime)-1;
  const interpolate=(from,to,progress)=>from.map((point,i)=>point.map((value,axis)=>value+(to[i][axis]-value)*progress));
@@ -93,26 +93,52 @@ function rearCloseAnimation(plane,art,source,destination,width,height,sourceWidt
   }));
  };
  const samples=[[startTime,source],...rearFlightFrames.slice(firstSegment+1).map(([time,quad])=>[time,match(time,quad)])];
- const keys=[];
+ const poses=[];
  let lastCorners=source;
- // Sample the projected corners before playback so WebKit does not decompose the edge-on matrix.
+ // Prepare transforms before playback. WebKit can stall when interpolating projective keyframes.
  for(let i=0;i<samples.length-1;i++){
   const [fromTime,from]=samples[i],[toTime,to]=samples[i+1];
   const count=Math.ceil((toTime-fromTime)/(1000/240));
   for(let step=0;step<count;step++){
    const progress=step/count,time=fromTime+(toTime-fromTime)*progress;
    if(i||step)lastCorners=limitCardPerspective(interpolate(from,to,progress))||lastCorners;
-   keys.push({offset:(time-startTime)/timing.duration,transform:projectCardCorners(lastCorners,width,height).toString(),easing:'steps(1, end)'});
+   poses.push({time:time-startTime,transform:projectCardCorners(lastCorners,width,height).toString()});
   }
  }
- keys.push({offset:1,transform:landing});
- const swapOffset=(rearFlightTurn-startTime)/timing.duration;
- const faces=['back','front'].map((side,index)=>{
-  const face=art.querySelector('.bank-card-'+side);
-  face.style.transform='none';
-  return face.animate([{opacity:1-index,easing:'steps(1, end)'},{offset:swapOffset,opacity:index},{opacity:index}],timing);
- });
- return [plane.animate(keys,timing),...faces];
+ const front=art.querySelector('.bank-card-front'),back=art.querySelector('.bank-card-back');
+ front.style.transform=back.style.transform='none';
+ front.style.opacity='0';
+ back.style.opacity='1';
+ shadow.style.opacity='0';
+ plane.style.transform=poses[0].transform;
+ let index=0,elapsed=0,lastTime,frame,showingBack=true;
+ let resolve;
+ const finished=new Promise(done=>{resolve=done});
+ const cancel=()=>{cancelAnimationFrame(frame);resolve()};
+ const showFront=()=>{
+  showingBack=false;
+  front.style.opacity='1';
+  back.style.opacity='0';
+ };
+ const finish=()=>{
+  plane.style.transform=landing;
+  shadow.style.opacity='1';
+  if(showingBack)showFront();
+  cancel();
+ };
+ const tick=now=>{
+  // A stalled frame must not consume the whole flight before it has been painted.
+  if(lastTime!==undefined)elapsed+=Math.min(now-lastTime,40);
+  lastTime=now;
+  if(elapsed>=landingTime-startTime){finish();return}
+  while(poses[index+1]?.time<=elapsed)index++;
+  plane.style.transform=poses[index].transform;
+  if(showingBack&&elapsed>=rearFlightTurn-startTime)showFront();
+  if(elapsed>=280-startTime)shadow.style.opacity=String(settle((elapsed+startTime-280)/(landingTime-280)));
+  frame=requestAnimationFrame(tick);
+ };
+ frame=requestAnimationFrame(tick);
+ return {finished,cancel,finish};
 }
 
 expandTransition=function(from,to,opening){
@@ -173,7 +199,7 @@ expandTransition=function(from,to,opening){
  const planeFrames=[{transform:localMatrix(startRelative)},{transform:localMatrix(endRelative)}];
  const landingEase='cubic-bezier(.32,.72,0,1)';
  const frames=[{transform:new DOMMatrix().translate(sourceLayout.x-base.x,sourceLayout.y-base.y).toString()},{transform:new DOMMatrix().toString()}];
- node.style.transform=frames[reduceRear?1:0].transform;plane.style.transform=planeFrames[reduceRear?1:0].transform;
+ node.style.transform=frames[reduceRear||rear?1:0].transform;plane.style.transform=planeFrames[reduceRear?1:0].transform;
  const targetArtStyle=getComputedStyle(to.querySelector('.bank-card')),targetRadius=targetArtStyle.borderTopLeftRadius;
  // Keep shadows and corner masks on static layers during the transform.
  art.style.borderRadius=targetRadius;
@@ -185,16 +211,12 @@ expandTransition=function(from,to,opening){
  const reflection=art.querySelector('.card-glint'),targetReflection=to.querySelector('.card-glint');
  if(reflection&&targetReflection&&reflectionStart){const targetStyle=getComputedStyle(targetReflection);reflection.animate([reflectionStart,{opacity:targetStyle.opacity,transform:targetStyle.transform}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'})}
  node.classList.toggle('returning-rear',rear);
- const rearTracks=[];
+ let shadow;
  if(rear){
-  const shadow=document.createElement('span');
+  shadow=document.createElement('span');
   shadow.className='card-motion-shadow';
   shadow.style.boxShadow=targetShadow;
   plane.prepend(shadow);
-  // Use elapsed time so the flight easing cannot reveal the landing shadow early.
-  rearTracks.push(shadow.animate([
-   {opacity:0},{offset:(280-flightStart)/duration,opacity:0,easing:landingEase},{opacity:1}
-  ],{duration,fill:'both'}));
  }
  const snapshot=from.snapshot;
  if(snapshot){
@@ -202,27 +224,26 @@ expandTransition=function(from,to,opening){
   snapshot.style.zIndex='37';snapshot.style.maxHeight=Math.max(0,innerHeight-parseFloat(snapshot.style.top))+'px';document.body.append(snapshot);
   const fade=snapshot.animate([{opacity:1},{opacity:0}],{duration:rear?duration*.64:duration,easing:landingEase,fill:'both'});
   fade.finished.catch(()=>{});
-  if(rear)rearTracks.push(fade);
  }
  const targetVisibility=to.style.visibility;to.style.visibility='hidden';document.documentElement.dataset.gesture='active';operationsNav(opening?1:0,opening?0:1,duration);
- const scene={node,plane,body,base,origin,target:to,targetVisibility,backdrop:snapshot,sourceRect,destinationRect:destination};preciseCardScene=scene;
- scene.dispose=()=>{if(scene.disposed)return;scene.disposed=true;to.style.visibility=targetVisibility;const tracks=[...node.getAnimations({subtree:true}),...(snapshot?.getAnimations()||[])];node.remove();snapshot?.remove();for(const track of tracks)track.cancel();if(preciseCardScene===scene){preciseCardScene=null;if(!swipeLayers)delete document.documentElement.dataset.gesture;restoreOperationsNav()}};
+ const scene={node,plane,body,base,origin,target:to,targetVisibility,backdrop:snapshot,sourceRect,destinationRect:destination,timing:{duration,easing:landingEase,fill:'both'}};preciseCardScene=scene;
+ scene.dispose=()=>{if(scene.disposed)return;scene.disposed=true;scene.rearFlight?.cancel();to.style.visibility=targetVisibility;const tracks=[...node.getAnimations({subtree:true}),...(snapshot?.getAnimations()||[])];node.remove();snapshot?.remove();for(const track of tracks)track.cancel();if(preciseCardScene===scene){preciseCardScene=null;if(!swipeLayers)delete document.documentElement.dataset.gesture;restoreOperationsNav()}};
  const planeMotion=reduceRear||rear?null:plane.animate(planeFrames,{duration,easing:landingEase,fill:'both'});scene.planeMotion=planeMotion;
- const motionFrames=rear?[frames[1],frames[1]]:reduce?[{opacity:0},{opacity:1}]:frames;
- const motion=node.animate(motionFrames,{duration,easing:landingEase,fill:'both'});scene.motion=motion;cardTransition=motion;
+ const motionFrames=reduce?[{opacity:0},{opacity:1}]:frames;
+ const motion=rear?null:node.animate(motionFrames,scene.timing);scene.motion=motion;cardTransition=motion;
  if(rear){
   plane.style.transformOrigin='0 0';
   body.style.transformOrigin='0 0';
   scene.origin=[0,0];
   const startInBase=new DOMMatrix().translate(sourceLayout.x-base.x,sourceLayout.y-base.y).multiply(startRelative);
   const sourceCorners=paintedFace?paintedFace.map(([x,y])=>[x-base.x,y-base.y]):cardPlaneCorners(startInBase,width,height);
-  rearTracks.push(...rearCloseAnimation(plane,art,sourceCorners,cardPlaneCorners(endRelative,width,height),width,height,source.width,endRelative.toString(),flightStart,{duration,fill:'both'}));
- }
- if(rear&&document.timeline.currentTime!==null){
-  for(const track of [motion,planeMotion,...rearTracks])if(track)track.startTime=document.timeline.currentTime;
+  scene.rearFlight=rearCloseAnimation(plane,art,shadow,sourceCorners,cardPlaneCorners(endRelative,width,height),width,height,source.width,endRelative.toString(),flightStart);
  }
  // Collect after the caller adds its face/ink tracks; never discard a still-moving layer.
- Promise.resolve().then(()=>Promise.allSettled([...node.getAnimations({subtree:true}),...(snapshot?.getAnimations()||[])].filter(a=>a.effect?.getTiming().iterations!==Infinity).map(a=>a.finished))).then(()=>requestAnimationFrame(()=>scene.dispose()));
+ Promise.resolve().then(()=>{
+  const tracks=[...node.getAnimations({subtree:true}),...(snapshot?.getAnimations()||[])];
+  return Promise.allSettled([scene.rearFlight?.finished,...tracks.filter(a=>a.effect?.getTiming().iterations!==Infinity).map(a=>a.finished)]);
+ }).then(()=>requestAnimationFrame(()=>scene.dispose()));
 };
 // The card carousel owns only its own strip. The rest of Home opens all operations.
 bindOperationsGesture=function(){};

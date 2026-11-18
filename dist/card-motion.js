@@ -65,7 +65,7 @@ function animateCardFaces(art,start,end,perspective,timing){
   const current=preciseCardScene;
   if(current&&!opening){current.carouselTrack=$('.card-track');current.carouselStartX=new DOMMatrixReadOnly(current.carouselTrack?getComputedStyle(current.carouselTrack).transform:undefined).m41}
   if(current&&to){
-   const timing=current.motion.effect.getTiming(),number=current.node.querySelector('.card-printed-number'),targetNumber=to.querySelector('.card-printed-number');
+   const timing=current.timing,number=current.node.querySelector('.card-printed-number'),targetNumber=to.querySelector('.card-printed-number');
    if(number&&targetNumber)number.animate([{opacity:printedOpacity??'1'},{opacity:getComputedStyle(targetNumber).opacity}],{duration:timing.duration,easing:timing.easing,fill:'both'});
    // The name was not visible on the starting rear face and is absent on the home card.
    if(!opening&&from.flipAngle>90)current.node.querySelector('.card-holder')?.style.setProperty('display','none','important');
