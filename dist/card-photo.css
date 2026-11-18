@@ -14,31 +14,31 @@
 .cvv-minutes{display:block;font-size:3cqw;font-weight:500;line-height:1;align-self:end}
 .cvv-countdown small{display:block;font-size:1.65cqw;font-weight:500;line-height:1.2;align-self:start;margin:.2cqw 0 0;padding:0;color:#fff}
 
-/* Keep the first digit and the first letter on the same vertical guide. */
+/* Center the printed number and align the holder to its first digit. */
 :is(.card-face,.expanded-card,.precise-card-surface,.soft-card-surface) .card-printed-number{
- left:7.3%!important;
+ left:50%!important;
  right:auto!important;
  width:max-content;
- transform:none;
+ transform:translateX(calc(-50% + .13cqw));
 }
 :is(.expanded-card,.precise-card-surface,.soft-card-surface) .bank-card .card-holder{
- left:7.3%;
- max-width:68%;
+ /* 19 characters at 0.54em plus tracking, with the trailing tracking excluded. */
+ left:calc((100% - 19 * 7.2cqw * .54 - 18 * .26cqw) / 2);
+ max-width:65%;
  font-size:4.6cqw;
  line-height:1.15;
  letter-spacing:.15cqw;
  overflow-wrap:anywhere;
 }
 
-/* Photographed reverse with the magnetic stripe and security panel. */
+/* Keep the original dark finish on the live and travelling reverse. */
 :is(.expanded-card,.precise-card-surface,.soft-card-surface) .bank-card:not(.is-white) .bank-card-back{
- background:linear-gradient(160deg,#525c59,#303c3e 52%,#172329);
+ background:linear-gradient(165deg,#343537,#282829 55%,#1d1d1e);
 }
 :is(.expanded-card,.precise-card-surface,.soft-card-surface) .bank-card.is-white .bank-card-back{
  background:linear-gradient(#fafafa,#e5e8ee);
 }
 .bank-card .magstripe{position:absolute;top:14%;left:0;width:100%;height:20%;margin:0;background:#3d3e40}
-.bank-card:not(.is-white) .magstripe{background:linear-gradient(100deg,#aeb5b4,#c7cecc,#9ea8a7)}
 .bank-card .card-expiry{right:5%;bottom:44%;font-size:6cqw;line-height:1;letter-spacing:.15cqw;color:#f3f5f4}
 .bank-card .card-back-number{right:5%;bottom:7%;width:40%;height:20%;border-radius:2cqw;background:#4b4b4d;overflow:hidden}
 .bank-card .card-demo-cvv{font-family:DemoInter,sans-serif;font-size:5cqw;line-height:1;right:8%;letter-spacing:0;color:#fff;text-shadow:0 1px 2px #1b252580}
@@ -132,9 +132,15 @@
 .returning-rear .card-number-masked{display:inline}
 .card-face-ink > :is(.card-brand,.visa){background-position:center;background-repeat:no-repeat;background-size:contain}
 
-.bank-card.is-white .magstripe{background:#aeb8c2}
-.bank-card.is-white .card-back-number,.is-white .cvv-countdown{background:#c2c5cb}
-.is-white .cvv-countdown::before{background:conic-gradient(#24252b calc(var(--remaining,1)*1turn),#a9adb6 0)}
+.bank-card.is-white .magstripe{background:#afb8bf;height:19%}
+.bank-card.is-white .card-back-number{right:4.5%;background:#b9bbbe}
+.is-white .cvv-countdown{background:transparent;width:9cqw;height:9cqw}
+.bank-card.is-white .card-back-number::after{
+ left:34%;
+ right:34%;
+ background-image:radial-gradient(circle,#777c8066 .24cqw,transparent .34cqw);
+}
+.is-white .cvv-countdown::before{background:conic-gradient(#24252b calc(var(--remaining,1)*1turn),#a9abae 0)}
 .bank-card.is-white :is(.card-expiry,.card-demo-cvv,.cvv-countdown,.cvv-countdown small){
  color:#141518;
  text-shadow:none;
@@ -142,9 +148,15 @@
 
 .card-settings > .payment-settings{
  box-sizing:border-box;
- min-height:96px;
- padding:8px 25px;
+ min-height:74px;
+ margin-bottom:0;
+ padding:8px clamp(16px,6.4vw,25px);
+ gap:clamp(12px,4.8vw,19px);
 }
 .card-settings > .payment-settings > .icon{width:20px;height:20px;flex:none}
 .card-settings > .payment-settings > span{min-width:0;flex:1}
-.card-settings > .internet-limit progress{margin-block:3px}
+.card-settings > .payment-settings small{font-size:13px;line-height:16px}
+.card-settings > .internet-limit > span{display:grid;gap:4px}
+.card-settings > .internet-limit progress{height:4px;margin:0}
+.card-settings > .internet-limit > .icon{border-radius:50%}
+.card-settings:has(.expanded-card .is-white) > .payment-settings{background:#1b2249}

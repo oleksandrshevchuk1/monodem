@@ -9,7 +9,22 @@ function prepareVisibleGlyphs(){document.querySelectorAll('#app img[src],#nav im
 // Preserve the complete account-page swipe from the recorded interaction.
 function remainingLimitColor(ratio){const value=Math.max(0,Math.min(1,ratio)),hue=value<.5?value*60:30+(value-.5)*180;return `hsl(${hue} 83% 53%)`}
 limitRow=function(title,value,max,image){const amount=text=>Number(String(text).replace(/\s/g,'')),ratio=Math.max(0,Math.min(1,amount(value)/Math.max(1,amount(max))));return `<div class="reference-limit-row">${referenceImage(image)}<div><span>${title}</span><p><strong>Залишилось ${value} ₴</strong> / ${max} ₴</p><div class="reference-limit-track" role="progressbar" aria-valuemin="0" aria-valuemax="${amount(max)}" aria-valuenow="${amount(value)}"><i data-limit-ratio="${ratio}" style="transform:scaleX(${ratio});background:${remainingLimitColor(ratio)}"></i></div></div></div>`};
-function animateLimitIndicators(){document.querySelectorAll('[data-limit-ratio]').forEach(fill=>{const ratio=Number(fill.dataset.limitRatio),color=remainingLimitColor(ratio);fill.style.background=color;fill.style.boxShadow='none';if(!shouldReduceMotion())fill.animate([{transform:'scaleX(1)',backgroundColor:color},{transform:`scaleX(${ratio})`,backgroundColor:color}],{duration:300,easing:'cubic-bezier(.23,1,.32,1)'})});const progress=document.querySelector('.internet-limit progress');if(progress){const card=activeCard(),settings=state.cardSettings[card.id]||{},maximum=Number(settings.limit??10000),spent=internetSpentSinceReset(card.id,settings),ratio=settings.online===false||maximum<=0?0:Math.max(0,1-spent/maximum);progress.value=ratio*100;progress.style.setProperty('--limit-color',remainingLimitColor(ratio))}}
+function animateLimitIndicators(){document.querySelectorAll('[data-limit-ratio]').forEach(fill=>{const ratio=Number(fill.dataset.limitRatio),color=remainingLimitColor(ratio);fill.style.background=color;fill.style.boxShadow='none';if(!shouldReduceMotion())fill.animate([{transform:'scaleX(1)',backgroundColor:color},{transform:`scaleX(${ratio})`,backgroundColor:color}],{duration:300,easing:'cubic-bezier(.23,1,.32,1)'})});updateDailyPaymentLimit()}
+function updateDailyPaymentLimit(){
+ const panel=document.querySelector('.payment-settings.internet-limit');
+ if(!panel)return;
+ const card=activeCard(),settings=state.cardSettings[card.id]||{};
+ const maximum=Math.max(0,Number(settings.limit??10000)||0);
+ const remaining=settings.online===false?0:Math.max(0,maximum-internetSpentSinceReset(card.id,settings));
+ const ratio=maximum>0?remaining/maximum:0;
+ const progress=panel.querySelector('progress');
+ progress.value=ratio*100;
+ progress.style.setProperty('--limit-color',remainingLimitColor(ratio));
+ const format=amount=>amount.toLocaleString('uk-UA',{maximumFractionDigits:2})+' ₴';
+ panel.querySelector('small').textContent=settings.online===false
+  ?'Інтернет-оплати вимкнені'
+  :`Залишилося ${format(remaining)} з ${format(maximum)}`;
+}
 const flipBeforeLimitColors=actions['flip-card'];actions['flip-card']=()=>{flipBeforeLimitColors();animateLimitIndicators()};
 const renderBeforeMobileStability=render;render=function(){renderBeforeMobileStability();prepareVisibleGlyphs();animateLimitIndicators()};
 let restingViewportHeight=innerHeight;
