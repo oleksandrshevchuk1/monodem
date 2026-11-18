@@ -24,7 +24,7 @@ if(browserStorageMode){
    if(record&&!record.unchanged&&(force||record.revision!==serverRevision||hostedSyncMode==='shared')){
     if(hostedSyncMode==='shared'&&adminMode&&!migrationOffered&&record.revision===1){const local=await browserRecord('readonly');if(local?.state&&(local.state.name!=='Демо-користувач'||local.state.transactions?.length||local.state.files?.length))localMigration=local}
     const next=await hydrateState(record.state);
-    if(!sharedSaving&&(force||(!document.querySelector('#modal').open&&document.documentElement.dataset.gesture!=='active'&&document.documentElement.dataset.routeMotion!=='active'))){state=next;serverRevision=record.revision;if(!loading)render()}
+    if(!sharedSaving&&(force||(!document.querySelector('#modal').open&&document.documentElement.dataset.gesture!=='active'&&document.documentElement.dataset.routeMotion!=='active'))){applyLoadedState(next);serverRevision=record.revision;if(!loading)render()}
    }
    document.documentElement.dataset.storage=hostedSyncMode==='shared'?'saved':'local';syncNotice();
    if(localMigration&&!migrationOffered){migrationOffered=true;setTimeout(()=>{if(document.querySelector('#modal').open)return;modal('Перенести дані з цієї адмінки?', '<p>Спільне сховище порожнє. Перенести сюди ваші збережені дані, щоб вони з’явились на телефоні?</p>',async()=>{state=await hydrateState(localMigration.state)},'Перенести')},500)}

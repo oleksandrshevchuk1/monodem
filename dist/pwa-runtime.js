@@ -31,9 +31,6 @@ function restorePwaControls(){
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){pwaWasBackgrounded=true;if(typeof preciseCardScene!=='undefined')preciseCardScene?.dispose();settleInterruptedPwa()}else restorePwaControls()});
 window.addEventListener('pageshow',event=>{if(event.persisted)pwaWasBackgrounded=true;restorePwaControls()});
 
-// Keep nonessential home imagery out of the first decode/network burst.
-if(!adminMode){const homeBeforeLazyMedia=home;home=function(){const template=document.createElement('template');template.innerHTML=homeBeforeLazyMedia();template.content.querySelectorAll('.home-product img').forEach(image=>{image.loading='lazy';image.decoding='async'});return template.innerHTML}}
-
 // Explicit user preference: keep the reference layout at 1x, including pinch gestures.
 for(const event of ['gesturestart','gesturechange'])document.addEventListener(event,e=>e.preventDefault(),{passive:false});
 document.addEventListener('touchmove',e=>{if(e.touches.length>1)e.preventDefault()},{passive:false});

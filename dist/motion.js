@@ -48,11 +48,44 @@ expandTransition=function(from,to,opening){
  }).catch(()=>{})
 };
 // The full account page follows the finger; header and navigation keep their anchors.
+const accountPreviewCache=new Map();let previewIdleTask=0;
 const prepareAccountSwipe=prepareSwipe,moveAccountSwipe=moveHomeSwipe,cleanupAccountSwipe=cleanupSwipe;
-prepareSwipe=function(){const l=prepareAccountSwipe();if(l.pages)return l;l.pages=[];const pane=$('.home-content');l.movingContent=[...pane.querySelectorAll(':scope>.home-balance,:scope>.home-actions,:scope>.operation-panel,:scope>.open-card-intro,:scope>.new-card-cta')];const selected=state.activeCard,wasNew=newCardSelected;for(const index of [l.index-1,l.index+1]){if(index<0||index>allCards().length)continue;try{newCardSelected=index===allCards().length;if(!newCardSelected)state.activeCard=allCards()[index].id;const template=document.createElement('template');let content;if(accountPreviewCache.has(index))content=accountPreviewCache.get(index).cloneNode(true);else{template.innerHTML=home();content=template.content.querySelector('.home-content');content?.querySelector('.reference-home-tools')?.remove();content?.querySelector('.card-carousel')?.replaceChildren();content?.querySelector('.card-selector')?.replaceChildren()}if(!content)continue;const preview=document.createElement('div');preview.className='account-swipe-preview';preview.inert=true;preview.append(content);preview.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));preview.style.transform=`translate3d(${(index-l.index)*l.width}px,0,0)`;pane.append(preview);const anchor=pane.querySelector(':scope>.home-balance,:scope>.open-card-intro'),next=content.querySelector('.home-balance,.open-card-intro');if(anchor&&next)preview.style.top=(anchor.getBoundingClientRect().top-next.getBoundingClientRect().top)+'px';l.pages.push({node:preview,index})}finally{state.activeCard=selected;newCardSelected=wasNew}}return l};
-moveHomeSwipe=function(distance,rubber=true){moveAccountSwipe(distance,rubber);const l=swipeLayers;if(!l)return;for(const el of l.movingContent){el.style.transform=`translate3d(${l.dx}px,0,0)`}l.pages?.forEach(({node,index})=>node.style.transform=`translate3d(${(index-l.index)*l.width+l.dx}px,0,0)`)};
-cleanupSwipe=function(){if(swipeLayers){swipeLayers.pages?.forEach(p=>p.node.remove());$('.home-content')?.querySelectorAll(':scope>.home-balance,:scope>.home-actions,:scope>.operation-panel,:scope>.reference-home-tools,:scope>.open-card-intro,:scope>.new-card-cta').forEach(el=>el.style.transform='')}cleanupAccountSwipe()};
-const refreshAccountSelection=refreshSelectedCard;refreshSelectedCard=function(){refreshAccountSelection();document.querySelectorAll('.home-balance strong,.operation-panel .transaction').forEach(el=>el.getAnimations().forEach(a=>a.cancel()))};
+prepareSwipe=function(){
+ const layer=prepareAccountSwipe();
+ if(layer.pages)return layer;
+ const pane=$('.home-content');
+ layer.movingContent=[...pane.children].filter(el=>el.matches(homeAccountIntro+',.home-actions,.operation-panel'));
+ layer.pages=[];
+ for(const index of [layer.index-1,layer.index+1]){
+  if(index<0||index>allCards().length)continue;
+  const content=(accountPreviewCache.get(index)||buildAccountPreview(index)).cloneNode(true);
+  const preview=document.createElement('div');
+  preview.className='account-swipe-preview';
+  preview.inert=true;
+  preview.append(content);
+  preview.style.transform=`translate3d(${(index-layer.index)*layer.width}px,0,0)`;
+  layer.pages.push({node:preview,index});
+ }
+ pane.append(...layer.pages.map(page=>page.node));
+ const top=pane.querySelector(homeAccountIntro).getBoundingClientRect().top;
+ const offsets=layer.pages.map(({node})=>top-node.querySelector(homeAccountIntro).getBoundingClientRect().top);
+ layer.pages.forEach(({node},index)=>node.style.top=offsets[index]+'px');
+ return layer;
+};
+moveHomeSwipe=function(distance,rubber=true){
+ moveAccountSwipe(distance,rubber);
+ const layer=swipeLayers;
+ const translation=`translate3d(${layer.dx}px,0,0)`;
+ for(const element of layer.movingContent)element.style.transform=translation;
+ for(const {node,index} of layer.pages)node.style.transform=`translate3d(${(index-layer.index)*layer.width+layer.dx}px,0,0)`;
+};
+cleanupSwipe=function(){
+ if(swipeLayers){
+  swipeLayers.pages?.forEach(page=>page.node.remove());
+  swipeLayers.movingContent?.forEach(element=>element.style.transform='');
+ }
+ cleanupAccountSwipe();
+};
 // Operations rise over the frozen home surface and dissolve back into it on pull-down.
 let operationsHome=null,operationsScene=null,operationsEntrance=null,operationsNavMotion=null,historyTouchCleanup=null;
 function freezeHome(){const snapshot=captureBankSurface(true),source=$('#screen'),copy=snapshot.firstElementChild;copy.removeAttribute('id');copy.classList.add('transition-screen');copy.style.paddingBottom=getComputedStyle(source).paddingBottom;copy.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));snapshot.firstElementChild.replaceWith(copy);snapshot.querySelectorAll('.transition-nav').forEach(el=>el.remove());snapshot.className='operations-home-underlay home';snapshot.style.height=Math.max(innerHeight,$('#app').offsetHeight)+'px';return snapshot}
@@ -83,7 +116,7 @@ actions['recipient-avatar']=()=>{const input=document.createElement('input');inp
 const bankEditorBeforeAvatar=addBankAdminPicker;addBankAdminPicker=function(person,collection,id){bankEditorBeforeAvatar(person,collection,id);$('#fields').insertAdjacentHTML('beforeend','<label for="recipient-avatar-file">Аватар одержувача mono · необов’язково</label><input id="recipient-avatar-file" name="recipientAvatarFile" type="file" accept="image/png,image/jpeg,image/webp">'+(person?.recipientAvatar?select('Поточний аватар','keepRecipientAvatar',[[1,'Зберегти'],[0,'Прибрати']],1):''));const save=submit;submit=async f=>{await save(f);const item=id?state[collection].find(x=>x.id===id):state[collection].at(-1);if(item)item.recipientAvatar=await imageData(f.get('recipientAvatarFile'))||(f.get('keepRecipientAvatar')==='0'?null:person?.recipientAvatar||null)}};
 const detailBeforeAvatar=detail;detail=function(){const t=currentTx();let html=detailBeforeAvatar();if(t&&bankPreset(t).id==='mono'&&t.recipientAvatar){html=html.replace('<div class="reference-operation-pattern"></div>',`<div class="reference-operation-pattern avatar-operation-background"><img src="${esc(t.recipientAvatar)}" alt=""></div>`);html=html.replace(`<div class="reference-operation-avatar">${transferSymbol()}${bankBadge(t)}</div>`,`<div class="reference-operation-avatar portrait-operation">${recipientPicture(t)}</div>`)}return html.replace(/(<button[^>]*data-action="share-receipt"[^>]*>)([\s\S]*?)(<\/button>)/g,(_,a,b,c)=>a+icon('export')+'Поділитися квитанцією'+c)};
 const receiptBeforeSharing=receiptPage;receiptPage=function(){return receiptBeforeSharing().replace('data-action="print">Зберегти квитанцію макета','data-action="share-receipt">Поділитися квитанцією')};
-const beforeMotionRender=render;render=function(){if(swipeLayers){cardSlideAnimation?.cancel();cleanupSwipe()}beforeMotionRender()};
+const beforeMotionRender=render;render=function(){accountPreviewCache.clear();if(swipeLayers){cardSlideAnimation?.cancel();cleanupSwipe()}beforeMotionRender()};
 render();
 // Only the recorded transitions own motion; switching bottom tabs is immediate.
 let sideEntrance=null,sideSnapshot=null,sideDrag=0,pendingSideSnapshot=null,sideReturnClickUntil=0;
@@ -121,10 +154,30 @@ const referenceIconRenderer=icon;icon=n=>referenceIcons.has(n)?referenceIconRend
 const decodedIconImages=[];for(const name of [...referenceIcons,"card-brand","visa","apple-native"]){const image=new Image();image.src="assets/reference/"+name+".png";image.decode().catch(()=>{});decodedIconImages.push(image)}
 render();
 // Prepare the light account previews before a pointer starts moving.
-const accountPreviewCache=new Map();let previewIdleTask=0;
-function prepareAccountPreviews(){accountPreviewCache.clear();if(route.page!=='home'||loading)return;const selected=state.activeCard,wasNew=newCardSelected,index=wasNew?allCards().length:allCards().findIndex(c=>c.id===selected);for(const i of [index-1,index,index+1,index+2]){if(i<0||i>allCards().length)continue;try{newCardSelected=i===allCards().length;if(!newCardSelected)state.activeCard=allCards()[i].id;const t=document.createElement('template');t.innerHTML=home();const content=t.content.querySelector('.home-content');content.querySelector('.reference-home-tools')?.remove();content.querySelector('.card-carousel')?.replaceChildren();content.querySelector('.card-selector')?.replaceChildren();accountPreviewCache.set(i,content)}finally{state.activeCard=selected;newCardSelected=wasNew}}}
-function scheduleAccountPreviews(){clearTimeout(previewIdleTask);previewIdleTask=setTimeout(()=>{if(route.page==='home'&&!swipeLayers)prepareAccountPreviews()},40)}
-const bindAccountPointer=bindCardSwipe;bindCardSwipe=function(){bindAccountPointer();scheduleAccountPreviews();const pane=$('.card-carousel');if(!pane)return;let wheelTimer=0;pane.addEventListener('wheel',e=>{if(Math.abs(e.deltaX)<=Math.abs(e.deltaY)||e.target.closest('.operation-panel,.home-product-track'))return;e.preventDefault();cardSlideAnimation?.cancel();const layer=prepareSwipe();moveHomeSwipe(layer.dx-e.deltaX);clearTimeout(wheelTimer);wheelTimer=setTimeout(()=>{const l=swipeLayers;if(!l)return;cardReleaseVelocity=0;slideCardTo(l.index+(Math.abs(l.dx)>l.width*.2?(l.dx<0?1:-1):0))},85)},{passive:false})};
+
+function buildAccountPreview(index){
+ const cards=allCards(),selected=state.activeCard,wasNew=newCardSelected;
+ try{
+  newCardSelected=index===cards.length;
+  if(!newCardSelected)state.activeCard=cards[index].id;
+  const template=document.createElement('template');
+  template.innerHTML=homeAccountContent(true);
+  return template.content.firstElementChild;
+ }finally{
+  state.activeCard=selected;
+  newCardSelected=wasNew;
+ }
+}
+function prepareAccountPreviews(){
+ if(route.page!=='home'||loading)return;
+ const cards=allCards(),index=newCardSelected?cards.length:cards.findIndex(card=>card.id===state.activeCard);
+ for(const i of [index-1,index+1])if(i>=0&&i<=cards.length&&!accountPreviewCache.has(i))accountPreviewCache.set(i,buildAccountPreview(i));
+}
+function scheduleAccountPreviews(){
+ clearTimeout(previewIdleTask);
+ previewIdleTask=setTimeout(()=>{if(!swipeLayers)prepareAccountPreviews()},40);
+}
+const bindAccountPointer=bindCardSwipe;bindCardSwipe=function(){bindAccountPointer();scheduleAccountPreviews();const pane=$('.card-carousel');if(!pane)return;let wheelTimer=0;pane.addEventListener('wheel',e=>{if(document.body.classList.contains('has-glass-history')||Math.abs(e.deltaX)<=Math.abs(e.deltaY)||e.target.closest('.operation-panel,.home-product-track'))return;e.preventDefault();cardSlideAnimation?.cancel();const layer=prepareSwipe();moveHomeSwipe(layer.dx-e.deltaX);clearTimeout(wheelTimer);wheelTimer=setTimeout(()=>{const l=swipeLayers;if(!l)return;slideCardTo(l.index+(Math.abs(l.dx)>l.width*.2?(l.dx<0?1:-1):0))},85)},{passive:false})};
 const refreshBeforePreviews=refreshSelectedCard;refreshSelectedCard=function(){refreshBeforePreviews();scheduleAccountPreviews()};
 // Favorite filtering is a visible toggle, not an invisible list mutation.
 let historyFavoritesActive=false;
