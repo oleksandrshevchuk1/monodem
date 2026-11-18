@@ -60,13 +60,23 @@ function animateRearCard(scene,art,shadow,start,end,camera,pitch,angle){
  // Keep the exact landing pose underneath the compositor animation.
  plane.style.transform=end.toString();
  const motion=plane.animate(poses,timing);
+ const faces=[];
  for(const [side,opacity] of [['front',1],['back',0]]){
   const face=art.querySelector('.bank-card-'+side);
   face.style.opacity=String(opacity);
-  if(edge>0)face.animate([
-   {opacity:1-opacity,easing:'steps(1,end)'},{offset:edge,opacity},{opacity}
-  ],timing);
+  if(edge>0){
+   // Use compositor-interpolated opacity during the narrow edge, without a stepped effect.
+   const halfWindow=1/timing.duration;
+   faces.push(face.animate([
+    {opacity:1-opacity},{offset:Math.max(0,edge-halfWindow),opacity:1-opacity},
+    {offset:edge+halfWindow,opacity},{opacity}
+   ],timing));
+  }
  }
+ motion.ready.then(()=>{
+  if(scene.disposed||motion.startTime===null)return;
+  for(const face of faces)if(face.startTime!==motion.startTime)face.startTime=motion.startTime;
+ }).catch(()=>{});
  shadow.style.opacity='1';
  shadow.animate([{opacity:0},{offset:Math.max(0,edge),opacity:0,easing:'ease-out'},{opacity:1}],timing);
  return motion;
