@@ -40,11 +40,11 @@ function projectCardCorners(quad,width,height){
 // Time, travel, yaw, bank and landing tilt at the main poses in the recording.
 const rearCardPoses=[
  [0,0,180,0,0],
- [.11,.42,130,-21,.03],
- [.26,.59,90,-27,.12],
- [.42,.73,48,24,.59],
- [.60,.88,12,16,.91],
- [.74,.97,2,8,.97],
+ [.13,.26,145,-21,.03],
+ [.29,.52,90,-27,.12],
+ [.46,.73,48,24,.59],
+ [.65,.88,12,16,.91],
+ [.80,.97,2,8,.97],
  [1,1,0,0,1]
 ];
 
@@ -77,6 +77,23 @@ function revealRearCardFront(art,shadow,angle,timing){
  shadow.animate([{opacity:0},{offset:edge,opacity:0,easing:'ease-out'},{opacity:1}],timing);
 }
 
+function playRearCardAfterFirstPaint(scene){
+ const tracks=scene.node.getAnimations({subtree:true});
+ for(const track of tracks){
+  track.pause();
+  track.currentTime=0;
+ }
+ // Give the mounted Home screen and the starting card a paint before advancing time.
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{
+  if(scene.disposed||scene.motion.playState!=='paused')return;
+  const startTime=document.timeline.currentTime;
+  for(const track of tracks){
+   track.play();
+   if(startTime!==null)track.startTime=startTime;
+  }
+ }));
+}
+
 expandTransition=function(from,to,opening){
  if(!from||!to)return;
  let materialStart=from.materialOpacity,reflectionStart=from.glint;
@@ -86,7 +103,7 @@ expandTransition=function(from,to,opening){
  const interruptedFront=startAngle>.1&&!returningFromBack&&!reduce;
  const rear=returningFromBack&&!reduce;
  const reduceRear=returningFromBack&&reduce;
- const duration=reduce?100:rear?320:460;
+ const duration=reduce?100:rear?380:460;
 
  const source=from.geometry,width=geometry.width,height=geometry.height,base={x:geometry.layout.x,y:geometry.layout.y,width,height};
  const origin=geometry.origin,originMatrix=new DOMMatrix().translate(origin[0],origin[1]);
@@ -182,7 +199,10 @@ expandTransition=function(from,to,opening){
  const planeMotion=reduceRear?null:plane.animate(planeFrames,{duration,easing:landingEase,fill:'both'});scene.planeMotion=planeMotion;
  const motionFrames=reduce?[{opacity:0},{opacity:1}]:frames;
  const motion=rear?planeMotion:node.animate(motionFrames,scene.timing);scene.motion=motion;cardTransition=motion;
- if(rear)revealRearCardFront(art,shadow,startAngle,scene.timing);
+ if(rear){
+  revealRearCardFront(art,shadow,startAngle,scene.timing);
+  playRearCardAfterFirstPaint(scene);
+ }
  // Collect after the caller adds its face/ink tracks; never discard a still-moving layer.
  Promise.resolve().then(()=>{
   const tracks=[...node.getAnimations({subtree:true}),...(snapshot?.getAnimations()||[])];
