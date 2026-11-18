@@ -6,8 +6,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,DemoInter,'Helvetica Neue',Ari
 .card-selector {
   position: relative;
   display: grid;
-  place-items: center;
+  grid-template-rows: 1fr;
+  align-items: stretch;
   margin: 19px auto 0;
+  box-sizing: border-box;
   height: 26px;
   min-width: 104px;
   padding: 0 10px;
@@ -29,8 +31,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,DemoInter,'Helvetica Neue',Ari
   grid-area: 1 / 1;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  line-height: 16px;
+  white-space: nowrap;
   pointer-events: none;
+  will-change: opacity, filter;
   filter: blur(0);
   transition: opacity 180ms var(--ease-out), filter 180ms var(--ease-out);
 }
@@ -42,14 +48,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,DemoInter,'Helvetica Neue',Ari
   border-radius: 50%;
   background: currentColor;
   opacity: .38;
+  transition: opacity 150ms var(--ease-out);
 }
-.selector-dots b { font-size: 15px; line-height: 1; opacity: .6; }
+.selector-dots b { font-size: 15px; line-height: 16px; opacity: .6; transition: opacity 150ms var(--ease-out); }
 .selector-dots .selected { color: #fff; opacity: 1; }
 .card-selector.show-dots .selector-label { opacity: 0; filter: blur(4px); }
 .card-selector.show-dots .selector-dots { opacity: 1; filter: blur(0); }
-.card-selector.skip-motion :is(.selector-label, .selector-dots) { transition: none; }
+.card-selector.skip-motion :is(.selector-label, .selector-dots, .selector-dots > *) { transition: none; }
+.card-selector.skip-motion :is(.selector-label, .selector-dots) { will-change: auto; }
 @media (prefers-reduced-motion: reduce) {
-  .card-selector :is(.selector-label, .selector-dots) { transition: none; }
+  .card-selector :is(.selector-label, .selector-dots, .selector-dots > *) { transition: none; }
+  .card-selector :is(.selector-label, .selector-dots) { will-change: auto; }
+}
+.card-gesture-active .home-content{overflow-anchor:none}
+.home-content > :is(.home-balance,.open-card-intro){
+  box-sizing:border-box;
+  height:62px;
+  margin:88px 0 0;
 }
 .home-content>.home-actions{margin:28px 14px 13px}.home-actions button{font-size:13px;line-height:15px}.action-circle .icon{width:25px;height:27px}.open-card-intro{margin-top:88px;height:62px;text-align:center}.open-card-intro h2{font-size:19px;font-weight:600;padding-top:2px}.open-card-intro p{color:#a6aec7;font-size:13px;line-height:17px;margin-top:13px}.new-card-cta{background:#ffffff28;display:block;margin:0;width:100%;min-height:52px;padding:12px 18px;border-radius:40px;font-size:16px}.new-card-empty{display:grid;place-items:center;text-align:center}.new-card-empty h2{font-size:16px;line-height:21px;font-weight:600}.refresh-indicator{position:absolute;left:calc(50% - 14px);top:80px;width:28px;height:28px;display:grid;place-items:center;background:#fff;border-radius:50%;opacity:0;z-index:1}.refresh-indicator .icon{width:21px;height:21px;filter:brightness(0) saturate(100%) invert(45%) sepia(90%) saturate(1800%) hue-rotate(325deg)}.refreshing .refresh-indicator{animation:refresh-spin 500ms linear;opacity:1!important}@keyframes refresh-spin{to{transform:rotate(360deg)}}
 #app.cards{background:linear-gradient(130deg,#171b30,#171f25 65%,#1e1d20)}#app.cards #screen{padding-bottom:30px}.cards-overview{min-height:100dvh;padding:0 16px 120px;position:relative}.cards-overview>.toolbar{height:99px;margin:0 -16px}.cards-overview .toolbar>.back{top:57px;left:13px}.cards-overview>h1{font-size:24px;font-weight:650;margin:13px 0 28px;letter-spacing:-.5px}.compact-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px}.compact-card{position:relative;padding:24px 24px 26px;text-align:left;border-radius:18px;background:#ffffff12;min-height:185px;display:flex;flex-direction:column;align-items:flex-start}.compact-art{display:block;width:57px;height:37px;margin-bottom:18px}.compact-art .bank-card{border-radius:8px}.compact-art .card-brand{width:60%;left:10%;top:10%}.compact-art .visa{width:25%;bottom:12%;right:9%}.compact-art .card-holder{display:none}.compact-number{position:absolute;right:16px;top:17px;color:#757b8d;font-size:12px}.compact-name{font-size:12px;color:#a1a7b8;margin-bottom:13px;white-space:nowrap}.compact-card>strong{font-size:21px;font-weight:650;letter-spacing:-.6px}.open-card-floating{position:fixed;bottom:max(58px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:13px;justify-content:center;border-radius:40px;background:#fff;color:#080a0c;padding:17px 20px;min-width:232px;font-size:16px;font-weight:650;z-index:5}.open-card-floating .icon{width:26px;height:26px;filter:brightness(0)}
