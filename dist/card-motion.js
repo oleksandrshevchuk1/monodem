@@ -24,6 +24,7 @@
   if(el.matches('.expanded-card')){
    const art=el.querySelector('.bank-card');
    pose.returnAngle=readAngle(art);
+   if(Math.abs(pose.returnAngle+180)<15)pose.rearCorners=paintedCardCorners(art.querySelector('.bank-card-back'));
    pose.returnPerspective=getComputedStyle(el).perspective;
    pose.shadow=getComputedStyle(art,'::before').boxShadow;
   }

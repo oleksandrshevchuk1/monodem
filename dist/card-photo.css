@@ -92,3 +92,10 @@
  box-shadow:0 12px 28px #02071140;
  pointer-events:none;
 }
+.projected-rear-close :is(.bank-card-front,.bank-card-back){transform:none}
+.projected-rear-close .projected-card-shadow{
+ position:absolute;
+ inset:0;
+ border-radius:inherit;
+ pointer-events:none;
+}

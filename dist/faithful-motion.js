@@ -14,12 +14,65 @@ function cardPlaneBounds(matrix,width,height){
  const corners=[[0,0],[width,0],[0,height],[width,height]].map(([x,y])=>{const w=matrix.m14*x+matrix.m24*y+matrix.m44;return {x:(matrix.m11*x+matrix.m21*y+matrix.m41)/w,y:(matrix.m12*x+matrix.m22*y+matrix.m42)/w}});
  const xs=corners.map(p=>p.x),ys=corners.map(p=>p.y),x=Math.min(...xs),y=Math.min(...ys);return {x,y,width:Math.max(...xs)-x,height:Math.max(...ys)-y};
 }
+function paintedCardCorners(face){
+ const markers=[[0,0],[100,0],[100,100],[0,100]].map(([left,top])=>{
+  const marker=document.createElement('span');
+  marker.style.cssText=`position:absolute;left:${left}%;top:${top}%;width:0;height:0;visibility:hidden;pointer-events:none`;
+  face.append(marker);
+  return marker;
+ });
+ const corners=markers.map(marker=>{
+  const {x,y}=marker.getBoundingClientRect();
+  return [x,y];
+ });
+ markers.forEach(marker=>marker.remove());
+ return corners;
+}
+function projectCardCorners(corners,{x,y,width,height}){
+ const [[ax,ay],[bx,by],[cx,cy],[dx,dy]]=corners.map(([left,top])=>[left-x,top-y]);
+ const bxToC=bx-cx,dxToC=dx-cx,byToC=by-cy,dyToC=dy-cy;
+ const skewX=ax-bx+cx-dx,skewY=ay-by+cy-dy;
+ const divisor=bxToC*dyToC-dxToC*byToC;
+ const horizontal=(skewX*dyToC-dxToC*skewY)/divisor;
+ const vertical=(bxToC*skewY-skewX*byToC)/divisor;
+ return `matrix3d(${[(bx-ax+horizontal*bx)/width,(by-ay+horizontal*by)/width,0,horizontal/width,(dx-ax+vertical*dx)/height,(dy-ay+vertical*dy)/height,0,vertical/height,0,0,1,0,ax,ay,0,1].join(',')})`;
+}
+function rearCloseProjection(sourceCorners,targetCorners,base,sourceWidth){
+ // Corner positions sampled from the 17.73–18.20s return, on a 195px-wide reference frame.
+ const rearEdge=[[58,113],[37,90],[131,188],[152,211]];
+ const frontEdge=[[37,90],[60,112],[154,210],[131,188]];
+ const poses=[
+  [0,sourceCorners,-180],
+  [.07,[[34,125],[121,48],[172,141],[77,211]],-180],
+  [.14,[[60,145],[84,54],[146,135],[109,216]],-180],
+  [.30,rearEdge,-180],
+  [.30,frontEdge,0],
+  [.38,[[24,112],[124,158],[169,206],[50,146]],0],
+  [.51,[[24,143],[151,159],[184,200],[19,181]],0],
+  [.60,[[31,154],[158,159],[182,197],[18,193]],0],
+  [.77,[[37,155],[160,155],[181,194],[17,194]],0],
+  [1,targetCorners,0]
+ ];
+ const center=corners=>corners.reduce(([x,y],[left,top])=>[x+left/4,y+top/4],[0,0]);
+ const [startX,startY]=center(sourceCorners),[endX,endY]=center(targetCorners);
+ const scale=sourceWidth/180;
+ return poses.map(([offset,corners,yaw])=>{
+  if(offset>0&&offset<1){
+   corners=corners.map(([x,y])=>[
+    startX+(endX-startX)*offset+(x-98)*scale,
+    startY+(y-115)*scale+(endY-startY-60*scale)*offset
+   ]);
+  }
+  return {offset,transform:projectCardCorners(corners,base),'--card-yaw':`${yaw}deg`};
+ });
+}
 expandTransition=function(from,to,opening){
  if(!from||!to)return;
  let sourceShadow=from.shadow,shadowWidth=from.geometry.width,materialStart=from.materialOpacity,faceShadowStart=from.faceShadow;
  const previous=preciseCardScene,geometry=stableCardGeometry(to),reduce=shouldReduceMotion(),duration=reduce?100:460;
  const returnAngle=(!opening&&!previous&&!reduce)?(from.returnAngle||0):0;
  const rear=returnAngle < -90 && returnAngle > -270;
+ const projectedRear=rear&&from.rearCorners;
  const returnEnd=returnAngle < -90?-360:0;
  const travelEasing=returnAngle?'cubic-bezier(.35,.5,.45,1)':'cubic-bezier(.32,.72,0,1)';
  const source=from.geometry,width=geometry.width,height=geometry.height,base={x:geometry.layout.x,y:geometry.layout.y,width,height};
@@ -43,12 +96,20 @@ expandTransition=function(from,to,opening){
  const targetArtStyle=getComputedStyle(to.querySelector('.bank-card')),targetRadius=targetArtStyle.borderTopLeftRadius;
  // Keep the same projected corner size when replacing the live card with the moving plane.
  art.style.borderRadius=targetRadius;
- art.animate([{borderRadius:((from.cornerRadius||parseFloat(targetRadius))*width/source.width)+'px'},{borderRadius:targetRadius}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
+ if(!projectedRear)art.animate([{borderRadius:((from.cornerRadius||parseFloat(targetRadius))*width/source.width)+'px'},{borderRadius:targetRadius}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  plane.style.borderRadius=targetRadius;
- plane.animate([{borderRadius:((from.cornerRadius||parseFloat(targetRadius))*width/source.width)+'px'},{borderRadius:targetRadius}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
+ if(!projectedRear)plane.animate([{borderRadius:((from.cornerRadius||parseFloat(targetRadius))*width/source.width)+'px'},{borderRadius:targetRadius}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  const targetShadow=to.matches('.expanded-card')?getComputedStyle(to.querySelector('.bank-card'),'::before').boxShadow:getComputedStyle(to).boxShadow;
  const shadowStart=(sourceShadow||targetShadow).replace(/(-?(?:\d*\.)?\d+)px/g,(_,value)=>(Number(value)*width/shadowWidth)+'px');
- body.animate([{boxShadow:shadowStart},{boxShadow:targetShadow}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
+ if(projectedRear){
+  for(const [shadow,start,end] of [[shadowStart,1,0],[targetShadow,0,1]]){
+   const layer=document.createElement('span');
+   layer.className='projected-card-shadow';
+   layer.style.boxShadow=shadow;
+   body.prepend(layer);
+   layer.animate([{opacity:start},{opacity:end}],{duration,fill:'both'});
+  }
+ }else body.animate([{boxShadow:shadowStart},{boxShadow:targetShadow}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  const front=art.querySelector('.bank-card-front'),targetFront=to.querySelector('.bank-card-front');
  if(front&&targetFront){const targetShadow=getComputedStyle(targetFront).boxShadow;front.style.boxShadow=targetShadow;front.animate([{boxShadow:faceShadowStart||'none'},{boxShadow:targetShadow}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'})}
  const material=art.querySelector('.card-material'),targetMaterial=to.querySelector('.card-material');
@@ -56,9 +117,18 @@ expandTransition=function(from,to,opening){
  const reflection=art.querySelector('.card-glint'),targetReflection=to.querySelector('.card-glint');
  if(reflection&&targetReflection&&from.glint){const targetStyle=getComputedStyle(targetReflection);reflection.animate([from.glint,{opacity:targetStyle.opacity,transform:targetStyle.transform}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'})}
  node.classList.toggle('returning-rear',rear);
+ let projectionFrames;
+ if(projectedRear){
+  node.classList.add('projected-rear-close');
+  plane.style.transformOrigin='0 0';
+  projectionFrames=rearCloseProjection(from.rearCorners,paintedCardCorners(targetFront),base,source.width);
+  plane.style.transform=projectionFrames[0].transform;
+  plane.style.setProperty('--card-yaw','-180deg');
+  node.style.transform='none';
+ }
  // Follow the diagonal turn in the recording as the card descends into the carousel.
  let rotation=null;
- if(returnAngle){
+ if(returnAngle&&!projectedRear){
   const perspective=parseFloat(from.returnPerspective)||1000;
   body.classList.add('turning-card-body');
   body.style.setProperty('--card-turn-perspective',`${perspective*width/source.width}px`);
@@ -73,7 +143,7 @@ expandTransition=function(from,to,opening){
   body.style.removeProperty('--card-yaw');
   rotation=body.animate([{'--card-yaw':`${returnAngle}deg`},{'--card-yaw':`${returnEnd}deg`}],{duration,easing:travelEasing,fill:'both'});
  }
- if(rear){
+ if(rear&&!projectedRear){
   const roll=Math.min(1,(Math.min(-returnAngle,360+returnAngle)-90)/45);
   body.animate([
    {rotate:'0deg',easing:'cubic-bezier(.23,1,.32,1)'},
@@ -86,10 +156,10 @@ expandTransition=function(from,to,opening){
  const snapshot=from.snapshot;if(snapshot){snapshot.querySelectorAll('.card-face,.expanded-card,.card-header-mini,.transition-nav').forEach(el=>el.style.visibility='hidden');snapshot.style.zIndex='37';document.body.append(snapshot);snapshot.animate([{opacity:1},{opacity:0}],{duration,easing:travelEasing,fill:'both'}).finished.catch(()=>{})}
  const targetVisibility=to.style.visibility;to.style.visibility='hidden';document.documentElement.dataset.gesture='active';operationsNav(opening?1:0,opening?0:1,duration);
  const settings=$('.card-settings');if(opening&&settings)for(const child of settings.children)if(!child.matches('.expanded-card'))child.animate([{opacity:0,transform:'translate3d(0,12px,0)'},{opacity:1,transform:'translate3d(0,0,0)'}],{duration,easing:'cubic-bezier(.32,.72,0,1)'});
- const scene={node,plane,body,base,origin,target:to,targetVisibility,backdrop:snapshot,sourceRect,destinationRect:destination,rotation};preciseCardScene=scene;
+ const scene={node,plane,body,base,origin:projectedRear?[0,0]:origin,target:to,targetVisibility,backdrop:snapshot,sourceRect,destinationRect:destination,rotation};preciseCardScene=scene;
  scene.dispose=()=>{if(scene.disposed)return;scene.disposed=true;to.style.visibility=targetVisibility;const tracks=[...node.getAnimations({subtree:true}),...(snapshot?.getAnimations()||[])];node.remove();snapshot?.remove();for(const track of tracks)track.cancel();if(preciseCardScene===scene){preciseCardScene=null;if(!swipeLayers)delete document.documentElement.dataset.gesture;restoreOperationsNav()}};
- const planeMotion=reduce?null:plane.animate(planeFrames,{duration,easing:travelEasing,fill:'both'});scene.planeMotion=planeMotion;
- const motion=node.animate(reduce?[{opacity:0},{opacity:1}]:frames,{duration,easing:travelEasing,fill:'both'});scene.motion=motion;cardTransition=motion;
+ const planeMotion=reduce?null:plane.animate(projectionFrames||planeFrames,{duration,easing:projectedRear?'linear':travelEasing,fill:'both'});scene.planeMotion=planeMotion;
+ const motion=projectedRear?planeMotion:node.animate(reduce?[{opacity:0},{opacity:1}]:frames,{duration,easing:travelEasing,fill:'both'});scene.motion=motion;cardTransition=motion;
  // Collect after the caller adds its face/ink tracks; never discard a still-moving layer.
  Promise.resolve().then(()=>Promise.allSettled([...node.getAnimations({subtree:true}),...(snapshot?.getAnimations()||[])].filter(a=>a.effect?.getTiming().iterations!==Infinity).map(a=>a.finished))).then(()=>requestAnimationFrame(()=>scene.dispose()));
 };
