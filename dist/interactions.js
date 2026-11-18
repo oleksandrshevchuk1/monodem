@@ -30,18 +30,6 @@ let historyPresentation='card',skipPageMotion=false;
 
 function historyDrawer(){const app=$('#app'),rect=app.getBoundingClientRect(),drawer=document.createElement('div');drawer.className='history-gesture-drawer';drawer.innerHTML=historyPage();drawer.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));drawer.inert=true;Object.assign(drawer.style,{left:rect.left+'px',width:rect.width+'px'});document.body.append(drawer);return drawer}
 
-function bindOperationsGesture(){const panel=$('.operation-panel');if(!panel)return;let start=null,drawer=null,dx=0,dragging=false;
-
-panel.addEventListener('pointerdown',e=>{if(e.button!==0)return;start={x:e.clientX,y:e.clientY};dx=0;dragging=false});
-
-panel.addEventListener('pointermove',e=>{if(!start)return;const x=e.clientX-start.x,y=e.clientY-start.y;if(!dragging&&Math.abs(y)>12&&Math.abs(y)>Math.abs(x)){start=null;return}if(!dragging&&Math.abs(x)>12&&Math.abs(x)>Math.abs(y)*1.4){dragging=true;historyPresentation='drawer';drawer=historyDrawer();panel.setPointerCapture(e.pointerId)}if(!dragging)return;dx=Math.min(drawer.offsetWidth,Math.abs(x));drawer.style.transform=`translate3d(${dx-drawer.offsetWidth}px,0,0)`;$('#app').style.filter=`blur(${dx/drawer.offsetWidth*7}px)`;e.stopPropagation()});
-
-const end=e=>{if(!start)return;start=null;if(!dragging)return;if(panel.hasPointerCapture(e.pointerId))panel.releasePointerCapture(e.pointerId);panel.addEventListener('click',e=>{e.stopPropagation();e.preventDefault()},{once:true,capture:true});const open=e.type!=='pointercancel'&&dx>drawer.offsetWidth*.23,width=drawer.offsetWidth,node=drawer;dragging=false;const finish=()=>{node.remove();$('#app').style.filter='';if(open){skipPageMotion=true;navigate('history')}};if(shouldReduceMotion())finish();else{node.animate([{transform:`translate3d(${dx-width}px,0,0)`},{transform:`translate3d(${open?0:-width}px,0,0)`}],{duration:240,easing:'cubic-bezier(.23,1,.32,1)',fill:'forwards'}).finished.catch(()=>{}).finally(finish);$('#app').animate([{filter:`blur(${dx/width*7}px)`},{filter:open?'blur(7px)':'blur(0px)'}],{duration:240}).finished.catch(()=>{})}};
-
-panel.addEventListener('pointerup',end);panel.addEventListener('pointercancel',end)
-
-}
-
 function bindCardCollapse(){const card=$('.expanded-card'),settings=$('.card-settings');if(!card)return;const update=()=>{if(route.page!=='card'||!card.isConnected){window.removeEventListener('scroll',update);return}const y=pageScrollY(),p=Math.min(1,Math.max(0,y/220)),scale=1-(1-64/card.offsetWidth)*p;card.style.transform=`translate3d(0,${y-61*p}px,0) scale(${scale})`;settings.classList.toggle('compact-card-view',p>.85)};window.addEventListener('scroll',update,{passive:true});update()}
 
 const slowFlip=actions['flip-card'];actions['flip-card']=()=>{if(pageScrollY()>30){pageScrollTo({top:0,behavior:shouldReduceMotion()?'instant':'smooth'});return}slowFlip();const panel=$('.payment-settings');if(!panel)return;const s=state.cardSettings[activeCard().id]||{};panel.classList.toggle('internet-limit',cardFlipped);panel.innerHTML=cardFlipped?icon('lock-key')+`<span>Ліміт інтернет-оплати<progress max="100" value="${s.online===false?0:100}"></progress><small>${s.online===false?'Інтернет-оплати вимкнені':'Ліміт інтернет-оплати '+displayMoney(s.limit??10000)+' ₴'}</small></span>`:icon('gear')+'<span>Налаштування оплат<small>Додаткові перевірки</small></span>';const opacity=getComputedStyle(panel).opacity;panel._flipFade?.cancel();if(!shouldReduceMotion())panel._flipFade=panel.animate([{opacity:opacity==='1'?'.3':opacity},{opacity:1}],{duration:240,easing:'ease-out'})};
@@ -108,7 +96,7 @@ actions['history-search']=()=>{const search=$('.history-search');search.hidden=!
 
 const priorInteractionsRender=render;
 
-render=function(){document.documentElement.dataset.motion=motionMode();if(loading){priorInteractionsRender();return}if(!adminMode&&['transfer','transferAmount','appSettings'].includes(route.page)){defaults();$('#app').className=route.page;$('#nav').hidden=true;$('#screen').innerHTML=route.page==='appSettings'?appSettingsPage():route.page==='transfer'?transferPage():transferAmountPage();bindTransfer()}else priorInteractionsRender();if(!adminMode&&route.page==='home')bindOperationsGesture();if(!adminMode&&route.page==='card')bindCardCollapse();if(!adminMode&&route.page==='history')bindHistoryDismiss();if(!adminMode&&route.page==='detail'){const t=currentTx();$('#app').classList.toggle('is-mono-operation',!!t&&operationBank(t)==='mono');$('#app').classList.toggle('is-other-bank-operation',!!t&&operationBank(t)==='other')}if(route.page==='history')$('#nav').hidden=true};
+render=function(){document.documentElement.dataset.motion=motionMode();if(loading){priorInteractionsRender();return}if(!adminMode&&['transfer','transferAmount','appSettings'].includes(route.page)){defaults();$('#app').className=route.page;$('#nav').hidden=true;$('#screen').innerHTML=route.page==='appSettings'?appSettingsPage():route.page==='transfer'?transferPage():transferAmountPage();bindTransfer()}else priorInteractionsRender();if(!adminMode&&route.page==='card')bindCardCollapse();if(!adminMode&&route.page==='history')bindHistoryDismiss();if(!adminMode&&route.page==='detail'){const t=currentTx();$('#app').classList.toggle('is-mono-operation',!!t&&operationBank(t)==='mono');$('#app').classList.toggle('is-other-bank-operation',!!t&&operationBank(t)==='other')}if(route.page==='history')$('#nav').hidden=true};
 
 
 

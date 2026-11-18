@@ -15,9 +15,8 @@ const basicHome=home;
 const cardWhite=c=>c.color?c.color==='white':c.id==='white';
 function selector(){
  const cards=allCards(),index=newCardSelected?cards.length:cards.findIndex(card=>card.id===activeCard().id);
- const compactScale=Math.min(1, Math.max(54, 25+cards.length*11)/104);
  const markers=cards.map((_,position)=>`<i class="${position===index?'selected':''}"></i>`).join('');
- return `<button class="card-selector${shouldReduceMotion()?' skip-motion':''}" style="--selector-compact-scale:${compactScale}" data-index="${index}" data-action="nav" data-page="cards" aria-label="Усі картки"><span class="selector-label" aria-hidden="true">${icon('wallet')}Усі картки</span><span class="selector-dots" aria-hidden="true">${markers}<b class="${newCardSelected?'selected':''}">+</b></span></button>`;
+ return `<button class="card-selector${shouldReduceMotion()?' skip-motion':''}" data-index="${index}" data-action="nav" data-page="cards" aria-label="Усі картки"><span class="selector-label" aria-hidden="true">${icon('wallet')}Усі картки</span><span class="selector-dots" aria-hidden="true">${markers}<b class="${newCardSelected?'selected':''}">+</b></span></button>`;
 }
 let cardSelectorTimer;
 function setCardSelectorIndex(pill,index){
@@ -121,8 +120,31 @@ function prepareSwipe(){if(swipeLayers)return swipeLayers;const app=$('#app'),tr
  clearTimeout(cardSelectorTimer);
  pill?.classList.add('show-dots');
  swipeLayers={track,pill,cards,width:app.clientWidth,index,background,dx:0,theme:null};document.documentElement.dataset.gesture='active';app.classList.add('card-gesture-active');return swipeLayers}
-function moveHomeSwipe(distance,rubber=true){const l=prepareSwipe(),edge=(l.index===0&&distance>0)||(l.index===l.cards.length&&distance<0),dx=edge&&rubber?distance*.2:distance;l.dx=dx;const indicatedIndex=Math.max(0,Math.min(l.cards.length,Math.round(l.index-dx/l.width)));setCardSelectorIndex(l.pill,indicatedIndex);l.track.style.transform=`translate3d(${-l.index*l.width*.88+dx*.88}px,0,0)`;const next=l.index+(dx<0?1:-1);if(l.theme!==next){const c=l.cards[next];l.background.style.background=next===l.cards.length?'linear-gradient(180deg,#19192d,#253252 290px,#1e293f 440px,#17191f 600px,#111214 740px)':c&&cardWhite(c)?'linear-gradient(180deg,#1f1038,#322555 235px,#1b284e 410px,#171d2b 550px,#111214 710px)':'linear-gradient(180deg,#10103c,#162858 235px,#10264c 410px,#111c30 550px,#111214 710px)';l.theme=next}l.background.style.opacity=Math.min(1,Math.abs(dx)/l.width)}
-function cleanupSwipe(){if(!swipeLayers)return;settleCardSelector(swipeLayers.pill);swipeLayers.background.remove();$('#app').classList.remove('card-gesture-active');delete document.documentElement.dataset.gesture;swipeLayers=null}
+function cardTrackOffset(layer,dx){return (dx-layer.index*layer.width)*.88}
+function updateSwipeTheme(layer,dx){
+ if(!dx)return;
+ const next=layer.index+(dx<0?1:-1);
+ if(layer.theme===next)return;
+ const card=layer.cards[next];
+ layer.background.style.background=next===layer.cards.length
+  ?'linear-gradient(180deg,#19192d,#253252 290px,#1e293f 440px,#17191f 600px,#111214 740px)'
+  :card&&cardWhite(card)
+   ?'linear-gradient(180deg,#1f1038,#322555 235px,#1b284e 410px,#171d2b 550px,#111214 710px)'
+   :'linear-gradient(180deg,#10103c,#162858 235px,#10264c 410px,#111c30 550px,#111214 710px)';
+ layer.theme=next;
+}
+function moveHomeSwipe(distance,rubber=true){
+ const layer=prepareSwipe();
+ const edge=(layer.index===0&&distance>0)||(layer.index===layer.cards.length&&distance<0);
+ const dx=rubber?(edge?distance*.2:Math.max(-layer.width,Math.min(layer.width,distance))):distance;
+ layer.dx=dx;
+ const indicatedIndex=Math.max(0,Math.min(layer.cards.length,Math.round(layer.index-dx/layer.width)));
+ setCardSelectorIndex(layer.pill,indicatedIndex);
+ layer.track.style.transform=`translate3d(${cardTrackOffset(layer,dx)}px,0,0)`;
+ updateSwipeTheme(layer,dx);
+ layer.background.style.opacity=Math.min(1,Math.abs(dx)/layer.width);
+}
+function cleanupSwipe(){if(!swipeLayers)return;clearTimeout(swipeLayers.wheelTimer);settleCardSelector(swipeLayers.pill);swipeLayers.background.remove();$('#app').classList.remove('card-gesture-active');delete document.documentElement.dataset.gesture;swipeLayers=null}
 function refreshSelectedCard(){
  const app=$('#app');
  app.classList.toggle('white-active',!newCardSelected&&cardWhite(activeCard()));
@@ -150,17 +172,39 @@ function finishCardSelection(index){
 }
 
 function physicalSettle(read,write,target,velocity,complete){let frame,cancelled=false;const from=read(),omega=2*Math.PI/.4,offset=from-target,start=performance.now();const tick=now=>{if(cancelled)return;const t=(now-start)/1000,term=velocity+omega*offset,decay=Math.exp(-omega*t),position=target+(offset+term*t)*decay,speed=(velocity-omega*term*t)*decay;write(position);if(t<1.2&&(Math.abs(position-target)>.05||Math.abs(speed)>.5))frame=requestAnimationFrame(tick);else{write(target);complete()}};frame=requestAnimationFrame(tick);return {cancel(){cancelled=true;cancelAnimationFrame(frame)},finish(){cancelled=true;cancelAnimationFrame(frame);write(target)}}}
-slideCardTo=function(index){if(document.body.classList.contains('has-glass-history'))return;const l=prepareSwipe();index=Math.max(0,Math.min(allCards().length,index));const target=(l.index-index)*l.width;cardSlideAnimation?.cancel();const done=()=>index===l.index?cleanupSwipe():finishCardSelection(index);if(shouldReduceMotion()){moveHomeSwipe(target,false);done();return}cardSlideAnimation=settleCardStrip(()=>l.dx,x=>moveHomeSwipe(x,false),target,done)};
+slideCardTo=function(index){if(document.body.classList.contains('has-glass-history'))return;const l=prepareSwipe();index=Math.max(0,Math.min(allCards().length,index));const target=(l.index-index)*l.width;clearTimeout(l.wheelTimer);cardSlideAnimation?.cancel();const done=()=>index===l.index?cleanupSwipe():finishCardSelection(index);if(shouldReduceMotion()){moveHomeSwipe(target,false);done();return}cardSlideAnimation=settleHomeSwipe(l,target,done)};
 function bindHorizontalGesture(element,{read,write,settle,cancel}){
  let start=null,dragging=false,vertical=false,samples=[],frame=0,pending=0;
  const stopClick=e=>{e.preventDefault();e.stopPropagation()};
- const flush=()=>{cancelAnimationFrame(frame);frame=0;if(start&&dragging)write(pending)};
+ const flush=()=>{if(!frame)return;cancelAnimationFrame(frame);frame=0;if(start&&dragging)write(pending)};
  element.addEventListener('pointerdown',e=>{if(e.button!==0||start)return;if(element.classList.contains('card-carousel')&&(e.clientX-$('#app').getBoundingClientRect().left<=28||document.body.classList.contains('has-glass-history')))return;if(element.classList.contains('home-content')&&(e.target.closest('.operation-panel')||e.clientX-element.getBoundingClientRect().left<=28))return;start={x:e.clientX,y:e.clientY,base:read(),id:e.pointerId};dragging=false;vertical=false;samples=[{x:e.clientX,time:performance.now()}]});
  element.addEventListener('pointermove',e=>{if(!start||e.pointerId!==start.id||vertical)return;const dx=e.clientX-start.x,dy=e.clientY-start.y;if(!dragging&&Math.abs(dy)>8&&Math.abs(dy)>Math.abs(dx)){vertical=true;return}if(!dragging&&Math.abs(dx)>14&&Math.abs(dx)>Math.abs(dy)*1.6){cancel();start.base=read();dragging=true;element.setPointerCapture(e.pointerId)}if(!dragging)return;const time=performance.now();samples.push({x:e.clientX,time});samples=samples.filter(p=>time-p.time<100);pending=start.base+dx;if(!frame)frame=requestAnimationFrame(()=>{frame=0;if(start&&dragging)write(pending)})});
  const end=e=>{if(!start||e.pointerId!==start.id)return;flush();const moved=dragging,first=samples[0],last=samples.at(-1),v=e.type==='pointercancel'?0:last&&first&&performance.now()-last.time<80&&last.time>first.time?(last.x-first.x)/(last.time-first.time)*1000:0;start=null;dragging=false;vertical=false;if(element.hasPointerCapture(e.pointerId))element.releasePointerCapture(e.pointerId);if(moved){element.addEventListener('click',stopClick,{once:true,capture:true});setTimeout(()=>element.removeEventListener('click',stopClick,true),0);settle(v,e.type==='pointercancel'||e.type==='lostpointercapture')}};
  element.addEventListener('pointerup',end);element.addEventListener('pointercancel',end);element.addEventListener('lostpointercapture',e=>{if(start&&e.target===element&&!element.hasPointerCapture(e.pointerId))end(e)})
 }
-bindCardSwipe=function(){const pane=$('.card-carousel');if(!pane)return;carouselIndex=newCardSelected?allCards().length:allCards().findIndex(c=>c.id===activeCard().id);setCarouselPosition(carouselIndex);bindHorizontalGesture(pane,{read:()=>swipeLayers?.dx||0,write:x=>moveHomeSwipe(x),cancel:()=>cardSlideAnimation?.cancel(),settle:(v,cancelled)=>{const l=prepareSwipe(),projected=l.dx+v*.12;slideCardTo(l.index+(!cancelled&&Math.abs(projected)>l.width*.25?(projected<0?1:-1):0))}})};
+bindCardSwipe=function(){
+ const pane=$('.card-carousel');
+ if(!pane)return;
+ carouselIndex=newCardSelected?allCards().length:allCards().findIndex(card=>card.id===activeCard().id);
+ setCarouselPosition(carouselIndex);
+ bindHorizontalGesture(pane,{
+  read:()=>swipeLayers?.dx||0,
+  write:dx=>moveHomeSwipe(dx),
+  cancel:()=>{
+   cardSlideAnimation?.cancel();
+   const layer=prepareSwipe();
+   clearTimeout(layer.wheelTimer);
+   layer.input='pointer';
+  },
+  settle:(velocity,cancelled)=>{
+   const layer=prepareSwipe();
+   layer.input=null;
+   const projected=layer.dx+velocity*.12;
+   const direction=!cancelled&&Math.abs(projected)>layer.width*.25?Math.sign(-projected):0;
+   slideCardTo(layer.index+direction);
+  }
+ });
+};
 
 function captureBankSurface(preserveArtwork=false){const app=$('#app'),rect=app.getBoundingClientRect(),surface=document.createElement('div');surface.className='bank-surface-transition';Object.assign(surface.style,{position:'fixed',left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:app.offsetHeight+'px',background:getComputedStyle(app).background,zIndex:37,pointerEvents:'none',overflow:'hidden'});const source=$('#screen'),screen=source.cloneNode(true);screen.removeAttribute('id');screen.classList.add('transition-screen');screen.style.paddingBottom=getComputedStyle(source).paddingBottom;screen.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));const expanded=screen.querySelector('.expanded-card');if(!preserveArtwork){if(expanded)expanded.style.visibility='hidden';screen.querySelector('.card-face[data-id="'+state.activeCard+'"]')?.remove();}surface.append(screen);if(!$('#nav').hidden){const navigation=$('#nav').cloneNode(true);navigation.removeAttribute('id');navigation.classList.add('transition-nav');surface.append(navigation)}surface.inert=true;return surface}
 function fitMonetaryLabels(){for(const [selector,max,min] of [['.home-balance strong',46,26],['.stats-summary>strong',46,24],['.capital-total>strong',38,22],['.compact-card>strong',21,12],['.tx-amount',18,12]]){document.querySelectorAll(selector).forEach(el=>{if(el.dataset.numberMotion==='1')return;el.style.fontSize=max+'px';const available=el.clientWidth;if(available&&el.scrollWidth>available)el.style.fontSize=Math.max(min,Math.floor(max*available/el.scrollWidth))+'px'})}}
