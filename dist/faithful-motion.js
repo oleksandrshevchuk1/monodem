@@ -37,34 +37,56 @@ function projectCardCorners(corners,{x,y,width,height}){
  const vertical=(bxToC*skewY-skewX*byToC)/divisor;
  return `matrix3d(${[(bx-ax+horizontal*bx)/width,(by-ay+horizontal*by)/width,0,horizontal/width,(dx-ax+vertical*dx)/height,(dy-ay+vertical*dy)/height,0,vertical/height,0,0,1,0,ax,ay,0,1].join(',')})`;
 }
-function rearCloseProjection(sourceCorners,targetCorners,base,sourceWidth){
- // Corner positions sampled from the 17.73–18.20s return, on a 195px-wide reference frame.
- const rearEdge=[[58,113],[37,90],[131,188],[152,211]];
- const frontEdge=[[37,90],[60,112],[154,210],[131,188]];
+function rearCloseProjection(sourceCorners,targetCorners,base,sourceWidth,duration){
+ // Corner positions from distinct video frames, on a 195px-wide reference frame.
+ const rearEdge=[[57,114],[37,90],[131,188],[151,212]];
+ const frontEdge=[[37,90],[61,111],[155,209],[131,188]];
  const poses=[
   [0,sourceCorners,-180],
-  [.07,[[34,125],[121,48],[172,141],[77,211]],-180],
-  [.14,[[60,145],[84,54],[146,135],[109,216]],-180],
-  [.30,rearEdge,-180],
-  [.30,frontEdge,0],
-  [.38,[[24,112],[124,158],[169,206],[50,146]],0],
-  [.51,[[24,143],[151,159],[184,200],[19,181]],0],
-  [.60,[[31,154],[158,159],[182,197],[18,193]],0],
-  [.77,[[37,155],[160,155],[181,194],[17,194]],0],
-  [1,targetCorners,0]
+  [33,[[12,94],[159,48],[188,152],[41,200]],-180],
+  [83,[[34,125],[121,48],[172,141],[77,211]],-180],
+  [117,[[60,145],[84,54],[146,135],[109,216]],-180],
+  [150,[[82,136],[53,70],[120,144],[137,215]],-180],
+  [183,rearEdge,-180],
+  [196,rearEdge,-180],
+  [196,frontEdge,0],
+  [217,[[24,112],[124,158],[169,206],[50,146]],0],
+  [233,[[21,128],[145,168],[174,203],[29,166]],0],
+  [283,[[24,143],[151,159],[184,200],[19,181]],0],
+  [317,[[31,154],[158,159],[182,197],[18,193]],0],
+  [383,[[37,155],[160,155],[181,194],[17,194]],0],
+  [duration,targetCorners,0]
  ];
  const center=corners=>corners.reduce(([x,y],[left,top])=>[x+left/4,y+top/4],[0,0]);
  const [startX,startY]=center(sourceCorners),[endX,endY]=center(targetCorners);
  const scale=sourceWidth/180;
- return poses.map(([offset,corners,yaw])=>{
-  if(offset>0&&offset<1){
-   corners=corners.map(([x,y])=>[
-    startX+(endX-startX)*offset+(x-98)*scale,
-    startY+(y-115)*scale+(endY-startY-60*scale)*offset
-   ]);
-  }
-  return {offset,transform:projectCardCorners(corners,base),'--card-yaw':`${yaw}deg`};
+ const screenCorners=([time,corners])=>{
+  if(time===0||time===duration)return corners;
+  const offset=time/duration;
+  return corners.map(([x,y])=>[
+   startX+(endX-startX)*offset+(x-98)*scale,
+   startY+(y-115)*scale+(endY-startY-60*scale)*offset
+  ]);
+ };
+ const keyframe=(time,corners,yaw)=>({
+  offset:time/duration,transform:projectCardCorners(corners,base),
+  '--card-yaw':`${yaw}deg`,easing:'steps(1,end)'
  });
+ const frames=[];
+ for(let i=1;i<poses.length;i++){
+  const previous=poses[i-1],next=poses[i],elapsed=next[0]-previous[0];
+  if(!elapsed)continue;
+  const start=screenCorners(previous),end=screenCorners(next);
+  // Interpolate screen corners before projection. Matrix decomposition bends the edge.
+  const steps=Math.ceil(elapsed/(1000/120));
+  for(let step=0;step<steps;step++){
+   const fraction=step/steps;
+   const corners=start.map(([x,y],index)=>[x+(end[index][0]-x)*fraction,y+(end[index][1]-y)*fraction]);
+   frames.push(keyframe(previous[0]+elapsed*fraction,corners,previous[2]));
+  }
+ }
+ frames.push(keyframe(duration,targetCorners,0));
+ return frames;
 }
 expandTransition=function(from,to,opening){
  if(!from||!to)return;
@@ -102,12 +124,16 @@ expandTransition=function(from,to,opening){
  const targetShadow=to.matches('.expanded-card')?getComputedStyle(to.querySelector('.bank-card'),'::before').boxShadow:getComputedStyle(to).boxShadow;
  const shadowStart=(sourceShadow||targetShadow).replace(/(-?(?:\d*\.)?\d+)px/g,(_,value)=>(Number(value)*width/shadowWidth)+'px');
  if(projectedRear){
-  for(const [shadow,start,end] of [[shadowStart,1,0],[targetShadow,0,1]]){
+  const shadows=[
+   [shadowStart,[{opacity:1},{offset:.14,opacity:0},{opacity:0}]],
+   [targetShadow,[{opacity:0},{offset:.73,opacity:0},{opacity:1}]]
+  ];
+  for(const [shadow,keyframes] of shadows){
    const layer=document.createElement('span');
    layer.className='projected-card-shadow';
    layer.style.boxShadow=shadow;
    body.prepend(layer);
-   layer.animate([{opacity:start},{opacity:end}],{duration,fill:'both'});
+   layer.animate(keyframes,{duration,fill:'both'});
   }
  }else body.animate([{boxShadow:shadowStart},{boxShadow:targetShadow}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  const front=art.querySelector('.bank-card-front'),targetFront=to.querySelector('.bank-card-front');
@@ -121,7 +147,7 @@ expandTransition=function(from,to,opening){
  if(projectedRear){
   node.classList.add('projected-rear-close');
   plane.style.transformOrigin='0 0';
-  projectionFrames=rearCloseProjection(from.rearCorners,paintedCardCorners(targetFront),base,source.width);
+  projectionFrames=rearCloseProjection(from.rearCorners,paintedCardCorners(targetFront),base,source.width,duration);
   plane.style.transform=projectionFrames[0].transform;
   plane.style.setProperty('--card-yaw','-180deg');
   node.style.transform='none';
