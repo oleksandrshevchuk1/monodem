@@ -68,7 +68,7 @@ prepareSwipe=function(){
   layer.pages.push({node:preview,index});
  }
  pane.append(...layer.pages.map(page=>page.node));
- for(const {node} of layer.pages)fitMonetaryLabels(node);
+ fitMonetaryLabels(pane,'.account-swipe-preview ');
  return layer;
 };
 moveHomeSwipe=function(distance,rubber=true){
@@ -104,6 +104,8 @@ function settleHomeSwipe(layer,target,complete){
   {opacity:Math.min(1,Math.abs(from)/layer.width)},
   {opacity:Math.min(1,Math.abs(target)/layer.width)}
  ],options));
+ const startTime=document.timeline.currentTime;
+ if(startTime!==null)for(const animation of animations)animation.startTime=startTime;
  setCardSelectorIndex(layer.pill,layer.index-Math.round(target/layer.width));
  let ended=false;
  const stop=(dx,commit)=>{

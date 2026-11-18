@@ -181,11 +181,32 @@ function bindHorizontalGesture(element,{read,write,settle,cancel}){
  const end=e=>{if(!start||e.pointerId!==start.id)return;flush();const moved=dragging,first=samples[0],last=samples.at(-1),v=e.type==='pointercancel'?0:last&&first&&performance.now()-last.time<80&&last.time>first.time?(last.x-first.x)/(last.time-first.time)*1000:0;start=null;dragging=false;vertical=false;if(element.hasPointerCapture(e.pointerId))element.releasePointerCapture(e.pointerId);if(moved){element.addEventListener('click',stopClick,{once:true,capture:true});setTimeout(()=>element.removeEventListener('click',stopClick,true),0);settle(v,e.type==='pointercancel'||e.type==='lostpointercapture')}};
  element.addEventListener('pointerup',end);element.addEventListener('pointercancel',end);element.addEventListener('lostpointercapture',e=>{if(start&&e.target===element&&!element.hasPointerCapture(e.pointerId))end(e)})
 }
+// Claim a horizontal touch before native scrolling can move the page on a diagonal.
+function lockCardTouchAxis(pane){
+ let origin=null,axis=null;
+ pane.addEventListener('touchstart',event=>{
+  origin=null;
+  axis=null;
+  if(event.touches.length!==1||document.body.classList.contains('has-glass-history'))return;
+  const touch=event.touches[0];
+  if(touch.clientX-$('#app').getBoundingClientRect().left<=28)return;
+  origin={x:touch.clientX,y:touch.clientY};
+ },{passive:true});
+ pane.addEventListener('touchmove',event=>{
+  if(!origin||event.touches.length!==1){origin=null;return}
+  const touch=event.touches[0],dx=Math.abs(touch.clientX-origin.x),dy=Math.abs(touch.clientY-origin.y);
+  if(!axis&&dx>=6&&dx>dy*1.6)axis='horizontal';
+  if(!axis&&dy>=8&&dy>=dx)axis='vertical';
+  if(axis==='horizontal'&&event.cancelable)event.preventDefault();
+ },{passive:false});
+ for(const type of ['touchend','touchcancel'])pane.addEventListener(type,()=>{origin=null},{passive:true});
+}
 bindCardSwipe=function(){
  const pane=$('.card-carousel');
  if(!pane)return;
  carouselIndex=newCardSelected?allCards().length:allCards().findIndex(card=>card.id===activeCard().id);
  setCarouselPosition(carouselIndex);
+ lockCardTouchAxis(pane);
  bindHorizontalGesture(pane,{
   read:()=>swipeLayers?.dx||0,
   write:dx=>moveHomeSwipe(dx),
@@ -206,11 +227,11 @@ bindCardSwipe=function(){
 };
 
 function captureBankSurface(preserveArtwork=false){const app=$('#app'),rect=app.getBoundingClientRect(),surface=document.createElement('div');surface.className='bank-surface-transition';Object.assign(surface.style,{position:'fixed',left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:app.offsetHeight+'px',background:getComputedStyle(app).background,zIndex:37,pointerEvents:'none',overflow:'hidden'});const source=$('#screen'),screen=source.cloneNode(true);screen.removeAttribute('id');screen.classList.add('transition-screen');screen.style.paddingBottom=getComputedStyle(source).paddingBottom;screen.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));const expanded=screen.querySelector('.expanded-card');if(!preserveArtwork){if(expanded)expanded.style.visibility='hidden';screen.querySelector('.card-face[data-id="'+state.activeCard+'"]')?.remove();}surface.append(screen);if(!$('#nav').hidden){const navigation=$('#nav').cloneNode(true);navigation.removeAttribute('id');navigation.classList.add('transition-nav');surface.append(navigation)}surface.inert=true;return surface}
-function fitMonetaryLabels(root=$('#screen')){
+function fitMonetaryLabels(root=$('#screen'),scope=''){
  if(!root)return;
  const labels=[];
  for(const [selector,max,min] of [['.home-balance strong',46,26],['.stats-summary>strong',46,24],['.capital-total>strong',38,22],['.compact-card>strong',21,12],['.tx-amount',18,12]]){
-  root.querySelectorAll(selector).forEach(el=>{
+  root.querySelectorAll(scope+selector).forEach(el=>{
    if(el.dataset.numberMotion==='1'||el.closest('.all-operations-page'))return;
    el.style.fontSize=max+'px';
    labels.push({el,max,min});
