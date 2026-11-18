@@ -20,9 +20,6 @@ function settleInterruptedPwa(){
  cardSlideAnimation?.cancel();
  if(swipeLayers){const index=swipeLayers.index;cleanupSwipe();if(route.page==='home')setCarouselPosition(index)}
  if(typeof glassHistory!=='undefined'&&glassHistory){const scene=glassHistory;scene.motions.forEach(motion=>motion.cancel());if(route.page==='home')cleanupGlassHistory(scene);else if(route.page==='history'){setGlassHistoryProgress(scene,1);finishSideHistoryOpen(scene)}}
- if(typeof preciseCardScene!=='undefined'&&preciseCardScene){
-  for(const motion of [...preciseCardScene.node.getAnimations({subtree:true}),...(preciseCardScene.backdrop?.getAnimations()||[])])if(motion.effect?.getTiming().iterations!==Infinity)motion.finish();
- }
  if(typeof sideEntrance!=='undefined'&&sideEntrance){try{sideEntrance.finish()}catch{}}
 }
 function restorePwaControls(){
@@ -31,7 +28,7 @@ function restorePwaControls(){
   if(!adminMode&&route.page==='home'&&!glassHistory&&!preciseCardScene){const app=document.querySelector('#app'),nav=document.querySelector('#nav');app.style.opacity='';app.style.filter='';app.style.transform='';nav.hidden=false;nav.style.opacity='';nav.style.filter='';nav.style.transform='';document.querySelectorAll('body>.bank-surface-transition,body>.side-page-snapshot,body>.soft-card-backdrop,body>.card-return-header,body>.history-gesture-drawer').forEach(node=>node.remove());delete document.documentElement.dataset.gesture}
  });
 }
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){pwaWasBackgrounded=true;settleInterruptedPwa()}else restorePwaControls()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){pwaWasBackgrounded=true;if(typeof preciseCardScene!=='undefined')preciseCardScene?.dispose();settleInterruptedPwa()}else restorePwaControls()});
 window.addEventListener('pageshow',event=>{if(event.persisted)pwaWasBackgrounded=true;restorePwaControls()});
 
 // Keep nonessential home imagery out of the first decode/network burst.

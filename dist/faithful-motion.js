@@ -37,44 +37,38 @@ function projectCardCorners(quad,width,height){
  ]);
 }
 
-// The poses follow the reference: bank left, pass the edge, bank right, then settle.
-const rearTravel=[[0,0],[.11,.45],[.30,.61],[.57,.88],[.80,.98],[1,1]];
-const rearYaw=[[0,180],[.11,130],[.26,91],[.42,48],[.60,12],[.74,2],[1,0]];
-const rearBank=[[0,0],[.18,-26],[.27,-26],[.42,24],[.58,17],[.73,9],[1,0]];
-const rearTilt=[[0,0],[.24,.06],[.42,.59],[.60,.91],[.76,.97],[1,1]];
+// Time, travel, yaw, bank and landing tilt at the main poses in the recording.
+const rearCardPoses=[
+ [0,0,180,0,0],
+ [.11,.42,130,-21,.03],
+ [.26,.59,91,-27,.12],
+ [.42,.73,48,24,.59],
+ [.60,.88,12,16,.91],
+ [.74,.97,2,8,.97],
+ [1,1,0,0,1]
+];
 
-function cardCurve(poses,style){
- // Match the velocity on both sides of every pose using cubic Hermite segments.
- const slopes=poses.slice(1).map(([time,value],i)=>(value-poses[i][1])/(time-poses[i][0]));
- const tangent=(a,b)=>a*b>0?2*a*b/(a+b):0;
- return poses.map(([offset,value],i)=>{
-  const slope=slopes[i];
-  const from=i?tangent(slopes[i-1],slope):slope;
-  const to=tangent(slope,slopes[i+1]);
-  const easing=slope?`cubic-bezier(${1/3},${from/(3*slope)},${2/3},${1-to/(3*slope)})`:'linear';
-  return {offset,...style(value),easing};
- });
-}
-
-function rotateRearCard(plane,art,shadow,angle,pitch,timing){
- // The reference keeps the reverse artwork through the edge, then reveals the front on landing.
- const front=art.querySelector('.bank-card-front'),back=art.querySelector('.bank-card-back');
- const additive={...timing,composite:'add'};
- plane.animate(cardCurve(rearBank,value=>({transform:`rotateZ(${value*angle/180}deg)`})),additive);
- plane.animate(cardCurve(rearTilt,value=>({transform:`rotateX(${value*pitch}rad)`})),additive);
- plane.animate(cardCurve(rearYaw,value=>({transform:`rotateY(${value*angle/180}deg)`})),additive);
- const revealStart=.67,revealEnd=.73;
- front.animate([{opacity:0},{offset:revealStart,opacity:0},{offset:revealEnd,opacity:1},{opacity:1}],timing);
- back.animate([{opacity:1},{offset:revealStart,opacity:1},{offset:revealEnd,opacity:0},{opacity:0}],timing);
- shadow.animate([{opacity:0},{offset:.82,opacity:0,easing:'ease-out'},{opacity:1}],timing);
-}
-
-function rearCardTravelFrames(start,end,camera){
- const mix=(a,b,progress)=>a+(b-a)*progress;
- return cardCurve(rearTravel,progress=>({
-  transform:`translate3d(${mix(start.m41,end.m41,progress)}px,${mix(start.m42,end.m42,progress)}px,0px)
-   perspective(${camera}px) scale3d(${mix(start.m11,1,progress)},${mix(start.m22,1,progress)},${mix(start.m11,1,progress)})`
+function rearCardTravelFrames(start,end,camera,pitch,angle){
+ const mix=(a,b,t)=>a+(b-a)*t;
+ // One transform effect keeps all axes on the same compositor clock.
+ return rearCardPoses.map(([offset,t,yaw,bank,tilt],i)=>({
+  offset,
+  easing:i===rearCardPoses.length-2?'cubic-bezier(.23,.65,.5,1)':'linear',
+  transform:`translate3d(${mix(start.m41,end.m41,t)}px,${mix(start.m42,end.m42,t)}px,0px)
+   perspective(${camera}px) scale3d(${mix(start.m11,1,t)},${mix(start.m22,1,t)},${mix(start.m11,1,t)})
+   rotateZ(${bank*angle/180}deg) rotateX(${tilt*pitch}rad) rotateY(${yaw*angle/180}deg)`
  }));
+}
+
+function revealRearCardFront(art,shadow,timing){
+ const revealStart=.67,revealEnd=.73;
+ for(const [side,opacity] of [['front',1],['back',0]]){
+  const face=art.querySelector('.bank-card-'+side);
+  face.animate([
+   {opacity:1-opacity},{offset:revealStart,opacity:1-opacity},{offset:revealEnd,opacity},{opacity}
+  ],timing);
+ }
+ shadow.animate([{opacity:0},{offset:.82,opacity:0,easing:'ease-out'},{opacity:1}],timing);
 }
 
 expandTransition=function(from,to,opening){
@@ -135,7 +129,8 @@ expandTransition=function(from,to,opening){
  const rearStart=new DOMMatrix().translate(sourceLayout.x-base.x,sourceLayout.y-base.y).multiply(startPlane);
  const raw=new DOMMatrix(geometry.raw);
  const camera=raw.m24?-raw.m23/raw.m24:900;
- const planeFrames=rear?rearCardTravelFrames(rearStart,endPlane,camera)
+ const pitch=Math.atan2(raw.m23,raw.m22-raw.m42*raw.m24);
+ const planeFrames=rear?rearCardTravelFrames(rearStart,endPlane,camera,pitch,startAngle)
   :[{transform:startPlane.toString()},{transform:endPlane.toString()}];
  const landingEase=rear?'linear':'cubic-bezier(.32,.72,0,1)';
  const frames=[{transform:new DOMMatrix().translate(sourceLayout.x-base.x,sourceLayout.y-base.y).toString()},{transform:new DOMMatrix().toString()}];
@@ -168,36 +163,25 @@ expandTransition=function(from,to,opening){
   art.prepend(shadow);
  }
  const snapshot=from.snapshot;
- const screenDuration=rear?110:duration;
  if(snapshot){
   snapshot.querySelectorAll('.expanded-card,.card-header-mini,.transition-nav').forEach(el=>el.style.setProperty('opacity','0','important'));
   snapshot.style.zIndex='37';snapshot.style.maxHeight=Math.max(0,innerHeight-parseFloat(snapshot.style.top))+'px';document.body.append(snapshot);
-  const fade=snapshot.animate([{opacity:1},{opacity:0}],{
-   duration:screenDuration,easing:rear?'cubic-bezier(.23,1,.32,1)':landingEase,fill:'both'
-  });
+  const fade=snapshot.animate([{opacity:1},{opacity:0}],{duration,easing:landingEase,fill:'both'});
   fade.finished.catch(()=>{});
  }
- const targetVisibility=to.style.visibility;to.style.visibility='hidden';document.documentElement.dataset.gesture='active';operationsNav(opening?1:0,opening?0:1,screenDuration);
+ const targetVisibility=to.style.visibility;to.style.visibility='hidden';document.documentElement.dataset.gesture='active';
+ if(rear)restoreOperationsNav();else operationsNav(opening?1:0,opening?0:1,duration);
  const scene={node,plane,body,base,origin,rear,target:to,targetVisibility,backdrop:snapshot,sourceRect,destinationRect:destination,timing:{duration,easing:landingEase,fill:'both'}};preciseCardScene=scene;
  scene.dispose=()=>{if(scene.disposed)return;scene.disposed=true;to.style.visibility=targetVisibility;const tracks=[...node.getAnimations({subtree:true}),...(snapshot?.getAnimations()||[])];node.remove();snapshot?.remove();for(const track of tracks)track.cancel();if(preciseCardScene===scene){preciseCardScene=null;if(!swipeLayers)delete document.documentElement.dataset.gesture;restoreOperationsNav()}};
  const planeMotion=reduceRear?null:plane.animate(planeFrames,{duration,easing:landingEase,fill:'both'});scene.planeMotion=planeMotion;
  const motionFrames=reduce?[{opacity:0},{opacity:1}]:frames;
  const motion=rear?planeMotion:node.animate(motionFrames,scene.timing);scene.motion=motion;cardTransition=motion;
- if(rear){
-  const pitch=Math.atan2(raw.m23,raw.m22-raw.m42*raw.m24);
-  rotateRearCard(plane,art,shadow,startAngle,pitch,scene.timing);
- }
+ if(rear)revealRearCardFront(art,shadow,scene.timing);
  // Collect after the caller adds its face/ink tracks; never discard a still-moving layer.
  Promise.resolve().then(()=>{
   const tracks=[...node.getAnimations({subtree:true}),...(snapshot?.getAnimations()||[])];
   return Promise.allSettled(tracks.filter(a=>a.effect?.getTiming().iterations!==Infinity).map(a=>a.finished));
- }).then(()=>{
-  if(rear&&!scene.disposed){
-   // Keep the real landing pose behind the additive tracks through the compositor handoff.
-   for(const track of plane.getAnimations())track.cancel();
-  }
-  requestAnimationFrame(()=>scene.dispose());
- });
+ }).then(()=>requestAnimationFrame(()=>scene.dispose()));
 };
 // The card carousel owns only its own strip. The rest of Home opens all operations.
 bindOperationsGesture=function(){};
