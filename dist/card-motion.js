@@ -1,12 +1,41 @@
 'use strict';
 
-// Preserve the original motion; isolate only the printed ink from the material layer.
+function animateCardFaces(art,start,end,perspective,timing){
+ // Keep the painted faces on the same perspective axis and exchange them edge-on.
+  const crossing=(90-start)/(end-start);
+  return ['front','back'].map((side,index)=>{
+   const face=art.querySelector('.bank-card-'+side);
+   const pose=angle=>{
+    const yaw=index?Math.max(90,angle)-180:Math.min(90,angle);
+    return `perspective(${perspective}px) rotateY(${yaw}deg)`;
+   };
+   const opacity=angle=>Math.max(0,Math.min(1,(index?angle-90:90-angle)/2));
+   const frames=[{offset:0,transform:pose(start),opacity:opacity(start)}];
+   const edge=index?92:88;
+   const nearEdge=(edge-start)/(end-start);
+   if(nearEdge>0&&nearEdge<crossing)frames.push({offset:nearEdge,transform:pose(edge),opacity:1});
+   if(crossing>0&&crossing<1)frames.push({offset:crossing,transform:pose(90),opacity:0});
+   if(nearEdge>crossing&&nearEdge>0&&nearEdge<1)frames.push({offset:nearEdge,transform:pose(edge),opacity:1});
+   frames.push({offset:1,transform:pose(end),opacity:opacity(end)});
+   return face.animate(frames,timing);
+  });
+}
+
+// Keep the front artwork together on one painted surface.
 (() => {
  const prepare=art=>{
   const front=art?.querySelector('.bank-card-front');
   if(!front||front.querySelector(':scope>.card-face-ink'))return;
   const ink=document.createElement('span');ink.className='card-face-ink';
   for(const child of [...front.children])if(!child.matches('.card-material,.card-glint'))ink.append(child);
+  for(const mark of ink.querySelectorAll('.card-brand,.visa')){
+   const image=mark.querySelector('img');
+   if(!image)continue;
+   mark.style.backgroundImage=`url("${image.src}")`;
+   mark.setAttribute('role','img');
+   mark.setAttribute('aria-label',image.alt);
+   image.remove();
+  }
   front.append(ink);
  };
  const artwork=cardArtwork;
@@ -64,25 +93,7 @@
   const duration=500*Math.abs(end-start)/180;
   if(duration<1)return;
   const timing={duration,easing:getComputedStyle(document.documentElement).getPropertyValue('--ease-in-out').trim(),fill:'both'};
-  // Faces meet edge-on. The hidden face stays edge-on until its half of the turn,
-  // so WebKit never has to swap visibility or paint the back of either layer.
-  const crossing=(90-start)/(end-start);
-  const faces=['front','back'].map((side,index)=>{
-   const face=art.querySelector('.bank-card-'+side);
-   const pose=angle=>{
-    const yaw=index?Math.max(90,angle)-180:Math.min(90,angle);
-    return `perspective(1000px) rotateY(${yaw}deg)`;
-   };
-   const opacity=angle=>Math.max(0,Math.min(1,(index?angle-90:90-angle)/2));
-   const frames=[{offset:0,transform:pose(start),opacity:opacity(start)}];
-   const edge=index?92:88;
-   const nearEdge=(edge-start)/(end-start);
-   if(nearEdge>0&&nearEdge<crossing)frames.push({offset:nearEdge,transform:pose(edge),opacity:1});
-   if(crossing>0&&crossing<1)frames.push({offset:crossing,transform:pose(90),opacity:0});
-   if(nearEdge>crossing&&nearEdge>0&&nearEdge<1)frames.push({offset:nearEdge,transform:pose(edge),opacity:1});
-   frames.push({offset:1,transform:pose(end),opacity:opacity(end)});
-   return face.animate(frames,timing);
-  });
+  const faces=animateCardFaces(art,start,end,1000,timing);
   const previousShadow=card.querySelector('.card-motion-shadow');
   const shadow=document.createElement('span');
   shadow.className='card-motion-shadow';

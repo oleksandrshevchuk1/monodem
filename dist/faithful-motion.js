@@ -40,7 +40,7 @@ expandTransition=function(from,to,opening){
  // Let the compositor interpolate the two exact poses as one continuous 3D transform.
  const planeFrames=[{transform:localMatrix(startRelative)},{transform:localMatrix(endRelative)}];
  // Keep the turn edge-on to the same camera before pitching the visible front into Home.
- const pitchStart=.26,landingEase='cubic-bezier(.32,.72,0,1)';
+ const pitchStart=.48,landingEase='cubic-bezier(.32,.72,0,1)';
  if(rear)planeFrames.splice(1,0,{offset:pitchStart,transform:planeFrames[0].transform,easing:landingEase});
  const frames=[{transform:new DOMMatrix().translate(sourceLayout.x-base.x,sourceLayout.y-base.y).toString()},{transform:new DOMMatrix().toString()}];
  if(rear){
@@ -63,31 +63,8 @@ expandTransition=function(from,to,opening){
  node.classList.toggle('returning-rear',rear);
  if(rear){
   const perspective=(from.cardPerspective||1000)*width/source.width;
-  plane.style.perspective=`${perspective}px`;
-  plane.style.perspectiveOrigin='50% 50%';
-  // Transform keyframes work on Safari versions without registered CSS properties.
-  const yaw=startAngle-360;
-  const rotate=(angle,roll)=>`rotateZ(${roll}deg) rotateY(${angle}deg)`;
-  const duration=350,easing='cubic-bezier(.32,.25,.6,.82)',timing={duration,easing,fill:'both'};
-  const turn=body.animate([
-   {transform:rotate(yaw,0)},
-   {offset:.19,transform:rotate(Math.min(yaw,-214),-18)},
-   {offset:.50,transform:rotate(-270,-34)},
-   {offset:.64,transform:rotate(-296,24)},
-   {offset:.78,transform:rotate(-330,12)},
-   {transform:rotate(-360,0)}
-  ],timing);
-  // Both faces switch at the exact keyframe where the card is edge-on.
-  const faces=['front','back'].map(side=>{
-   const initial=side==='back'?1:0,final=1-initial;
-   return art.querySelector('.bank-card-'+side).animate([
-    {offset:0,opacity:initial,easing:'steps(1,end)'},
-    {offset:.5,opacity:final},
-    {offset:1,opacity:final}
-   ],timing);
-  });
-  const startTime=document.timeline.currentTime;
-  if(startTime!==null)for(const motion of [turn,...faces])motion.startTime=startTime;
+  const duration=350,easing=getComputedStyle(document.documentElement).getPropertyValue('--ease-in-out').trim();
+  animateCardFaces(art,startAngle,0,perspective,{duration,easing,fill:'both'});
   const shadow=document.createElement('span');
   shadow.className='card-motion-shadow';
   shadow.style.boxShadow=targetShadow;

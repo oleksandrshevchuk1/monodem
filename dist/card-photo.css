@@ -95,5 +95,5 @@
  -webkit-backface-visibility:visible;
  transform-style:flat;
 }
-.returning-rear .bank-card-front{transform:none}
-.returning-rear .bank-card-back{transform:scaleX(-1)}
+.returning-rear .bank-card-front,.returning-rear .bank-card-back{will-change:transform}
+.card-face-ink > :is(.card-brand,.visa){background-position:center;background-repeat:no-repeat;background-size:contain}
