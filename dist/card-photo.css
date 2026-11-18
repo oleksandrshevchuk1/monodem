@@ -27,8 +27,14 @@
  max-width:65%;
  font-size:4.6cqw;
  line-height:1.15;
+ bottom:11%;
  letter-spacing:.15cqw;
  overflow-wrap:anywhere;
+}
+
+:is(.card-face,.expanded-card,.precise-card-surface,.soft-card-surface) .bank-card .visa{
+ width:14.5%;
+ bottom:calc(11% + .27cqw);
 }
 
 /* Keep the original dark finish on the live and travelling reverse. */
@@ -156,6 +162,8 @@
 .card-settings > .payment-settings > .icon{width:20px;height:20px;flex:none}
 .card-settings > .payment-settings > span{min-width:0;flex:1}
 .card-settings > .payment-settings small{font-size:13px;line-height:16px}
+.card-settings > .payment-settings:not(.internet-limit) > span{font-size:17px}
+.card-settings > .payment-settings:not(.internet-limit) small{font-size:14px;line-height:17px}
 .card-settings > .internet-limit > span{display:grid;gap:4px}
 .card-settings > .internet-limit progress{height:4px;margin:0}
 .card-settings:has(.expanded-card .is-white) > .payment-settings{background:#1b2249}
