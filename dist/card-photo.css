@@ -108,4 +108,6 @@
  container-type:normal;
  transform-style:preserve-3d;
 }
+.returning-rear .card-number-full{display:none}
+.returning-rear .card-number-masked{display:inline}
 .card-face-ink > :is(.card-brand,.visa){background-position:center;background-repeat:no-repeat;background-size:contain}

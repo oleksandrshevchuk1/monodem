@@ -37,40 +37,18 @@ function projectCardCorners(quad,width,height){
  ]);
 }
 
-// Time, travel, yaw, bank and landing tilt at the main poses in the recording.
-const rearCardPoses=[
- [0,0,180,0,0],
- [.13,.26,145,-21,.03],
- [.29,.52,90,-27,.12],
- [.46,.73,48,24,.59],
- [.65,.88,12,16,.91],
- [.80,.97,2,8,.97],
- [1,1,0,0,1]
-];
-
 function animateRearCard(scene,art,shadow,start,end,camera,pitch,angle){
  const {plane,timing}=scene;
  const front=art.querySelector('.bank-card-front'),back=art.querySelector('.bank-card-back');
  const mix=(a,b,t)=>a+(b-a)*t;
- const tangent=(i,j)=>{
-  const left=rearCardPoses[i-1],here=rearCardPoses[i],right=rearCardPoses[i+1];
-  if(!right)return 0;
-  const next=(right[j]-here[j])/(right[0]-here[0]);
-  if(!left)return next;
-  const last=(here[j]-left[j])/(here[0]-left[0]);
-  return last*next>0?2*last*next/(last+next):0;
- };
- const slopes=rearCardPoses.map((_,i)=>[1,2,3,4].map(j=>tangent(i,j)));
- let segment=0,elapsed=0,lastTime,frame,frontVisible;
+ let elapsed=0,lastTime,frame,frontVisible;
  function draw(progress){
-  while(segment<rearCardPoses.length-2&&progress>rearCardPoses[segment+1][0])segment++;
-  const a=rearCardPoses[segment],b=rearCardPoses[segment+1],span=b[0]-a[0];
-  const t=(progress-a[0])/span,t2=t*t,t3=t2*t;
-  const values=slopes[segment].map((from,i)=>{
-   const j=i+1,to=slopes[segment+1][i];
-   return (2*t3-3*t2+1)*a[j]+(t3-2*t2+t)*span*from+(-2*t3+3*t2)*b[j]+(t3-t2)*span*to;
-  });
-  const [travel,yaw,bank,tilt]=values;
+  // Use continuous curves with zero landing velocity on all four axes.
+  const remaining=1-progress;
+  const travel=1-remaining*remaining;
+  const yaw=180*remaining*remaining;
+  const bank=-180*progress*remaining*remaining*(1-2.8*progress);
+  const tilt=progress*progress*(3-2*progress);
   const rotation=yaw*angle/180,scaleX=mix(start.m11,1,travel);
   plane.style.transform=progress===1?end.toString():
    `translate3d(${mix(start.m41,end.m41,travel)}px,${mix(start.m42,end.m42,travel)}px,0)
@@ -84,15 +62,18 @@ function animateRearCard(scene,art,shadow,start,end,camera,pitch,angle){
   }
   shadow.style.opacity=String(Math.max(0,1-rotation/90));
  }
- function tick(now){
+ function tick(){
   if(scene.disposed)return;
+  const now=performance.now();
   // A missed paint slows the flight instead of jumping past the turn or the face change.
-  if(lastTime!==undefined)elapsed=Math.min(timing.duration,elapsed+Math.min(now-lastTime,32));
+  const step=Math.min(now-lastTime,28);
+  elapsed=Math.min(timing.duration,elapsed+(elapsed===0?Math.max(6,step):step));
   lastTime=now;
   draw(elapsed/timing.duration);
   frame=requestAnimationFrame(elapsed===timing.duration?()=>scene.dispose():tick);
  }
  draw(0);
+ lastTime=performance.now();
  frame=requestAnimationFrame(tick);
  return ()=>cancelAnimationFrame(frame);
 }
