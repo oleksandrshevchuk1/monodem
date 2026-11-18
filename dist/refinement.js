@@ -113,7 +113,7 @@ function initStats(){const track=$('#stats-carousel');if(!track)return;const car
 function bindRefresh(){}
 
 const experienceRender=render;
-render=function(){if(!adminMode&&['capital','statcategory','openCard','service'].includes(route.page)){defaults();$('#app').className=route.page;$('#nav').hidden=true;$('#screen').innerHTML=({capital:capitalPage,statcategory:statsCategoryPage,openCard:openCardPage,service:servicePage})[route.page]()}else{experienceRender();if(!adminMode){if(['cards','analytics'].includes(route.page))$('#nav').hidden=true;if(route.page==='home'){bindRefresh();$('#app').classList.toggle('new-card-theme',newCardSelected);$('#app').classList.toggle('white-active',!newCardSelected&&cardWhite(activeCard()))}if(route.page==='analytics')initStats();if(route.page==='card'){let p;$('.expanded-card')?.addEventListener('pointerdown',e=>p={x:e.clientX,y:e.clientY});$('.expanded-card')?.addEventListener('pointerup',e=>{if(p&&Math.abs(e.clientX-p.x)>40&&Math.abs(e.clientY-p.y)<50){actions['flip-card']();e.currentTarget.addEventListener('click',e=>{e.stopPropagation();e.preventDefault()},{once:true,capture:true})}p=null})}}}};
+render=function(){if(!adminMode&&['capital','statcategory','openCard','service'].includes(route.page)){defaults();$('#app').className=route.page;$('#nav').hidden=true;$('#screen').innerHTML=({capital:capitalPage,statcategory:statsCategoryPage,openCard:openCardPage,service:servicePage})[route.page]()}else{experienceRender();if(!adminMode){if(['cards','analytics'].includes(route.page))$('#nav').hidden=true;if(route.page==='home'){bindRefresh();$('#app').classList.toggle('new-card-theme',newCardSelected);$('#app').classList.toggle('white-active',!newCardSelected&&cardWhite(activeCard()))}if(route.page==='analytics')initStats();if(route.page==='card'){let p;$('.expanded-card')?.addEventListener('pointerdown',e=>p={x:e.clientX,y:e.clientY});$('.expanded-card')?.addEventListener('pointerup',e=>{if(p&&Math.abs(e.clientX-p.x)>40&&Math.abs(e.clientY-p.y)<50){actions['flip-card']();const card=e.currentTarget,stopClick=event=>{event.stopPropagation();event.preventDefault()};card.addEventListener('click',stopClick,{once:true,capture:true});setTimeout(()=>card.removeEventListener('click',stopClick,true),0)}p=null})}}}};
 // The carousel and indicator share the same drag position.
 let swipeLayers=null;
 function prepareSwipe(){if(swipeLayers)return swipeLayers;const app=$('#app'),track=$('.card-track'),cards=allCards(),index=newCardSelected?cards.length:Math.max(0,cards.findIndex(c=>c.id===state.activeCard)),background=document.createElement('div');background.className='swipe-gradient';app.prepend(background);const pill=$('.card-selector');
@@ -156,14 +156,16 @@ function finishCardSelection(index){
  carouselIndex=index;
  if(!newCardSelected)state.activeCard=cards[index].id;
  const pane=$('.home-content');
- const preview=swipeLayers?.pages?.find(page=>page.index===index)?.node.firstElementChild;
- if(route.page==='home'&&preview){
+ if(route.page==='home'&&pane){
+  const preview=accountPreviewCache.get(index)||buildAccountPreview(index);
+  accountPreviewCache.delete(index);
   for(const slot of [homeAccountIntro,'.home-actions','.operation-panel']){
    pane.querySelector(slot).replaceWith(preview.querySelector(slot));
   }
   pane.classList.toggle('new-card-selected',newCardSelected);
   cleanupSwipe();
   refreshSelectedCard();
+  fitMonetaryLabels(pane);
  }else{
   cleanupSwipe();
   if(route.page==='home')render();

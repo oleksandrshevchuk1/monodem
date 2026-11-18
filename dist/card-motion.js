@@ -1,30 +1,27 @@
 'use strict';
 
-const cardTurnEase = 'ease';
+const cardTurnEase = 'cubic-bezier(.77,0,.175,1)';
 
-function animateCardFaces(art,start,end,perspective,timing){
- // Keep the painted faces on the same perspective axis and exchange them edge-on.
-  const crossing=(90-start)/(end-start);
-  return ['front','back'].flatMap((side,index)=>{
-   const face=art.querySelector('.bank-card-'+side);
-   const pose=angle=>{
-    const yaw=index?Math.max(90,angle)-180:Math.min(90,angle);
-    return `perspective(${perspective}px) rotateY(${yaw}deg)`;
-   };
-   const turnsThroughEdge=crossing>0&&crossing<1;
-   const endOpacity=Number(index?end>90:end<90);
-   const poses=[{transform:pose(start)}];
-   const visibility=[];
-   if(turnsThroughEdge){
-    poses.push({offset:crossing,transform:pose(90)});
-    visibility.push({opacity:1-endOpacity,easing:'steps(1, end)'},{offset:crossing,opacity:endOpacity});
-   }else{
-    visibility.push({opacity:endOpacity});
-   }
-   poses.push({transform:pose(end)});
-   visibility.push({opacity:endOpacity});
-   return [face.animate(poses,timing),face.animate(visibility,timing)];
+function animateCardFaces(art,start,end,timing){
+ const crossing=(90-start)/(end-start);
+ return ['front','back'].map(side=>{
+  const back=side==='back';
+  const pose=(angle,opacity)=>({
+   transform:`perspective(1000px) rotateY(${back?Math.max(90,angle)-180:Math.min(90,angle)}deg)`,
+   opacity
   });
+  const finalOpacity=Number(back?end>90:end<90);
+  const turnsThroughEdge=crossing>0&&crossing<1;
+  const firstOpacity=turnsThroughEdge?1-finalOpacity:finalOpacity;
+  const poses=[pose(start,firstOpacity)];
+  // Two keyframes at the same offset exchange the faces exactly at the edge.
+  if(turnsThroughEdge)poses.push(
+   {...pose(90,firstOpacity),offset:crossing},
+   {...pose(90,finalOpacity),offset:crossing}
+  );
+  poses.push(pose(end,finalOpacity));
+  return art.querySelector('.bank-card-'+side).animate(poses,timing);
+ });
 }
 
 // Keep the front artwork together on one painted surface.
@@ -106,31 +103,24 @@ function animateCardFaces(art,start,end,perspective,timing){
   const card=$('#app .expanded-card');
   if(!card||preciseCardScene?.target===card)return;
   const art=card.querySelector('.bank-card');
-  const start=visibleCardFace(art).angle,wasFlipped=cardFlipped;
+  const wasFlipped=cardFlipped;
+  const start=card._stopFlip?visibleCardFace(art).angle:wasFlipped?180:0;
   flip();
   if(cardFlipped===wasFlipped)return;
 
   card._stopFlip?.();
   if(shouldReduceMotion())return;
   const end=cardFlipped?180:0;
-  const duration=600*Math.abs(end-start)/180;
+  const duration=280*Math.abs(end-start)/180;
   if(duration<1)return;
   const timing={duration,easing:cardTurnEase,fill:'both'};
-  const faces=animateCardFaces(art,start,end,1000,timing);
-  const shadow=document.createElement('span');
-  shadow.className='card-motion-shadow';
-  shadow.style.boxShadow=getComputedStyle(card).boxShadow;
-  card.prepend(shadow);
   card.classList.add('flipping');
-  // Keep the shadow fully hidden during the turn, then restore it as the face settles.
-  const shade=shadow.animate([{offset:0,opacity:0},{offset:.88,opacity:0},{offset:1,opacity:1}],{...timing,easing:'linear'});
+  const faces=animateCardFaces(art,start,end,timing);
   const startTime=document.timeline.currentTime;
-  if(startTime!==null)for(const motion of [shade,...faces])motion.startTime=startTime;
+  if(startTime!==null)for(const motion of faces)motion.startTime=startTime;
   const cleanup=()=>{
    if(card._stopFlip!==cleanup)return;
    card._stopFlip=null;
-   shade.cancel();
-   shadow.remove();
    for(const motion of faces)motion.cancel();
    card.classList.remove('flipping');
   };
