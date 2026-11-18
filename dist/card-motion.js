@@ -5,21 +5,25 @@ const cardTurnEase = 'ease';
 function animateCardFaces(art,start,end,perspective,timing){
  // Keep the painted faces on the same perspective axis and exchange them edge-on.
   const crossing=(90-start)/(end-start);
-  return ['front','back'].map((side,index)=>{
+  return ['front','back'].flatMap((side,index)=>{
    const face=art.querySelector('.bank-card-'+side);
    const pose=angle=>{
     const yaw=index?Math.max(90,angle)-180:Math.min(90,angle);
     return `perspective(${perspective}px) rotateY(${yaw}deg)`;
    };
-   const opacity=angle=>Math.max(0,Math.min(1,(index?angle-90:90-angle)));
-   const frames=[{offset:0,transform:pose(start),opacity:opacity(start)}];
-   const edge=index?91:89;
-   const nearEdge=(edge-start)/(end-start);
-   if(nearEdge>0&&nearEdge<crossing)frames.push({offset:nearEdge,transform:pose(edge),opacity:1});
-   if(crossing>0&&crossing<1)frames.push({offset:crossing,transform:pose(90),opacity:0});
-   if(nearEdge>crossing&&nearEdge>0&&nearEdge<1)frames.push({offset:nearEdge,transform:pose(edge),opacity:1});
-   frames.push({offset:1,transform:pose(end),opacity:opacity(end)});
-   return face.animate(frames,timing);
+   const turnsThroughEdge=crossing>0&&crossing<1;
+   const endOpacity=Number(index?end>90:end<90);
+   const poses=[{transform:pose(start)}];
+   const visibility=[];
+   if(turnsThroughEdge){
+    poses.push({offset:crossing,transform:pose(90)});
+    visibility.push({opacity:1-endOpacity,easing:'steps(1, end)'},{offset:crossing,opacity:endOpacity});
+   }else{
+    visibility.push({opacity:endOpacity});
+   }
+   poses.push({transform:pose(end)});
+   visibility.push({opacity:endOpacity});
+   return [face.animate(poses,timing),face.animate(visibility,timing)];
   });
 }
 
@@ -47,8 +51,10 @@ function animateCardFaces(art,start,end,perspective,timing){
  const measure=measureCardPose;
  measureCardPose=function(el){const pose=measure(el),number=el.querySelector('.card-printed-number');pose.printedOpacity=number?getComputedStyle(number).opacity:'1';if(el.matches('.expanded-card')){
    const art=el.querySelector('.bank-card');
-   pose.flipAngle=cardAngle(art);
-   pose.cardPerspective=parseFloat(getComputedStyle(el).perspective);
+   const {face,angle}=visibleCardFace(art);
+   pose.flipAngle=angle;
+   pose.rearVisible=face.classList.contains('bank-card-back');
+   if(el.classList.contains('flipping'))pose.faceCorners=paintedFaceCorners(face);
   }return pose};
  const originalTransition=expandTransition;
  expandTransition=function(from,to,opening){
@@ -70,21 +76,33 @@ function animateCardFaces(art,start,end,perspective,timing){
  const moveSwipe=moveHomeSwipe;
  moveHomeSwipe=function(...args){const result=moveSwipe(...args),scene=preciseCardScene;if(scene?.carouselTrack?.isConnected){scene.swipeOffsetX=new DOMMatrixReadOnly(scene.carouselTrack.style.transform||undefined).m41-scene.carouselStartX;scene.node.style.translate=`${scene.swipeOffsetX}px 0px`}return result};
  const cleanupStrip=cleanupSwipe;cleanupSwipe=function(...args){const result=cleanupStrip(...args);if(preciseCardScene)document.documentElement.dataset.gesture='active';return result};
- function cardAngle(art){
-  const angle=side=>{
-   const transform=getComputedStyle(art.querySelector('.bank-card-'+side)).transform;
-   const cosine=transform==='none'?1:new DOMMatrixReadOnly(transform).m11;
-   return Math.acos(Math.max(0,Math.min(1,cosine)))*180/Math.PI;
-  };
-  const front=angle('front');
-  return front<89.999?front:180-angle('back');
+ function visibleCardFace(art){
+  const back=art.querySelector('.bank-card-back');
+  const rear=Number(getComputedStyle(back).opacity)>0;
+  const face=rear?back:art.querySelector('.bank-card-front');
+  const transform=getComputedStyle(face).transform;
+  const cosine=transform==='none'?1:new DOMMatrixReadOnly(transform).m11;
+  const yaw=Math.acos(Math.max(0,Math.min(1,cosine)))*180/Math.PI;
+  return {face,angle:rear?180-yaw:yaw};
+ }
+ function paintedFaceCorners(face){
+  // Read the projected corners from layout so the handoff follows the browser's painted face.
+  const points=[[0,0],[100,0],[100,100],[0,100]].map(([x,y])=>{
+   const point=document.createElement('span');
+   Object.assign(point.style,{position:'absolute',left:x+'%',top:y+'%',width:'0',height:'0',visibility:'hidden'});
+   return point;
+  });
+  face.append(...points);
+  const corners=points.map(point=>{const {x,y}=point.getBoundingClientRect();return [x,y]});
+  points.forEach(point=>point.remove());
+  return corners;
  }
  const flip=actions['flip-card'];
  actions['flip-card']=()=>{
   const card=$('#app .expanded-card');
   if(!card)return;
   const art=card.querySelector('.bank-card');
-  const start=cardAngle(art),wasFlipped=cardFlipped;
+  const start=visibleCardFace(art).angle,wasFlipped=cardFlipped;
   flip();
   if(cardFlipped===wasFlipped)return;
 
@@ -121,12 +139,13 @@ function animateCardFaces(art,start,end,perspective,timing){
  document.querySelectorAll('.bank-card').forEach(prepare);
 })();
 
-// The outgoing DOM still shows which face was visible, including on browser back.
+// Capture the visible face before Home replaces the card settings.
 const paintBeforeRearCardClose=paint;
 paint=function(direction){
- if(route.page==='home'&&$('#app.card .expanded-card.flipped')){
-  preciseCardScene?.dispose();
-  skipPageMotion=true;
- }
- return paintBeforeRearCardClose(direction);
+ const card=route.page==='home'?$('#app.card .expanded-card'):null;
+ const pose=card?measureCardPose(card):null;
+ if(pose)skipPageMotion=true;
+ const result=paintBeforeRearCardClose(direction);
+ if(pose)expandTransition(pose,$('.card-face[data-id="'+state.activeCard+'"]')||$('.card-face'),false);
+ return result;
 };

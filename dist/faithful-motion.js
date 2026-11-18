@@ -17,28 +17,29 @@ function cardPlaneCorners(matrix,width,height){
  });
 }
 function cardPlaneBounds(matrix,width,height){
- const corners=cardPlaneCorners(matrix,width,height);
+ return cardPlaneBoundsFromCorners(cardPlaneCorners(matrix,width,height));
+}
+function cardPlaneBoundsFromCorners(corners){
  const xs=corners.map(([x])=>x),ys=corners.map(([,y])=>y),x=Math.min(...xs),y=Math.min(...ys);
  return {x,y,width:Math.max(...xs)-x,height:Math.max(...ys)-y};
 }
 
-// Screen-space corners traced from the supplied 30 fps recording, in face order.
+// Corners traced from RPReplay_Final1795016279, in clockwise order on the screen.
 const rearFlightFrames=[
- [0,[[12,87],[287,87],[287,260],[12,260]]],
- [33,[[10,130],[259,75],[291,244],[42,291]]],
- [67,[[29,169],[215,70],[276,218],[83,311]]],
- [100,[[70,205],[158,75],[242,213],[137,325]]],
- [133,[[113,104],[191,197],[194,326],[126,245]]],
- [165,[[65,121],[211,310],[207,313],[61,124]]],
- [167,[[61,124],[65,121],[211,310],[207,313]]],
- [200,[[42,152],[171,235],[247,317],[80,211]]],
- [233,[[34,182],[210,246],[267,312],[63,247]]],
- [267,[[35,206],[223,242],[275,305],[35,268]]],
- [300,[[44,226],[230,242],[272,301],[21,282]]],
- [333,[[51,239],[246,241],[275,296],[23,294]]],
- [367,[[55,240],[248,240],[276,297],[22,297]]]
+ [0,[[6,14],[143,14],[143,99],[6,99]]],
+ [33,[[26,61],[103,19],[138,106],[59,142]]],
+ [67,[[42,66],[73,27],[119,116],[86,128]]],
+ [100,[[49,30],[55,29],[94,121],[90,128]]],
+ [133,[[30,78],[59,18],[103,104],[85,154]]],
+ [167,[[10,79],[36,42],[118,115],[108,154]]],
+ [200,[[8,94],[22,64],[125,105],[124,144]]],
+ [233,[[10,107],[28,76],[126,99],[130,134]]],
+ [267,[[12,115],[28,85],[127,96],[136,126]]],
+ [300,[[12,119],[25,91],[130,91],[142,121]]],
+ [333,[[12,121],[25,91],[131,91],[143,121]]]
 ];
-const rearFlightTurn=167;
+const rearFlightEdge=100;
+const rearFlightTurn=215;
 
 function projectCardCorners(quad,width,height){
  const [[x0,y0],[x1,y1],[x2,y2],[x3,y3]]=quad;
@@ -53,40 +54,58 @@ function projectCardCorners(quad,width,height){
  ]);
 }
 
-function rearCloseAnimation(plane,art,source,destination,width,height,sourceWidth,localMatrix,landing,startTime,timing){
+function limitCardPerspective(quad){
+ const cross=(points,i)=>{
+  const [a,b,c]=[points[i],points[(i+1)%4],points[(i+2)%4]];
+  return (b[0]-a[0])*(c[1]-b[1])-(b[1]-a[1])*(c[0]-b[0]);
+ };
+ // Keep the perspective bounded as the narrow edge opens into the next pose.
+ const warp=quad[0].map((_,axis)=>(quad[0][axis]-quad[1][axis]+quad[2][axis]-quad[3][axis])/4);
+ const affine=quad.map((point,i)=>point.map((value,axis)=>value-(i%2?-1:1)*warp[axis]));
+ const area=cross(affine,0);
+ if(area<=0)return null;
+ const smallest=Math.min(...quad.map((_,i)=>cross(quad,i)));
+ if(smallest>=.75*area)return quad;
+ const strength=.25*area/(area-smallest);
+ return affine.map((point,i)=>point.map((value,axis)=>value+(i%2?-1:1)*warp[axis]*strength));
+}
+
+function rearCloseAnimation(plane,art,source,destination,width,height,sourceWidth,landing,startTime,timing){
  const [landingTime,referenceEnd]=rearFlightFrames.at(-1);
  const firstSegment=rearFlightFrames.findIndex(([time])=>time>startTime)-1;
  const interpolate=(from,to,progress)=>from.map((point,i)=>point.map((value,axis)=>value+(to[i][axis]-value)*progress));
  const [start,first]=rearFlightFrames[firstSegment];
  const [nextTime,next]=rearFlightFrames[firstSegment+1];
  const referenceStart=interpolate(first,next,(startTime-start)/(nextTime-start));
- const scale=sourceWidth/275;
+ const scale=sourceWidth/137;
  const center=(quad,axis)=>quad.reduce((sum,point)=>sum+point[axis],0)/4;
  const startShift=[0,1].map(axis=>center(source,axis)-center(referenceStart,axis)*scale);
  const endShift=[0,1].map(axis=>center(destination,axis)-center(referenceEnd,axis)*scale);
+ const settle=value=>{const t=Math.max(0,Math.min(1,value));return t*t*(3-2*t)};
  const match=(time,quad)=>{
   const progress=(time-startTime)/(landingTime-startTime);
+  const startWeight=1-settle(progress*5),endWeight=settle(progress*5-4);
   return quad.map((point,i)=>point.map((value,axis)=>{
    const startError=source[i][axis]-referenceStart[i][axis]*scale-startShift[axis];
    const endError=destination[i][axis]-referenceEnd[i][axis]*scale-endShift[axis];
    return value*scale+startShift[axis]*(1-progress)+endShift[axis]*progress
-    +startError*Math.max(0,1-progress*5)+endError*Math.max(0,progress*5-4);
+    +startError*startWeight+endError*endWeight;
   }));
  };
  const samples=[[startTime,source],...rearFlightFrames.slice(firstSegment+1).map(([time,quad])=>[time,match(time,quad)])];
  const keys=[];
+ let lastCorners=source;
  // Sample the projected corners before playback so WebKit does not decompose the edge-on matrix.
  for(let i=0;i<samples.length-1;i++){
   const [fromTime,from]=samples[i],[toTime,to]=samples[i+1];
-  const count=Math.ceil((toTime-fromTime)/(1000/120));
+  const count=Math.ceil((toTime-fromTime)/(1000/240));
   for(let step=0;step<count;step++){
    const progress=step/count,time=fromTime+(toTime-fromTime)*progress;
-   const corners=toTime===rearFlightTurn?from:interpolate(from,to,progress);
-   keys.push({offset:(time-startTime)/timing.duration,transform:localMatrix(projectCardCorners(corners,width,height)),easing:'steps(1, end)'});
+   if(i||step)lastCorners=limitCardPerspective(interpolate(from,to,progress))||lastCorners;
+   keys.push({offset:(time-startTime)/timing.duration,transform:projectCardCorners(lastCorners,width,height).toString(),easing:'steps(1, end)'});
   }
  }
- const landOffset=(landingTime-startTime)/timing.duration;
- keys.push({offset:landOffset,transform:landing},{offset:1,transform:landing});
+ keys.push({offset:1,transform:landing});
  const swapOffset=(rearFlightTurn-startTime)/timing.duration;
  const faces=['back','front'].map((side,index)=>{
   const face=art.querySelector('.bank-card-'+side);
@@ -101,17 +120,26 @@ expandTransition=function(from,to,opening){
  let materialStart=from.materialOpacity,reflectionStart=from.glint;
  const previous=preciseCardScene,geometry=stableCardGeometry(to),reduce=shouldReduceMotion();
  const startAngle=opening||previous?0:from.flipAngle??(from.flipped?180:0);
- const returningFromBack=startAngle>=90;
+ const returningFromBack=!opening&&!previous&&(from.rearVisible??startAngle>=90);
  const interruptedFront=startAngle>.1&&!returningFromBack&&!reduce;
  const rear=returningFromBack&&!reduce;
  const reduceRear=returningFromBack&&reduce;
- const flightStart=rear?Math.min(164,(180-startAngle)/90*165):0;
- const duration=reduce?100:rear?425-flightStart:460;
+ const flightStart=rear?Math.min(rearFlightEdge-1,Math.round((180-startAngle)/90*rearFlightEdge)):0;
+ const duration=reduce?100:rear?rearFlightFrames.at(-1)[0]-flightStart:460;
 
  const source=from.geometry,width=geometry.width,height=geometry.height,base={x:geometry.layout.x,y:geometry.layout.y,width,height};
  const origin=geometry.origin,originMatrix=new DOMMatrix().translate(origin[0],origin[1]);
  let sourceLayout=source.layout,startRelative=new DOMMatrix().translate(source.origin[0],source.origin[1]).multiply(new DOMMatrix(source.raw)).translate(-source.origin[0],-source.origin[1]).scale(source.width/width,source.height/height);
  const endRelative=originMatrix.multiply(new DOMMatrix(geometry.raw)).translate(-origin[0],-origin[1]);
+ let paintedFace=from.faceCorners;
+ if(paintedFace){
+  const {x,y,width:faceWidth,height:faceHeight}=cardPlaneBoundsFromCorners(paintedFace);
+  // A face sampled exactly edge-on still needs a non-singular projection.
+  if(faceWidth<.1)paintedFace=[[x,y],[x+.1,y],[x+.1,y+faceHeight],[x,y+faceHeight]];
+ }
+ if(interruptedFront&&paintedFace){
+  startRelative=projectCardCorners(paintedFace.map(([x,y])=>[x-sourceLayout.x,y-sourceLayout.y]),width,height);
+ }
  if(previous){
   const oldMaterial=previous.node.querySelector('.card-material');
   if(oldMaterial)materialStart=getComputedStyle(oldMaterial).opacity;
@@ -165,11 +193,8 @@ expandTransition=function(from,to,opening){
   plane.prepend(shadow);
   // Use elapsed time so the flight easing cannot reveal the landing shadow early.
   rearTracks.push(shadow.animate([
-   {opacity:0},{offset:(rearFlightFrames.at(-1)[0]-flightStart)/duration,opacity:0,easing:'ease-out'},{opacity:1}
+   {opacity:0},{offset:(280-flightStart)/duration,opacity:0,easing:landingEase},{opacity:1}
   ],{duration,fill:'both'}));
- }else if(interruptedFront){
-  plane.style.perspective=`${(from.cardPerspective||1000)*width/source.width}px`;
-  body.animate([{transform:`rotateY(${startAngle}deg)`},{transform:'rotateY(0deg)'}],{duration,easing:landingEase,fill:'both'});
  }
  const snapshot=from.snapshot;
  if(snapshot){
@@ -186,12 +211,12 @@ expandTransition=function(from,to,opening){
  const motionFrames=rear?[frames[1],frames[1]]:reduce?[{opacity:0},{opacity:1}]:frames;
  const motion=node.animate(motionFrames,{duration,easing:landingEase,fill:'both'});scene.motion=motion;cardTransition=motion;
  if(rear){
-  const centerX=width/2,centerY=height/2;
-  const perspective=(from.cardPerspective||1000)*width/source.width;
-  const turn=new DOMMatrix();turn.m34=-1/perspective;
-  const startInBase=new DOMMatrix().translate(sourceLayout.x-base.x,sourceLayout.y-base.y).multiply(startRelative)
-   .translate(centerX,centerY).multiply(turn).rotateAxisAngle(0,1,0,Math.max(-89.5,startAngle-180)).translate(-centerX,-centerY);
-  rearTracks.push(...rearCloseAnimation(plane,art,cardPlaneCorners(startInBase,width,height),cardPlaneCorners(endRelative,width,height),width,height,source.width,localMatrix,planeFrames[1].transform,flightStart,{duration,fill:'both'}));
+  plane.style.transformOrigin='0 0';
+  body.style.transformOrigin='0 0';
+  scene.origin=[0,0];
+  const startInBase=new DOMMatrix().translate(sourceLayout.x-base.x,sourceLayout.y-base.y).multiply(startRelative);
+  const sourceCorners=paintedFace?paintedFace.map(([x,y])=>[x-base.x,y-base.y]):cardPlaneCorners(startInBase,width,height);
+  rearTracks.push(...rearCloseAnimation(plane,art,sourceCorners,cardPlaneCorners(endRelative,width,height),width,height,source.width,endRelative.toString(),flightStart,{duration,fill:'both'}));
  }
  if(rear&&document.timeline.currentTime!==null){
   for(const track of [motion,planeMotion,...rearTracks])if(track)track.startTime=document.timeline.currentTime;
