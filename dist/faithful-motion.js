@@ -39,8 +39,8 @@ expandTransition=function(from,to,opening){
  const localMatrix=matrix=>new DOMMatrix().translate(-origin[0],-origin[1]).multiply(matrix).translate(origin[0],origin[1]).toString();
  // Let the compositor interpolate the two exact poses as one continuous 3D transform.
  const planeFrames=[{transform:localMatrix(startRelative)},{transform:localMatrix(endRelative)}];
- // Keep the turn edge-on to the same camera before pitching the visible front into Home.
- const pitchStart=.48,landingEase='cubic-bezier(.32,.72,0,1)';
+ // Start pitching into the carousel as the front comes through the edge.
+ const pitchStart=.24,landingEase='cubic-bezier(.32,.72,0,1)';
  if(rear)planeFrames.splice(1,0,{offset:pitchStart,transform:planeFrames[0].transform,easing:landingEase});
  const frames=[{transform:new DOMMatrix().translate(sourceLayout.x-base.x,sourceLayout.y-base.y).toString()},{transform:new DOMMatrix().toString()}];
  if(rear){
@@ -63,7 +63,19 @@ expandTransition=function(from,to,opening){
  node.classList.toggle('returning-rear',rear);
  if(rear){
   const perspective=(from.cardPerspective||1000)*width/source.width;
-  animateCardFaces(art,startAngle,0,perspective,{duration:350,easing:cardTurnEase,fill:'both'});
+  const turnDuration=300*startAngle/180;
+  const faces=animateCardFaces(art,startAngle,0,perspective,{duration:turnDuration,easing:cardTurnEase,fill:'both'});
+  // Bank into the turn, then unwind as the front settles into the carousel.
+  const bank=body.animate([
+   {transform:'rotateZ(0deg)'},
+   {offset:.10,transform:'rotateZ(-16deg)'},
+   {offset:.20,transform:'rotateZ(-25deg)'},
+   {offset:.32,transform:'rotateZ(29deg)'},
+   {offset:.52,transform:'rotateZ(16deg)'},
+   {transform:'rotateZ(0deg)'}
+  ],{duration,easing:'linear',fill:'both'});
+  const startTime=document.timeline.currentTime;
+  if(startTime!==null)for(const track of [bank,...faces])track.startTime=startTime;
   const shadow=document.createElement('span');
   shadow.className='card-motion-shadow';
   shadow.style.boxShadow=targetShadow;
