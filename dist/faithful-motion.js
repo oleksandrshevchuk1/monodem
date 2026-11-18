@@ -19,7 +19,8 @@ expandTransition=function(from,to,opening){
  let sourceShadow=from.shadow,shadowWidth=from.geometry.width,materialStart=from.materialOpacity,faceShadowStart=from.faceShadow;
  const previous=preciseCardScene,geometry=stableCardGeometry(to),reduce=shouldReduceMotion(),duration=reduce?100:460;
  const returnAngle=(!opening&&!previous&&!reduce)?(from.returnAngle||0):0;
- const returnEnd=returnAngle>90?360:0;
+ const rear=returnAngle < -90 && returnAngle > -270;
+ const returnEnd=returnAngle < -90?-360:0;
  const travelEasing=returnAngle?'cubic-bezier(.35,.5,.45,1)':'cubic-bezier(.32,.72,0,1)';
  const source=from.geometry,width=geometry.width,height=geometry.height,base={x:geometry.layout.x,y:geometry.layout.y,width,height};
  const origin=geometry.origin,originMatrix=new DOMMatrix().translate(origin[0],origin[1]);
@@ -45,27 +46,40 @@ expandTransition=function(from,to,opening){
  art.animate([{borderRadius:((from.cornerRadius||parseFloat(targetRadius))*width/source.width)+'px'},{borderRadius:targetRadius}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  plane.style.borderRadius=targetRadius;
  plane.animate([{borderRadius:((from.cornerRadius||parseFloat(targetRadius))*width/source.width)+'px'},{borderRadius:targetRadius}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
- const shadowStart=(sourceShadow||getComputedStyle(to).boxShadow).replace(/(-?(?:\d*\.)?\d+)px/g,(_,value)=>(Number(value)*width/shadowWidth)+'px');
- body.animate([{boxShadow:shadowStart},{boxShadow:getComputedStyle(to).boxShadow}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
+ const targetShadow=to.matches('.expanded-card')?getComputedStyle(to.querySelector('.bank-card'),'::before').boxShadow:getComputedStyle(to).boxShadow;
+ const shadowStart=(sourceShadow||targetShadow).replace(/(-?(?:\d*\.)?\d+)px/g,(_,value)=>(Number(value)*width/shadowWidth)+'px');
+ body.animate([{boxShadow:shadowStart},{boxShadow:targetShadow}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  const front=art.querySelector('.bank-card-front'),targetFront=to.querySelector('.bank-card-front');
  if(front&&targetFront){const targetShadow=getComputedStyle(targetFront).boxShadow;front.style.boxShadow=targetShadow;front.animate([{boxShadow:faceShadowStart||'none'},{boxShadow:targetShadow}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'})}
  const material=art.querySelector('.card-material'),targetMaterial=to.querySelector('.card-material');
  if(material&&targetMaterial)material.animate([{opacity:materialStart??getComputedStyle(targetMaterial).opacity},{opacity:getComputedStyle(targetMaterial).opacity}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  const reflection=art.querySelector('.card-glint'),targetReflection=to.querySelector('.card-glint');
  if(reflection&&targetReflection&&from.glint){const targetStyle=getComputedStyle(targetReflection);reflection.animate([from.glint,{opacity:targetStyle.opacity,transform:targetStyle.transform}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'})}
- node.classList.toggle('returning-rear',returnEnd===360);
+ node.classList.toggle('returning-rear',rear);
  // Follow the diagonal turn in the recording as the card descends into the carousel.
- const perspective=parseFloat(from.returnPerspective);
- const turn=angle=>`${perspective?`perspective(${perspective*width/source.width}px) `:''}rotateY(${angle}deg)`;
- const rotation=returnAngle?body.animate([{transform:turn(returnAngle)},{transform:turn(returnEnd)}],{duration,easing:travelEasing,fill:'both'}):null;
- if(returnEnd===360){
-  const roll=Math.min(1,(returnAngle-90)/45);
+ let rotation=null;
+ if(returnAngle){
+  const perspective=parseFloat(from.returnPerspective)||1000;
+  body.classList.add('turning-card-body');
+  body.style.setProperty('--card-turn-perspective',`${perspective*width/source.width}px`);
+  // The fixed scene and the carousel round their projected coordinates independently.
+  body.style.setProperty('--card-yaw',`${returnEnd}deg`);
+  node.style.transform=frames[1].transform;
+  plane.style.transform=planeFrames[1].transform;
+  const movingRect=front.getBoundingClientRect(),targetRect=targetFront.getBoundingClientRect();
+  frames[1].transform=new DOMMatrix().translate(targetRect.x-movingRect.x,targetRect.y-movingRect.y).toString();
+  node.style.transform=frames[0].transform;
+  plane.style.transform=planeFrames[0].transform;
+  body.style.removeProperty('--card-yaw');
+  rotation=body.animate([{'--card-yaw':`${returnAngle}deg`},{'--card-yaw':`${returnEnd}deg`}],{duration,easing:travelEasing,fill:'both'});
+ }
+ if(rear){
+  const roll=Math.min(1,(Math.min(-returnAngle,360+returnAngle)-90)/45);
   body.animate([
    {rotate:'0deg',easing:'cubic-bezier(.23,1,.32,1)'},
    {offset:.16,rotate:`${-50*roll}deg`},
    {offset:.35,rotate:`${-45*roll}deg`},
-   {offset:.63,rotate:`${-13*roll}deg`},
-   {offset:.82,rotate:`${5*roll}deg`},
+   {offset:.63,rotate:`${-13*roll}deg`,easing:'ease-out'},
    {rotate:'0deg'}
   ],{duration,fill:'both'});
  }
@@ -73,7 +87,6 @@ expandTransition=function(from,to,opening){
  const targetVisibility=to.style.visibility;to.style.visibility='hidden';document.documentElement.dataset.gesture='active';operationsNav(opening?1:0,opening?0:1,duration);
  const settings=$('.card-settings');if(opening&&settings)for(const child of settings.children)if(!child.matches('.expanded-card'))child.animate([{opacity:0,transform:'translate3d(0,12px,0)'},{opacity:1,transform:'translate3d(0,0,0)'}],{duration,easing:'cubic-bezier(.32,.72,0,1)'});
  const scene={node,plane,body,base,origin,target:to,targetVisibility,backdrop:snapshot,sourceRect,destinationRect:destination,rotation};preciseCardScene=scene;
- if(returnEnd===360)scene.faceSwitch=(270-returnAngle)/(returnEnd-returnAngle);
  scene.dispose=()=>{if(scene.disposed)return;scene.disposed=true;to.style.visibility=targetVisibility;const tracks=[...node.getAnimations({subtree:true}),...(snapshot?.getAnimations()||[])];node.remove();snapshot?.remove();for(const track of tracks)track.cancel();if(preciseCardScene===scene){preciseCardScene=null;if(!swipeLayers)delete document.documentElement.dataset.gesture;restoreOperationsNav()}};
  const planeMotion=reduce?null:plane.animate(planeFrames,{duration,easing:travelEasing,fill:'both'});scene.planeMotion=planeMotion;
  const motion=node.animate(reduce?[{opacity:0},{opacity:1}]:frames,{duration,easing:travelEasing,fill:'both'});scene.motion=motion;cardTransition=motion;

@@ -70,11 +70,25 @@
 /* Hidden faces must also hide the ink; older surface rules force their children visible. */
 .card-face-ink,.card-face-ink *{visibility:inherit!important}
 
-/* The turning plane selects one complete face at the edge of the rotation. */
-.expanded-card .bank-card{transition:none!important}
-:is(.expanded-card.flipping,.returning-rear) :is(.bank-card-front,.bank-card-back,.card-face-ink){
+/* The rotation and both faces read the same animated angle on every frame. */
+@property --card-yaw{syntax:"<angle>";inherits:true;initial-value:0deg}
+.expanded-card .bank-card{transform:rotateY(var(--card-yaw));transition:none!important}
+.expanded-card.flipped .bank-card{--card-yaw:-180deg;transform:rotateY(var(--card-yaw))}
+.turning-card-body{transform:perspective(var(--card-turn-perspective,1000px)) rotateY(var(--card-yaw))}
+:is(.expanded-card,.returning-rear) :is(.bank-card-front,.bank-card-back){
  backface-visibility:visible;
  -webkit-backface-visibility:visible;
+ transform-style:flat;
 }
-:is(.expanded-card.flipping,.returning-rear) :is(.bank-card-front,.bank-card-back){transform-style:flat}
-:is(.expanded-card.flipping,.returning-rear) :is(.bank-card-front,.bank-card-back) *{visibility:inherit!important}
+:is(.expanded-card,.returning-rear) .bank-card-front{opacity:clamp(0,calc(0.5 + 100000 * cos(var(--card-yaw))),1)}
+:is(.expanded-card,.returning-rear) .bank-card-back{opacity:clamp(0,calc(0.5 - 100000 * cos(var(--card-yaw))),1)}
+:is(.expanded-card,.returning-rear) .card-face-ink{backface-visibility:visible;-webkit-backface-visibility:visible}
+.expanded-card{box-shadow:none}
+.expanded-card .bank-card::before{
+ content:"";
+ position:absolute;
+ inset:0;
+ border-radius:inherit;
+ box-shadow:0 12px 28px #02071140;
+ pointer-events:none;
+}
