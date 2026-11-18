@@ -25,12 +25,13 @@ function cardPlaneBounds(matrix,width,height){
 expandTransition=function(from,to,opening){
  if(!from||!to)return;
  let materialStart=from.materialOpacity,reflectionStart=from.glint;
- const previous=preciseCardScene,geometry=stableCardGeometry(to),reduce=shouldReduceMotion(),duration=reduce?100:460;
+ const previous=preciseCardScene,geometry=stableCardGeometry(to),reduce=shouldReduceMotion();
  const startAngle=opening||previous?0:from.flipAngle??(from.flipped?180:0);
  const returningFromBack=startAngle>=90;
  const interruptedFront=startAngle>.1&&!returningFromBack&&!reduce;
  const rear=returningFromBack&&!reduce;
  const reduceRear=returningFromBack&&reduce;
+ const duration=reduce?100:rear?380:460;
 
  const source=from.geometry,width=geometry.width,height=geometry.height,base={x:geometry.layout.x,y:geometry.layout.y,width,height};
  const origin=geometry.origin,originMatrix=new DOMMatrix().translate(origin[0],origin[1]);
@@ -67,7 +68,6 @@ expandTransition=function(from,to,opening){
  const localMatrix=matrix=>new DOMMatrix().translate(-origin[0],-origin[1]).multiply(matrix).translate(origin[0],origin[1]).toString();
  // Let the compositor interpolate the two exact poses as one continuous 3D transform.
  const planeFrames=[{transform:localMatrix(startRelative)},{transform:localMatrix(endRelative)}];
- // Start translation, tilt and turn together and let them settle on the same beat.
  const landingEase='cubic-bezier(.32,.72,0,1)';
  const frames=[{transform:new DOMMatrix().translate(sourceLayout.x-base.x,sourceLayout.y-base.y).toString()},{transform:new DOMMatrix().toString()}];
  node.style.transform=frames[reduceRear?1:0].transform;plane.style.transform=planeFrames[reduceRear?1:0].transform;
@@ -85,27 +85,41 @@ expandTransition=function(from,to,opening){
  const rearTracks=[];
  if(rear){
   const perspective=(from.cardPerspective||1000)*width/source.width;
-  rearTracks.push(...animateCardFaces(art,startAngle,0,perspective,{duration,easing:'cubic-bezier(.25,.48,.3,1)',fill:'both'}));
-  // Bank toward the visible rear, pass edge-on, then level the front into the carousel.
+  rearTracks.push(...animateCardFaces(art,startAngle,0,perspective,{duration,easing:'cubic-bezier(.28,.25,.28,1)',fill:'both'}));
+  // Pitch into the diagonal edge before revealing the already tilted front.
   const rearWeight=(startAngle-90)/90;
-  rearTracks.push(body.animate([
-   {offset:0,transform:'rotateZ(0deg)',easing:'ease-out'},
-   {offset:.10,transform:`rotateZ(${-28*rearWeight}deg)`,easing:'ease-in-out'},
-   {offset:.23,transform:`rotateZ(${-16*rearWeight}deg)`,easing:'ease-out'},
-   {offset:.42,transform:`rotateZ(${19*rearWeight}deg)`,easing:'ease-out'},
-   {offset:.76,transform:'rotateZ(0deg)'},
-   {offset:1,transform:'rotateZ(0deg)'}
-  ],{duration,fill:'both'}));
+  const poses=[
+   [0,0,0,'ease-out'],
+   [.16,-24,-8,'ease-in-out'],
+   [.31,-36,9,'ease-in-out'],
+   [.43,15,11,'ease-out'],
+   [.60,8,9,'ease-out'],
+   [.82,0,0,'linear'],
+   [1,0,0,'linear']
+  ];
+  rearTracks.push(body.animate(poses.map(([offset,roll,pitch,easing])=>({
+   offset,easing,transform:`rotateZ(${roll*rearWeight}deg) rotateX(${pitch*rearWeight}deg)`
+  })),{duration,fill:'both'}));
   const shadow=document.createElement('span');
   shadow.className='card-motion-shadow';
   shadow.style.boxShadow=targetShadow;
   plane.prepend(shadow);
-  rearTracks.push(shadow.animate([{opacity:0},{offset:.8,opacity:0},{opacity:1}],{duration,easing:landingEase,fill:'both'}));
+  // Use elapsed time so the flight easing cannot reveal the landing shadow early.
+  rearTracks.push(shadow.animate([
+   {opacity:0},{offset:.86,opacity:0,easing:'ease-out'},{opacity:1}
+  ],{duration,fill:'both'}));
  }else if(interruptedFront){
   plane.style.perspective=`${(from.cardPerspective||1000)*width/source.width}px`;
   body.animate([{transform:`rotateY(${startAngle}deg)`},{transform:'rotateY(0deg)'}],{duration,easing:landingEase,fill:'both'});
  }
- const snapshot=from.snapshot;if(snapshot){snapshot.querySelectorAll('.expanded-card,.card-header-mini,.transition-nav').forEach(el=>el.style.visibility='hidden');snapshot.style.zIndex='37';snapshot.style.maxHeight=Math.max(0,innerHeight-parseFloat(snapshot.style.top))+'px';document.body.append(snapshot);snapshot.animate([{opacity:1},{opacity:0}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'}).finished.catch(()=>{})}
+ const snapshot=from.snapshot;
+ if(snapshot){
+  snapshot.querySelectorAll('.expanded-card,.card-header-mini,.transition-nav').forEach(el=>el.style.setProperty('opacity','0','important'));
+  snapshot.style.zIndex='37';snapshot.style.maxHeight=Math.max(0,innerHeight-parseFloat(snapshot.style.top))+'px';document.body.append(snapshot);
+  const fade=snapshot.animate([{opacity:1},{opacity:0}],{duration:rear?duration*.64:duration,easing:landingEase,fill:'both'});
+  fade.finished.catch(()=>{});
+  if(rear)rearTracks.push(fade);
+ }
  const targetVisibility=to.style.visibility;to.style.visibility='hidden';document.documentElement.dataset.gesture='active';operationsNav(opening?1:0,opening?0:1,duration);
  const scene={node,plane,body,base,origin,target:to,targetVisibility,backdrop:snapshot,sourceRect,destinationRect:destination};preciseCardScene=scene;
  scene.dispose=()=>{if(scene.disposed)return;scene.disposed=true;to.style.visibility=targetVisibility;const tracks=[...node.getAnimations({subtree:true}),...(snapshot?.getAnimations()||[])];node.remove();snapshot?.remove();for(const track of tracks)track.cancel();if(preciseCardScene===scene){preciseCardScene=null;if(!swipeLayers)delete document.documentElement.dataset.gesture;restoreOperationsNav()}};
