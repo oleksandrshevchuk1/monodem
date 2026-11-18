@@ -25,51 +25,10 @@ showEntry=function(){if(adminMode)return;if($('#modal')?.open)$('#modal').close(
 };
 document.addEventListener('keydown',e=>{if(!$('.entry-native')||$('#modal').open)return;if(/^\d$/.test(e.key)||e.key==='Backspace'){e.preventDefault();pressNativePin(e.key==='Backspace'?'delete':e.key)}});
 clearTimeout(entryScanTimer);entryScanTimer=null;const replacingEntry=!!$('.entry-overlay');if(replacingEntry){$('.entry-overlay').remove();showEntry()}actions['lock-demo']=()=>showEntry();
-// Keep the overview and its backdrop at their final sizes throughout the fade.
+// All-cards overview floats above the same home surface, softly blurring it.
 let allCardsScene=null;
-function clearAllCardsScene(scene){
- if(!scene)return;
- scene.backdrop.remove();
- scene.exit?.remove();
- scene.motion?.cancel();
- scene.exitMotion?.cancel();
- scene.backdropMotion?.cancel();
- if(allCardsScene===scene)allCardsScene=null;
-}
 const paintBeforeCardsOverview=paint;
-paint=function(direction){
- const app=$('#app'),screen=$('#screen'),leaving=app.classList.contains('cards');
- if(adminMode)return paintBeforeCardsOverview(direction);
- const timing={duration:shouldReduceMotion()?100:220,easing:'ease-out',fill:'both'};
- if(route.page==='cards'&&!leaving){
-  clearAllCardsScene(allCardsScene);
-  const backdrop=freezePageSurface();
-  backdrop.className='all-cards-backdrop home';
-  Object.assign(backdrop.style,{zIndex:'35',maxHeight:innerHeight+'px',opacity:'.65',filter:'blur(14px)'});
-  document.body.append(backdrop);
-  render();
-  app.classList.add('overview-visible');
-  const scene={backdrop,motion:screen.animate([{opacity:0},{opacity:1}],timing)};
-  allCardsScene=scene;
-  scene.motion.finished.then(()=>scene.motion.cancel(),()=>{});
-  return;
- }
- if(leaving&&route.page!=='cards'&&allCardsScene){
-  const scene=allCardsScene,opacity=getComputedStyle(screen).opacity;
-  const exit=freezePageSurface();
-  exit.className='all-cards-exit cards';
-  Object.assign(exit.style,{zIndex:'43',maxHeight:innerHeight+'px'});
-  scene.motion?.cancel();
-  document.body.append(exit);
-  render();
-  scene.exit=exit;
-  scene.exitMotion=exit.animate([{opacity},{opacity:0}],timing);
-  scene.backdropMotion=scene.backdrop.animate([{opacity:.65},{opacity:0}],timing);
-  scene.exitMotion.finished.then(()=>clearAllCardsScene(scene),()=>{});
-  return;
- }
- return paintBeforeCardsOverview(direction);
-};
+paint=function(direction){const app=$('#app'),screen=$('#screen'),leaving=app.classList.contains('cards');if(!adminMode&&route.page==='cards'&&!leaving){allCardsScene?.backdrop.remove();allCardsScene?.motion?.cancel();const backdrop=freezePageSurface();backdrop.className='all-cards-backdrop home';backdrop.style.zIndex='35';document.body.append(backdrop);render();const duration=shouldReduceMotion()?140:280;app.classList.add('overview-visible');const motion=screen.animate(shouldReduceMotion()?[{opacity:0},{opacity:1}]:[{opacity:0,transform:'translate3d(0,20px,0) scale(.98)'},{opacity:1,transform:'translate3d(0,0,0) scale(1)'}],{duration,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});const blur=backdrop.animate([{filter:'blur(0px)',opacity:1},{filter:'blur(14px)',opacity:.65}],{duration,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});allCardsScene={backdrop,motion,blur};return}if(!adminMode&&leaving&&route.page!=='cards'){const scene=allCardsScene,pose=getComputedStyle(screen),snapshot=freezePageSurface();snapshot.className='all-cards-exit cards';snapshot.style.zIndex='43';const copy=snapshot.querySelector('.transition-screen');if(copy){copy.style.opacity=pose.opacity;copy.style.transform=pose.transform}scene?.motion.cancel();document.body.append(snapshot);render();const duration=shouldReduceMotion()?140:280;snapshot.animate([{opacity:1},{opacity:0}],{duration,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'}).finished.catch(()=>{}).finally(()=>{snapshot.remove();scene?.backdrop.remove();if(allCardsScene===scene)allCardsScene=null});copy?.animate([{transform:copy.style.transform||'none'},{transform:shouldReduceMotion()?'none':'translate3d(0,20px,0) scale(.98)'}],{duration,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});scene?.backdrop.animate([{opacity:.65,filter:'blur(14px)'},{opacity:0,filter:'blur(0px)'}],{duration,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});return}return paintBeforeCardsOverview(direction)};
 // Card details keep the recorded grouping and the user's current card data.
 const cardBeforeReferenceGrouping=cardPage;cardPage=function(){let html=cardBeforeReferenceGrouping();html=html.replace('data-page="regular"','data-page="subscriptions"').replace('Керування списаннями з картки','Керування списаннями з картки');return html};
 // History search exposes the controls shown in the latest recording.

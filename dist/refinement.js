@@ -113,7 +113,7 @@ function initStats(){const track=$('#stats-carousel');if(!track)return;const car
 function bindRefresh(){}
 
 const experienceRender=render;
-render=function(){if(!adminMode&&['capital','statcategory','openCard','service'].includes(route.page)){defaults();$('#app').className=route.page;$('#nav').hidden=true;$('#screen').innerHTML=({capital:capitalPage,statcategory:statsCategoryPage,openCard:openCardPage,service:servicePage})[route.page]()}else{experienceRender();if(!adminMode){if(['cards','analytics'].includes(route.page))$('#nav').hidden=true;if(route.page==='home'){bindRefresh();$('#app').classList.toggle('new-card-theme',newCardSelected);$('#app').classList.toggle('white-active',!newCardSelected&&cardWhite(activeCard()))}if(route.page==='analytics')initStats();if(route.page==='card'){let p;$('.expanded-card')?.addEventListener('pointerdown',e=>p={x:e.clientX,y:e.clientY});$('.expanded-card')?.addEventListener('pointerup',e=>{if(p&&Math.abs(e.clientX-p.x)>40&&Math.abs(e.clientY-p.y)<50){actions['flip-card']();const card=e.currentTarget,stopClick=event=>{event.stopPropagation();event.preventDefault()};card.addEventListener('click',stopClick,{once:true,capture:true});setTimeout(()=>card.removeEventListener('click',stopClick,true),0)}p=null})}}}};
+render=function(){if(!adminMode&&['capital','statcategory','openCard','service'].includes(route.page)){defaults();$('#app').className=route.page;$('#nav').hidden=true;$('#screen').innerHTML=({capital:capitalPage,statcategory:statsCategoryPage,openCard:openCardPage,service:servicePage})[route.page]()}else{experienceRender();if(!adminMode){if(['cards','analytics'].includes(route.page))$('#nav').hidden=true;if(route.page==='home'){bindRefresh();$('#app').classList.toggle('new-card-theme',newCardSelected);$('#app').classList.toggle('white-active',!newCardSelected&&cardWhite(activeCard()))}if(route.page==='analytics')initStats();if(route.page==='card'){let p;$('.expanded-card')?.addEventListener('pointerdown',e=>p={x:e.clientX,y:e.clientY});$('.expanded-card')?.addEventListener('pointerup',e=>{if(p&&Math.abs(e.clientX-p.x)>40&&Math.abs(e.clientY-p.y)<50){actions['flip-card']();e.currentTarget.addEventListener('click',e=>{e.stopPropagation();e.preventDefault()},{once:true,capture:true})}p=null})}}}};
 // The carousel and indicator share the same drag position.
 let swipeLayers=null;
 function prepareSwipe(){if(swipeLayers)return swipeLayers;const app=$('#app'),track=$('.card-track'),cards=allCards(),index=newCardSelected?cards.length:Math.max(0,cards.findIndex(c=>c.id===state.activeCard)),background=document.createElement('div');background.className='swipe-gradient';app.prepend(background);const pill=$('.card-selector');
@@ -149,6 +149,7 @@ function refreshSelectedCard(){
  const app=$('#app');
  app.classList.toggle('white-active',!newCardSelected&&cardWhite(activeCard()));
  app.classList.toggle('new-card-theme',newCardSelected);
+ fitMonetaryLabels();
 }
 function finishCardSelection(index){
  const cards=allCards();
@@ -158,10 +159,8 @@ function finishCardSelection(index){
  const pane=$('.home-content');
  const preview=swipeLayers?.pages?.find(page=>page.index===index)?.node.firstElementChild;
  if(route.page==='home'&&preview){
-  for(const selector of [homeAccountIntro,'.home-actions','.operation-panel']){
-   const incoming=preview.querySelector(selector);
-   incoming.style.transform='';
-   pane.querySelector(selector).replaceWith(incoming);
+  for(const slot of [homeAccountIntro,'.home-actions','.operation-panel']){
+   pane.querySelector(slot).replaceWith(preview.querySelector(slot));
   }
   pane.classList.toggle('new-card-selected',newCardSelected);
   cleanupSwipe();
@@ -183,32 +182,11 @@ function bindHorizontalGesture(element,{read,write,settle,cancel}){
  const end=e=>{if(!start||e.pointerId!==start.id)return;flush();const moved=dragging,first=samples[0],last=samples.at(-1),v=e.type==='pointercancel'?0:last&&first&&performance.now()-last.time<80&&last.time>first.time?(last.x-first.x)/(last.time-first.time)*1000:0;start=null;dragging=false;vertical=false;if(element.hasPointerCapture(e.pointerId))element.releasePointerCapture(e.pointerId);if(moved){element.addEventListener('click',stopClick,{once:true,capture:true});setTimeout(()=>element.removeEventListener('click',stopClick,true),0);settle(v,e.type==='pointercancel'||e.type==='lostpointercapture')}};
  element.addEventListener('pointerup',end);element.addEventListener('pointercancel',end);element.addEventListener('lostpointercapture',e=>{if(start&&e.target===element&&!element.hasPointerCapture(e.pointerId))end(e)})
 }
-// Claim a horizontal touch before native scrolling can move the page on a diagonal.
-function lockCardTouchAxis(pane){
- let origin=null,axis=null;
- pane.addEventListener('touchstart',event=>{
-  origin=null;
-  axis=null;
-  if(event.touches.length!==1||document.body.classList.contains('has-glass-history'))return;
-  const touch=event.touches[0];
-  if(touch.clientX-$('#app').getBoundingClientRect().left<=28)return;
-  origin={x:touch.clientX,y:touch.clientY};
- },{passive:true});
- pane.addEventListener('touchmove',event=>{
-  if(!origin||event.touches.length!==1){origin=null;return}
-  const touch=event.touches[0],dx=Math.abs(touch.clientX-origin.x),dy=Math.abs(touch.clientY-origin.y);
-  if(!axis&&dx>=6&&dx>dy*1.6)axis='horizontal';
-  if(!axis&&dy>=8&&dy>=dx)axis='vertical';
-  if(axis==='horizontal'&&event.cancelable)event.preventDefault();
- },{passive:false});
- for(const type of ['touchend','touchcancel'])pane.addEventListener(type,()=>{origin=null},{passive:true});
-}
 bindCardSwipe=function(){
  const pane=$('.card-carousel');
  if(!pane)return;
  carouselIndex=newCardSelected?allCards().length:allCards().findIndex(card=>card.id===activeCard().id);
  setCarouselPosition(carouselIndex);
- lockCardTouchAxis(pane);
  bindHorizontalGesture(pane,{
   read:()=>swipeLayers?.dx||0,
   write:dx=>moveHomeSwipe(dx),
@@ -229,12 +207,11 @@ bindCardSwipe=function(){
 };
 
 function captureBankSurface(preserveArtwork=false){const app=$('#app'),rect=app.getBoundingClientRect(),surface=document.createElement('div');surface.className='bank-surface-transition';Object.assign(surface.style,{position:'fixed',left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:app.offsetHeight+'px',background:getComputedStyle(app).background,zIndex:37,pointerEvents:'none',overflow:'hidden'});const source=$('#screen'),screen=source.cloneNode(true);screen.removeAttribute('id');screen.classList.add('transition-screen');screen.style.paddingBottom=getComputedStyle(source).paddingBottom;screen.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));const expanded=screen.querySelector('.expanded-card');if(!preserveArtwork){if(expanded)expanded.style.visibility='hidden';screen.querySelector('.card-face[data-id="'+state.activeCard+'"]')?.remove();}surface.append(screen);if(!$('#nav').hidden){const navigation=$('#nav').cloneNode(true);navigation.removeAttribute('id');navigation.classList.add('transition-nav');surface.append(navigation)}surface.inert=true;return surface}
-function fitMonetaryLabels(root=$('#screen'),scope=''){
- if(!root)return;
+function fitMonetaryLabels(){
  const labels=[];
  for(const [selector,max,min] of [['.home-balance strong',46,26],['.stats-summary>strong',46,24],['.capital-total>strong',38,22],['.compact-card>strong',21,12],['.tx-amount',18,12]]){
-  root.querySelectorAll(scope+selector).forEach(el=>{
-   if(el.dataset.numberMotion==='1'||el.closest('.all-operations-page'))return;
+  document.querySelectorAll('#screen '+selector).forEach(el=>{
+   if(el.dataset.numberMotion==='1')return;
    el.style.fontSize=max+'px';
    labels.push({el,max,min});
   });
@@ -249,7 +226,7 @@ function animateSummaryValue(el,from,to,kind){if(from===to||shouldReduceMotion()
 let amountFitFrame=0;
 const beforeAmountRender=render;
 render=function(){const previous=route.page==='analytics'?new Map([...document.querySelectorAll('.stats-summary')].map(x=>[x.dataset.kind,Number(x.dataset.total)])):null;beforeAmountRender();cancelAnimationFrame(amountFitFrame);amountFitFrame=requestAnimationFrame(()=>{fitMonetaryLabels();if(previous?.size)document.querySelectorAll('.stats-summary').forEach(x=>{if(previous.has(x.dataset.kind))animateSummaryValue(x.querySelector(':scope>strong'),previous.get(x.dataset.kind),Number(x.dataset.total),x.dataset.kind)})})};
-document.fonts.addEventListener('loadingdone',()=>fitMonetaryLabels());
+document.fonts.addEventListener('loadingdone',fitMonetaryLabels);
 
 render();
 
