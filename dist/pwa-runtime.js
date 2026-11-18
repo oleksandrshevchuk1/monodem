@@ -17,7 +17,8 @@ for(const name of ['pointerup','pointercancel'])document.addEventListener(name,e
 function settleInterruptedPwa(){
  for(const [pointerId,pointer]of activePwaPointers){if(pointer.target.isConnected)pointer.target.dispatchEvent(new PointerEvent('pointercancel',{pointerId,pointerType:pointer.type,bubbles:true}))}activePwaPointers.clear();
  document.dispatchEvent(new Event('touchcancel',{bubbles:true}));
- if(typeof cardSlideAnimation!=='undefined')cardSlideAnimation?.cancel();if(typeof swipeLayers!=='undefined'&&swipeLayers)cleanupSwipe();
+ cardSlideAnimation?.cancel();
+ if(swipeLayers){const index=swipeLayers.index;cleanupSwipe();if(route.page==='home')setCarouselPosition(index)}
  if(typeof glassHistory!=='undefined'&&glassHistory){const scene=glassHistory;scene.motions.forEach(motion=>motion.cancel());if(route.page==='home')cleanupGlassHistory(scene);else if(route.page==='history'){setGlassHistoryProgress(scene,1);finishSideHistoryOpen(scene)}}
  if(typeof preciseCardScene!=='undefined'&&preciseCardScene)for(const motion of [...preciseCardScene.node.getAnimations({subtree:true}),...(preciseCardScene.backdrop?.getAnimations()||[])])if(motion.effect?.getTiming().iterations!==Infinity)motion.finish();
  if(typeof sideEntrance!=='undefined'&&sideEntrance){try{sideEntrance.finish()}catch{}}
@@ -62,7 +63,7 @@ animatedDialog.close=function(value){
  if(!['sheet','profile'].includes(this.dataset.kind)||shouldReduceMotion()){nativeDialogClose(value);return}
  const pose=getComputedStyle(this),fromTransform=pose.transform,fromOpacity=pose.opacity;this.getAnimations().forEach(animation=>animation.cancel());this.dataset.closing='true';
  const motion=this.animate([{transform:fromTransform,opacity:fromOpacity},{transform:'translateY(100%)',opacity:0}],{duration:180,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});
- const exit={motion,value};dialogExit=exit;motion.finished.then(()=>{if(dialogExit===exit)finishDialogExit()}).catch(()=>{});
+ const exit={motion,value};dialogExit=exit;const settle=()=>{if(dialogExit===exit)finishDialogExit()};motion.finished.then(settle,settle);
 };
 animatedDialog.addEventListener('cancel',event=>{event.preventDefault();animatedDialog.close()});
 const modalBeforeAnimatedExit=modal;modal=function(...args){finishDialogExit();modalBeforeAnimatedExit(...args);prepareVisibleGlyphs()};
