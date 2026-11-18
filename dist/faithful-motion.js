@@ -20,12 +20,12 @@ expandTransition=function(from,to,opening){
  const previous=preciseCardScene,geometry=stableCardGeometry(to),reduce=shouldReduceMotion(),duration=reduce?100:460;
  const returnAngle=(!opening&&!previous&&!reduce)?(from.returnAngle||0):0;
  const returnEnd=returnAngle>90?360:0;
- const travelEasing=returnAngle?'ease-out':'cubic-bezier(.32,.72,0,1)';
+ const travelEasing=returnAngle?'cubic-bezier(.35,.5,.45,1)':'cubic-bezier(.32,.72,0,1)';
  const source=from.geometry,width=geometry.width,height=geometry.height,base={x:geometry.layout.x,y:geometry.layout.y,width,height};
  const origin=geometry.origin,originMatrix=new DOMMatrix().translate(origin[0],origin[1]);
  let sourceLayout=source.layout,startRelative=new DOMMatrix().translate(source.origin[0],source.origin[1]).multiply(new DOMMatrix(source.raw)).translate(-source.origin[0],-source.origin[1]).scale(source.width/width,source.height/height);
  const endRelative=originMatrix.multiply(new DOMMatrix(geometry.raw)).translate(-origin[0],-origin[1]);
- if(previous){faceShadowStart=getComputedStyle(previous.node.querySelector('.bank-card-front')).boxShadow;const oldMaterial=previous.node.querySelector('.card-material');if(oldMaterial)materialStart=getComputedStyle(oldMaterial).opacity;sourceShadow=getComputedStyle(previous.body).boxShadow;shadowWidth=previous.base.width;const oldOrigin=previous.origin;sourceLayout=previous.base;startRelative=new DOMMatrix().translate(previous.swipeOffsetX||0,0).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.node).transform)).translate(oldOrigin[0],oldOrigin[1]).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.plane).transform)).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.body).transform)).translate(-oldOrigin[0],-oldOrigin[1]).scale(previous.base.width/width,previous.base.height/height);previous.dispose()}
+ if(previous){faceShadowStart=getComputedStyle(previous.node.querySelector('.bank-card-front')).boxShadow;const oldMaterial=previous.node.querySelector('.card-material');if(oldMaterial)materialStart=getComputedStyle(oldMaterial).opacity;const oldBodyStyle=getComputedStyle(previous.body);sourceShadow=oldBodyStyle.boxShadow;shadowWidth=previous.base.width;const oldOrigin=previous.origin;sourceLayout=previous.base;startRelative=new DOMMatrix().translate(previous.swipeOffsetX||0,0).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.node).transform)).translate(oldOrigin[0],oldOrigin[1]).multiply(new DOMMatrixReadOnly(getComputedStyle(previous.plane).transform)).rotate(parseFloat(oldBodyStyle.rotate)||0).multiply(new DOMMatrixReadOnly(oldBodyStyle.transform)).translate(-oldOrigin[0],-oldOrigin[1]).scale(previous.base.width/width,previous.base.height/height);previous.dispose()}
  const sourceRect=cardPlaneBounds(new DOMMatrix().translate(sourceLayout.x,sourceLayout.y).multiply(startRelative),width,height),destination=cardPlaneBounds(new DOMMatrix().translate(base.x,base.y).multiply(endRelative),width,height);
  const node=document.createElement('div');node.className='card-transition soft-card-surface precise-card-surface';
  const plane=document.createElement('div');plane.className='travelling-card-plane';Object.assign(plane.style,{width:'100%',height:'100%',transformStyle:'preserve-3d',transformOrigin:origin[0]+'px '+origin[1]+'px'});
@@ -54,8 +54,21 @@ expandTransition=function(from,to,opening){
  const reflection=art.querySelector('.card-glint'),targetReflection=to.querySelector('.card-glint');
  if(reflection&&targetReflection&&from.glint){const targetStyle=getComputedStyle(targetReflection);reflection.animate([from.glint,{opacity:targetStyle.opacity,transform:targetStyle.transform}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'})}
  node.classList.toggle('returning-rear',returnEnd===360);
- // Start from the rendered angle, including a flip interrupted by the close button.
- const rotation=returnAngle?body.animate([{transform:`rotateY(${returnAngle}deg)`},{transform:`rotateY(${returnEnd}deg)`}],{duration,easing:travelEasing,fill:'both'}):null;
+ // Follow the diagonal turn in the recording as the card descends into the carousel.
+ const perspective=parseFloat(from.returnPerspective);
+ const turn=angle=>`${perspective?`perspective(${perspective*width/source.width}px) `:''}rotateY(${angle}deg)`;
+ const rotation=returnAngle?body.animate([{transform:turn(returnAngle)},{transform:turn(returnEnd)}],{duration,easing:travelEasing,fill:'both'}):null;
+ if(returnEnd===360){
+  const roll=Math.min(1,(returnAngle-90)/45);
+  body.animate([
+   {rotate:'0deg',easing:'cubic-bezier(.23,1,.32,1)'},
+   {offset:.16,rotate:`${-50*roll}deg`},
+   {offset:.35,rotate:`${-45*roll}deg`},
+   {offset:.63,rotate:`${-13*roll}deg`},
+   {offset:.82,rotate:`${5*roll}deg`},
+   {rotate:'0deg'}
+  ],{duration,fill:'both'});
+ }
  const snapshot=from.snapshot;if(snapshot){snapshot.querySelectorAll('.card-face,.expanded-card,.card-header-mini,.transition-nav').forEach(el=>el.style.visibility='hidden');snapshot.style.zIndex='37';document.body.append(snapshot);snapshot.animate([{opacity:1},{opacity:0}],{duration,easing:travelEasing,fill:'both'}).finished.catch(()=>{})}
  const targetVisibility=to.style.visibility;to.style.visibility='hidden';document.documentElement.dataset.gesture='active';operationsNav(opening?1:0,opening?0:1,duration);
  const settings=$('.card-settings');if(opening&&settings)for(const child of settings.children)if(!child.matches('.expanded-card'))child.animate([{opacity:0,transform:'translate3d(0,12px,0)'},{opacity:1,transform:'translate3d(0,0,0)'}],{duration,easing:'cubic-bezier(.32,.72,0,1)'});

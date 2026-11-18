@@ -69,3 +69,12 @@
 
 /* Hidden faces must also hide the ink; older surface rules force their children visible. */
 .card-face-ink,.card-face-ink *{visibility:inherit!important}
+
+/* The turning plane selects one complete face at the edge of the rotation. */
+.expanded-card .bank-card{transition:none!important}
+:is(.expanded-card.flipping,.returning-rear) :is(.bank-card-front,.bank-card-back,.card-face-ink){
+ backface-visibility:visible;
+ -webkit-backface-visibility:visible;
+}
+:is(.expanded-card.flipping,.returning-rear) :is(.bank-card-front,.bank-card-back){transform-style:flat}
+:is(.expanded-card.flipping,.returning-rear) :is(.bank-card-front,.bank-card-back) *{visibility:inherit!important}
