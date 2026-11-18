@@ -104,37 +104,40 @@ function animateCardFaces(art,start,end,perspective,timing){
  const flip=actions['flip-card'];
  actions['flip-card']=()=>{
   const card=$('#app .expanded-card');
-  if(!card||preciseCardScene?.target===card)return;
+  if(!card)return;
   const art=card.querySelector('.bank-card');
   const start=visibleCardFace(art).angle,wasFlipped=cardFlipped;
   flip();
   if(cardFlipped===wasFlipped)return;
 
-  card._stopFlip?.();
+  card._flipMotion?.forEach(motion=>motion.cancel());
+  card.classList.remove('flipping');
   if(shouldReduceMotion())return;
   const end=cardFlipped?180:0;
   const duration=600*Math.abs(end-start)/180;
   if(duration<1)return;
   const timing={duration,easing:cardTurnEase,fill:'both'};
   const faces=animateCardFaces(art,start,end,1000,timing);
+  const previousShadow=card.querySelector('.card-motion-shadow');
   const shadow=document.createElement('span');
   shadow.className='card-motion-shadow';
-  shadow.style.boxShadow=getComputedStyle(card).boxShadow;
+  shadow.style.boxShadow=previousShadow?.style.boxShadow||getComputedStyle(card).boxShadow;
+  previousShadow?.remove();
   card.prepend(shadow);
   card.classList.add('flipping');
   // Keep the shadow fully hidden during the turn, then restore it as the face settles.
   const shade=shadow.animate([{offset:0,opacity:0},{offset:.88,opacity:0},{offset:1,opacity:1}],{...timing,easing:'linear'});
   const startTime=document.timeline.currentTime;
   if(startTime!==null)for(const motion of [shade,...faces])motion.startTime=startTime;
+  card._flipMotion=faces;
   const cleanup=()=>{
-   if(card._stopFlip!==cleanup)return;
-   card._stopFlip=null;
    shade.cancel();
    shadow.remove();
    for(const motion of faces)motion.cancel();
+   if(card._flipMotion!==faces)return;
+   card._flipMotion=null;
    card.classList.remove('flipping');
   };
-  card._stopFlip=cleanup;
   faces[0].finished.then(cleanup,cleanup);
  };
  document.querySelectorAll('.bank-card').forEach(prepare);
@@ -145,7 +148,6 @@ const paintBeforeRearCardClose=paint;
 paint=function(direction){
  const card=route.page==='home'?$('#app.card .expanded-card'):null;
  const pose=card?measureCardPose(card):null;
- card?._stopFlip?.();
  if(pose)skipPageMotion=true;
  const result=paintBeforeRearCardClose(direction);
  if(pose)expandTransition(pose,$('.card-face[data-id="'+state.activeCard+'"]')||$('.card-face'),false);
