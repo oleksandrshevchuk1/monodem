@@ -129,7 +129,6 @@ body.document-open .receipt-fit,body.document-open .receipt-document-stage{flex:
 .glass-history-image{will-change:opacity;contain:layout paint}
 .glass-history-sharp{filter:none!important;transform:none!important;opacity:1!important;will-change:auto}
 
-.all-operations-page .transaction{content-visibility:auto}
 .transfer-archive .transaction{content-visibility:auto;contain-intrinsic-size:auto 74px}
 
 /* Match the original large bust, with the lower torso behind the action panel. */
