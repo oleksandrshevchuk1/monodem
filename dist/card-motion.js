@@ -39,6 +39,9 @@
  const moveSwipe=moveHomeSwipe;
  moveHomeSwipe=function(...args){const result=moveSwipe(...args),scene=preciseCardScene;if(scene?.carouselTrack?.isConnected){scene.swipeOffsetX=new DOMMatrixReadOnly(scene.carouselTrack.style.transform||undefined).m41-scene.carouselStartX;scene.node.style.translate=`${scene.swipeOffsetX}px 0px`}return result};
  const cleanupStrip=cleanupSwipe;cleanupSwipe=function(...args){const result=cleanupStrip(...args);if(preciseCardScene)document.documentElement.dataset.gesture='active';return result};
+ function flipShadowOpacity(angle){
+  return Math.max(0,Math.min(1,(Math.abs(angle-90)-8)/17));
+ }
  function cardAngle(art){
   const transform=getComputedStyle(art).transform;
   if(transform==='none')return 0;
@@ -62,7 +65,20 @@
   const timing={duration,easing:getComputedStyle(document.documentElement).getPropertyValue('--ease-in-out').trim(),fill:'both'};
   const turn=art.animate([{transform:`rotateY(${start}deg)`},{transform:`rotateY(${end}deg)`}],timing);
   const crossing=(90-start)/(end-start);
+  const previousShadow=card.querySelector('.card-motion-shadow');
+  const shadow=document.createElement('span');
+  shadow.className='card-motion-shadow';
+  shadow.style.boxShadow=previousShadow?.style.boxShadow||getComputedStyle(card).boxShadow;
+  previousShadow?.remove();
+  card.prepend(shadow);
   card.classList.add('flipping');
+  const shadowFrames=[{offset:0,opacity:flipShadowOpacity(start)}];
+  for(const angle of end>start?[65,82,98,115]:[115,98,82,65]){
+   const offset=(angle-start)/(end-start);
+   if(offset>0&&offset<1)shadowFrames.push({offset,opacity:flipShadowOpacity(angle)});
+  }
+  shadowFrames.push({offset:1,opacity:1});
+  const shade=shadow.animate(shadowFrames,timing);
   const faces=['front','back'].map(side=>{
    const face=art.querySelector('.bank-card-'+side);
    const visibility=angle=>(angle>90)===(side==='back')?'visible':'hidden';
@@ -74,6 +90,8 @@
   });
   card._flipMotion=turn;
   const cleanup=()=>{
+   shade.cancel();
+   shadow.remove();
    for(const motion of faces)motion.cancel();
    if(card._flipMotion!==turn)return;
    card._flipMotion=null;

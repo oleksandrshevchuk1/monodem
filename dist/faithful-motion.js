@@ -40,7 +40,7 @@ expandTransition=function(from,to,opening){
  // Let the compositor interpolate the two exact poses as one continuous 3D transform.
  const planeFrames=[{transform:localMatrix(startRelative)},{transform:localMatrix(endRelative)}];
  // Keep the turn edge-on to the same camera before pitching the visible front into Home.
- const pitchStart=.30,landingEase='cubic-bezier(.32,.72,0,1)';
+ const pitchStart=.26,landingEase='cubic-bezier(.32,.72,0,1)';
  if(rear)planeFrames.splice(1,0,{offset:pitchStart,transform:planeFrames[0].transform,easing:landingEase});
  const frames=[{transform:new DOMMatrix().translate(sourceLayout.x-base.x,sourceLayout.y-base.y).toString()},{transform:new DOMMatrix().toString()}];
  if(rear){
@@ -54,7 +54,8 @@ expandTransition=function(from,to,opening){
  // Keep shadows and corner masks on static layers during the transform.
  art.style.borderRadius=targetRadius;
  plane.style.borderRadius=targetRadius;
- body.style.boxShadow=getComputedStyle(to).boxShadow;
+ const targetShadow=getComputedStyle(to).boxShadow;
+ if(!rear)body.style.boxShadow=targetShadow;
  const material=art.querySelector('.card-material'),targetMaterial=to.querySelector('.card-material');
  if(material&&targetMaterial)material.animate([{opacity:materialStart??getComputedStyle(targetMaterial).opacity},{opacity:getComputedStyle(targetMaterial).opacity}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});
  const reflection=art.querySelector('.card-glint'),targetReflection=to.querySelector('.card-glint');
@@ -64,14 +65,32 @@ expandTransition=function(from,to,opening){
   const perspective=(from.cardPerspective||1000)*width/source.width;
   plane.style.perspective=`${perspective}px`;
   plane.style.perspectiveOrigin='50% 50%';
-  const yaw=startAngle===180?-180:-360+startAngle;
+  // Transform keyframes work on Safari versions without registered CSS properties.
+  const yaw=startAngle-360;
+  const rotate=(angle,roll)=>`rotateZ(${roll}deg) rotateY(${angle}deg)`;
+  const duration=350,easing='cubic-bezier(.32,.25,.6,.82)',timing={duration,easing,fill:'both'};
   body.animate([
-   {'--card-return-yaw':yaw+'deg','--card-return-roll':'0deg'},
-   {offset:.19,'--card-return-yaw':Math.min(yaw,-214)+'deg','--card-return-roll':'-18deg'},
-   {offset:.50,'--card-return-yaw':Math.min(yaw,-270)+'deg','--card-return-roll':'-34deg'},
-   {offset:.78,'--card-return-yaw':'-330deg','--card-return-roll':'17deg'},
-   {'--card-return-yaw':'-360deg','--card-return-roll':'0deg'}
-  ],{duration:350,easing:'cubic-bezier(.32,.25,.6,.82)',fill:'both'});
+   {transform:rotate(yaw,0)},
+   {offset:.19,transform:rotate(Math.min(yaw,-214),-18)},
+   {offset:.50,transform:rotate(-270,-34)},
+   {offset:.64,transform:rotate(-296,24)},
+   {offset:.78,transform:rotate(-330,12)},
+   {transform:rotate(-360,0)}
+  ],timing);
+  // Both faces switch at the exact keyframe where the card is edge-on.
+  for(const side of ['front','back']){
+   const initial=side==='back'?1:0,final=1-initial;
+   art.querySelector('.bank-card-'+side).animate([
+    {offset:0,opacity:initial,easing:'steps(1,end)'},
+    {offset:.5,opacity:final},
+    {offset:1,opacity:final}
+   ],timing);
+  }
+  const shadow=document.createElement('span');
+  shadow.className='card-motion-shadow';
+  shadow.style.boxShadow=targetShadow;
+  plane.prepend(shadow);
+  shadow.animate([{opacity:0},{offset:.67,opacity:0},{opacity:1}],{duration:460,easing:'linear',fill:'both'});
  }else if(interruptedFront){
   plane.style.perspective=`${(from.cardPerspective||1000)*width/source.width}px`;
   body.animate([{transform:`rotateY(${startAngle}deg)`},{transform:'rotateY(0deg)'}],{duration,easing:landingEase,fill:'both'});
@@ -97,7 +116,7 @@ function bindHomeAllOperations(){homeOperationsCleanup?.();const app=$('#app');l
  homeOperationsCleanup=()=>{app.removeEventListener('pointerdown',pd);document.removeEventListener('pointermove',pm);document.removeEventListener('pointerup',pu);document.removeEventListener('pointercancel',pu);app.removeEventListener('touchstart',ts);document.removeEventListener('touchmove',tm);document.removeEventListener('touchend',te);document.removeEventListener('touchcancel',te);homeOperationsCleanup=null};
 }
 const detailBeforeOriginalPatterns=detail;detail=function(){const t=currentTx(),template=document.createElement('template');template.innerHTML=detailBeforeOriginalPatterns();if(!t)return template.innerHTML;template.content.querySelectorAll('.operation-pattern-glyphs').forEach(el=>el.remove());const pattern=template.content.querySelector('.reference-operation-pattern');if(pattern)pattern.dataset.originalPattern=t.amount>0?'income':'expense';if(t.amount>0){template.content.querySelectorAll('.receipt-link,[data-action=share-receipt],[data-action=receipt]').forEach(el=>el.remove());const generic=template.content.querySelector('.incoming-avatar img[src$="incoming-symbol.png"]');if(generic)generic.src='assets/reference/incoming-generic-reference.png'}return template.innerHTML};
-cardPage=function(){const c=activeCard(),settings=state.cardSettings[c.id]||{};return `<div class="toolbar card-close"><button class="back" data-action="back" aria-label="Р—Р°РєСЂРёС‚Рё">${icon('x')}</button></div><div class="page card-settings"><button class="expanded-card ${cardFlipped?'flipped':''}" data-action="flip-card" aria-label="РџРµСЂРµРІРµСЂРЅСѓС‚Рё РєР°СЂС‚РєСѓ">${cardArtwork(c)}</button><button class="payment-settings" data-action="payment-settings"><img class="icon" src="assets/reference/gear.png" alt=""><span>РќР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ РѕРїР»Р°С‚<small>Р”РѕРґР°С‚РєРѕРІС– РїРµСЂРµРІС–СЂРєРё</small></span></button><h2>${esc(c.account)}</h2><section class="settings-group">${button('apple-pay','РќР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ Apple Pay','gear','РћР±СЂР°С‚Рё СЃРєС–РЅ РєР°СЂС‚РєРё вЂ” Сѓ РЅР°СЃ С—С… Р±Р°РіР°С‚Рѕ').replace(icon('gear'),uiIcon('apple-native'))}${button('toggle-block',settings.blocked?'Р РѕР·Р±Р»РѕРєСѓРІР°С‚Рё РєР°СЂС‚РєСѓ':'Р—Р°Р±Р»РѕРєСѓРІР°С‚Рё РєР°СЂС‚РєСѓ','lock-key','Р’Рё Р·Р°РІР¶РґРё Р·РјРѕР¶РµС‚Рµ С—С— СЂРѕР·Р±Р»РѕРєСѓРІР°С‚Рё')}${button('credit-info','Р—РјС–РЅРёС‚Рё РєСЂРµРґРёС‚РЅРёР№ Р»С–РјС–С‚','wallet',`РџРѕС‚РѕС‡РЅРёР№ Р»С–РјС–С‚ ${displayMoney(state.creditLimit)} в‚ґ`)}</section><section class="settings-group">${button('nav','РџС–РґРїРёСЃРєРё С‚Р° СЃРµСЂРІС–СЃРё','arrows-clockwise','РљРµСЂСѓРІР°РЅРЅСЏ СЃРїРёСЃР°РЅРЅСЏРјРё Р· РєР°СЂС‚РєРё','data-page="subscriptions"').replace(icon('arrows-clockwise'),'<svg class="icon subscription-mark" viewBox="0 0 28 28" aria-hidden="true"><text x="2" y="22">@</text></svg>')}</section><section class="settings-group">${button('plastic','Р’РёРїСѓСЃС‚РёС‚Рё РїР»Р°СЃС‚РёРєРѕРІСѓ РєР°СЂС‚РєСѓ','credit-card-fill')}${button('reissue','РџРµСЂРµРІРёРїСѓСЃС‚РёС‚Рё РєР°СЂС‚РєСѓ','arrow-square-in')}${button('card-status','РџС–РґРІРёС‰РёС‚Рё СЃС‚Р°С‚СѓСЃ РєР°СЂС‚РєРё','star')}${button('pin-info','РќР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ РџР†Рќ-РєРѕРґСѓ','magnifying-glass')}${button('nav','Р”РѕРґР°С‚РєРѕРІС– РєР°СЂС‚РєРё','credit-card','РљР°СЂС‚РєРё mono С‚Р° РђРўР‘','data-page="cards"')}${button('card-details','Р РµРєРІС–Р·РёС‚Рё РєР°СЂС‚РєРё','receipt','Р”Р»СЏ РїРѕРїРѕРІРЅРµРЅРЅСЏ Р·Р° IBAN')}${button('card-statement','РќР°РґС–СЃР»Р°С‚Рё РІРёРїРёСЃРєСѓ Р·Р° РєР°СЂС‚РєРѕСЋ','receipt-fill')}</section></div>`};
+cardPage=function(){const c=activeCard(),settings=state.cardSettings[c.id]||{};return `<div class="toolbar card-close"><button class="back" data-action="back" aria-label="Закрити">${icon('x')}</button></div><div class="page card-settings"><button class="expanded-card ${cardFlipped?'flipped':''}" data-action="flip-card" aria-label="Перевернути картку">${cardArtwork(c)}</button><button class="payment-settings" data-action="payment-settings"><img class="icon" src="assets/reference/gear.png" alt=""><span>Налаштування оплат<small>Додаткові перевірки</small></span></button><h2>${esc(c.account)}</h2><section class="settings-group">${button('apple-pay','Налаштування Apple Pay','gear','Обрати скін картки — у нас їх багато').replace(icon('gear'),uiIcon('apple-native'))}${button('toggle-block',settings.blocked?'Розблокувати картку':'Заблокувати картку','lock-key','Ви завжди зможете її розблокувати')}${button('credit-info','Змінити кредитний ліміт','wallet',`Поточний ліміт ${displayMoney(state.creditLimit)} ₴`)}</section><section class="settings-group">${button('nav','Підписки та сервіси','arrows-clockwise','Керування списаннями з картки','data-page="subscriptions"').replace(icon('arrows-clockwise'),'<svg class="icon subscription-mark" viewBox="0 0 28 28" aria-hidden="true"><text x="2" y="22">@</text></svg>')}</section><section class="settings-group">${button('plastic','Випустити пластикову картку','credit-card-fill')}${button('reissue','Перевипустити картку','arrow-square-in')}${button('card-status','Підвищити статус картки','star')}${button('pin-info','Налаштування ПІН-коду','magnifying-glass')}${button('nav','Додаткові картки','credit-card','Картки mono та АТБ','data-page="cards"')}${button('card-details','Реквізити картки','receipt','Для поповнення за IBAN')}${button('card-statement','Надіслати виписку за карткою','receipt-fill')}</section></div>`};
 actions['card-status']=()=>navigate('platinum');actions['card-statement']=()=>navigate('statement');
 const renderBeforeMainOperations=render;render=function(){homeOperationsCleanup?.();renderBeforeMainOperations();if(!adminMode&&route.page==='home')bindHomeAllOperations()};
 render();
