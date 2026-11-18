@@ -81,6 +81,7 @@
 
 /* Each live face is a flat, prepainted plane. A local camera avoids nested 3D layers. */
 .expanded-card.flipping{box-shadow:none!important}
+.card-motion-shadow{position:absolute;inset:0;border-radius:inherit;pointer-events:none}
 .expanded-card .bank-card,.expanded-card.flipped .bank-card{transform:none;transition:none}
 .expanded-card :is(.bank-card-front,.bank-card-back){
  backface-visibility:visible;

@@ -1,6 +1,6 @@
 'use strict';
 
-const cardTurnEase = 'cubic-bezier(.77,0,.175,1)';
+const cardTurnEase = 'ease';
 
 function animateCardFaces(art,start,end,timing){
  const crossing=(90-start)/(end-start);
@@ -111,16 +111,23 @@ function animateCardFaces(art,start,end,timing){
   card._stopFlip?.();
   if(shouldReduceMotion())return;
   const end=cardFlipped?180:0;
-  const duration=280*Math.abs(end-start)/180;
+  const duration=600*Math.abs(end-start)/180;
   if(duration<1)return;
   const timing={duration,easing:cardTurnEase,fill:'both'};
+  const shadow=document.createElement('span');
+  shadow.className='card-motion-shadow';
+  shadow.style.boxShadow=getComputedStyle(card).boxShadow;
+  card.prepend(shadow);
   card.classList.add('flipping');
+  const shade=shadow.animate([{opacity:0},{offset:.88,opacity:0},{opacity:1}],{...timing,easing:'linear'});
   const faces=animateCardFaces(art,start,end,timing);
   const startTime=document.timeline.currentTime;
-  if(startTime!==null)for(const motion of faces)motion.startTime=startTime;
+  if(startTime!==null)for(const motion of [shade,...faces])motion.startTime=startTime;
   const cleanup=()=>{
    if(card._stopFlip!==cleanup)return;
    card._stopFlip=null;
+   shade.cancel();
+   shadow.remove();
    for(const motion of faces)motion.cancel();
    card.classList.remove('flipping');
   };

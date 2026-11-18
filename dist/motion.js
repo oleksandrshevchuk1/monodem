@@ -47,8 +47,44 @@ expandTransition=function(from,to,opening){
   requestAnimationFrame(()=>{if(softCardSession!==session)return;to.style.opacity='';node.remove();softCardSession=null;delete document.documentElement.dataset.gesture;restoreOperationsNav()});
  }).catch(()=>{})
 };
-// Only the card strip follows the pointer. Account details stay anchored.
+// The full account page follows the finger; header and navigation keep their anchors.
 const accountPreviewCache=new Map();let previewIdleTask=0;
+const prepareAccountSwipe=prepareSwipe,moveAccountSwipe=moveHomeSwipe,cleanupAccountSwipe=cleanupSwipe;
+prepareSwipe=function(){
+ const layer=prepareAccountSwipe();
+ if(layer.pages)return layer;
+ const pane=$('.home-content');
+ layer.movingContent=[...pane.children].filter(el=>el.matches(homeAccountIntro+',.home-actions,.operation-panel'));
+ layer.pages=[];
+ for(const index of [layer.index-1,layer.index+1]){
+  if(index<0||index>allCards().length)continue;
+  const content=accountPreviewCache.get(index)||buildAccountPreview(index);
+  accountPreviewCache.delete(index);
+  const preview=document.createElement('div');
+  preview.className='account-swipe-preview';
+  preview.inert=true;
+  preview.append(content);
+  preview.style.transform=`translate3d(${(index-layer.index)*layer.width}px,0,0)`;
+  layer.pages.push({node:preview,index});
+ }
+ pane.append(...layer.pages.map(page=>page.node));
+ for(const {node} of layer.pages)fitMonetaryLabels(node);
+ return layer;
+};
+moveHomeSwipe=function(distance,rubber=true){
+ moveAccountSwipe(distance,rubber);
+ const layer=swipeLayers;
+ const translation=`translate3d(${layer.dx}px,0,0)`;
+ for(const element of layer.movingContent)element.style.transform=translation;
+ for(const {node,index} of layer.pages)node.style.transform=`translate3d(${(index-layer.index)*layer.width+layer.dx}px,0,0)`;
+};
+cleanupSwipe=function(){
+ if(swipeLayers){
+  swipeLayers.pages?.forEach(page=>page.node.remove());
+  swipeLayers.movingContent?.forEach(element=>element.style.transform='');
+ }
+ cleanupAccountSwipe();
+};
 function settleHomeSwipe(layer,target,complete){
  if(typeof preciseCardScene!=='undefined'&&preciseCardScene){
   return settleCardStrip(()=>layer.dx,dx=>moveHomeSwipe(dx,false),target,complete);
@@ -56,20 +92,25 @@ function settleHomeSwipe(layer,target,complete){
  const from=layer.dx;
  const options={duration:220,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'};
  const position=x=>({transform:`translate3d(${x}px,0,0)`});
+ const animateX=(element,start,end)=>element.animate([position(start),position(end)],options);
  updateSwipeTheme(layer,from||target);
- const track=layer.track.animate([position(cardTrackOffset(layer,from)),position(cardTrackOffset(layer,target))],options);
- const background=layer.background.animate([
+ const track=animateX(layer.track,cardTrackOffset(layer,from),cardTrackOffset(layer,target));
+ const animations=[track,...layer.movingContent.map(element=>animateX(element,from,target))];
+ for(const {node,index} of layer.pages){
+  const offset=(index-layer.index)*layer.width;
+  animations.push(animateX(node,offset+from,offset+target));
+ }
+ animations.push(layer.background.animate([
   {opacity:Math.min(1,Math.abs(from)/layer.width)},
   {opacity:Math.min(1,Math.abs(target)/layer.width)}
- ],options);
+ ],options));
  setCardSelectorIndex(layer.pill,layer.index-Math.round(target/layer.width));
  let ended=false;
  const stop=(dx,commit)=>{
   if(ended)return;
   ended=true;
   if(swipeLayers===layer)moveHomeSwipe(dx,false);
-  track.cancel();
-  background.cancel();
+  animations.forEach(animation=>animation.cancel());
   if(commit&&swipeLayers===layer)complete();
  };
  track.finished.then(()=>stop(target,true)).catch(()=>{});
@@ -94,7 +135,7 @@ function releaseOperationsHome(home){
 function endOperationsEntrance(){const scene=operationsScene;if(scene?.phase!=='opening')return;scene.motion.cancel();if(route.page==='history')$('#screen').append(scene.page);$('#screen').style.minHeight=scene.minHeight;scene.layer.remove();releaseOperationsHome(scene.home);operationsScene=null;delete document.documentElement.dataset.gesture;restoreOperationsNav()}
 function makeOperationsLayer(page){const rect=$('#app').getBoundingClientRect(),layer=document.createElement('div');layer.className='history-gesture-drawer soft-operations-layer history';Object.assign(layer.style,{left:rect.left+'px',width:rect.width+'px',height:innerHeight+'px',overflow:'hidden'});layer.append(page);document.body.append(layer);return layer}
 const paintBeforeOperations=paint;
-paint=function(direction){if(route.page!=='history'||skipPageMotion||shouldReduceMotion())return paintBeforeOperations(direction);pageTransition?.skipTransition();pageAnimation?.cancel();endOperationsEntrance();operationsHome=$('#app').classList.contains('home')?freezeHome():null;render();const page=$('.all-operations-page');if(!page)return;const screen=$('#screen'),minHeight=screen.style.minHeight;screen.style.minHeight=screen.offsetHeight+'px';const layer=makeOperationsLayer(page),home=operationsHome,scene={phase:'opening',page,layer,home,y:0,minHeight};operationsScene=scene;document.documentElement.dataset.gesture='active';if(home){home.style.opacity='1';document.body.append(home);home.animate([{opacity:1},{opacity:0}],{duration:240,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'})}operationsNav(1,0,240);scene.motion=layer.animate([{transform:'translate3d(0,32px,0)',opacity:0},{transform:'translate3d(0,0,0)',opacity:1}],{duration:240,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});scene.motion.finished.then(()=>{if(operationsScene===scene)endOperationsEntrance()}).catch(()=>{})};
+paint=function(direction){if(route.page!=='history'||skipPageMotion||shouldReduceMotion())return paintBeforeOperations(direction);pageTransition?.skipTransition();pageAnimation?.cancel();endOperationsEntrance();operationsHome=$('#app').classList.contains('home')?freezeHome():null;render();const page=$('.all-operations-page');if(!page)return;const screen=$('#screen'),minHeight=screen.style.minHeight;screen.style.minHeight=screen.offsetHeight+'px';const layer=makeOperationsLayer(page),home=operationsHome,scene={phase:'opening',page,layer,home,y:0,minHeight};operationsScene=scene;document.documentElement.dataset.gesture='active';if(home){home.style.opacity='1';const content=home.querySelector('.home-content');if(content)content.style.transform='';document.body.append(home);home.animate([{opacity:1},{opacity:0}],{duration:300,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});home.querySelector('.home-content')?.animate([{transform:'translate3d(0,0,0)'},{transform:'translate3d(0,-360px,0)'}],{duration:300,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'})}operationsNav(1,0,300);scene.motion=layer.animate([{transform:'translate3d(0,360px,0)',opacity:0},{transform:'translate3d(0,0,0)',opacity:1}],{duration:320,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});scene.motion.finished.then(()=>{if(operationsScene===scene)endOperationsEntrance()}).catch(()=>{})};
 function startOperationsScene(){if(operationsScene?.phase==='opening')endOperationsEntrance();if(operationsScene)return operationsScene;const page=$('.all-operations-page');if(!page)return null;const scroll=pageScrollY(),screen=$('#screen'),minHeight=screen.style.minHeight;
  screen.style.minHeight=screen.offsetHeight+'px';
  const layer=makeOperationsLayer(page);

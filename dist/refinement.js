@@ -156,16 +156,14 @@ function finishCardSelection(index){
  carouselIndex=index;
  if(!newCardSelected)state.activeCard=cards[index].id;
  const pane=$('.home-content');
- if(route.page==='home'&&pane){
-  const preview=accountPreviewCache.get(index)||buildAccountPreview(index);
-  accountPreviewCache.delete(index);
+ const preview=swipeLayers?.pages?.find(page=>page.index===index)?.node.firstElementChild;
+ if(route.page==='home'&&preview){
   for(const slot of [homeAccountIntro,'.home-actions','.operation-panel']){
    pane.querySelector(slot).replaceWith(preview.querySelector(slot));
   }
   pane.classList.toggle('new-card-selected',newCardSelected);
   cleanupSwipe();
   refreshSelectedCard();
-  fitMonetaryLabels(pane);
  }else{
   cleanupSwipe();
   if(route.page==='home')render();
