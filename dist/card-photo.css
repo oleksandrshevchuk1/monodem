@@ -1,6 +1,6 @@
 @font-face{font-family:CardTech;src:url('assets/fonts/card-tech-mono.ttf') format('truetype');font-weight:400;font-display:swap}
 /* Only the lettering changes; surfaces keep the recorded design. */
-.card-face .card-printed-number,.expanded-card .card-printed-number,.precise-card-surface .card-printed-number,.soft-card-surface .card-printed-number{font-family:CardTech,monospace!important;font-size:7.2cqw!important;letter-spacing:.26cqw!important;line-height:1.2!important;font-weight:400}
+.card-face .card-printed-number,.expanded-card .card-printed-number,.precise-card-surface .card-printed-number,.soft-card-surface .card-printed-number{font-family:CardTech,monospace!important;font-size:8.1cqw!important;letter-spacing:.26cqw!important;line-height:1.2!important;font-weight:400}
 .bank-card .card-holder,.bank-card .card-expiry{font-family:CardTech,monospace}
 .bank-card .card-back-number:before{content:none}
 
@@ -23,7 +23,7 @@
 }
 :is(.expanded-card,.precise-card-surface,.soft-card-surface) .bank-card .card-holder{
  /* 19 characters at 0.54em plus tracking, with the trailing tracking excluded. */
- left:calc((100% - 19 * 7.2cqw * .54 - 18 * .26cqw) / 2);
+ left:calc((100% - 19 * 8.1cqw * .54 - 18 * .26cqw) / 2);
  max-width:65%;
  font-size:4.6cqw;
  line-height:1.15;
@@ -158,5 +158,4 @@
 .card-settings > .payment-settings small{font-size:13px;line-height:16px}
 .card-settings > .internet-limit > span{display:grid;gap:4px}
 .card-settings > .internet-limit progress{height:4px;margin:0}
-.card-settings > .internet-limit > .icon{border-radius:50%}
 .card-settings:has(.expanded-card .is-white) > .payment-settings{background:#1b2249}
