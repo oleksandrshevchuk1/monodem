@@ -347,7 +347,7 @@ paint = function(direction) {
 
   const width = app.clientWidth;
   const parallax = slidingTransferPages.has(route.page);
-  const options = {duration: parallax ? 360 : 280, easing: slideEase, fill: 'both'};
+  const options = {duration: parallax ? 300 : 280, easing: slideEase, fill: 'both'};
   const entrance = parallax
    ? animateSideSurfaces(app, snapshot, width, 0, options.duration)
    : app.animate([{transform: translateX(width)}, {transform: translateX(0)}], options);

@@ -77,7 +77,9 @@ detail=function(){
 (()=>{let press=null;const clear=()=>{press?.row.classList.remove('is-pressed');press=null};
  document.addEventListener('pointerdown',e=>{clear();const row=e.target.closest?.('.reference-operation-body .menu-row');if(row&&e.isPrimary){press={row,x:e.clientX,y:e.clientY};row.classList.add('is-pressed')}},{capture:true,passive:true});
  document.addEventListener('pointermove',e=>{if(press&&Math.hypot(e.clientX-press.x,e.clientY-press.y)>10)clear()},{passive:true});
- for(const event of ['pointerup','pointercancel'])document.addEventListener(event,clear,true);window.addEventListener('blur',clear);
+ for(const event of ['pointerup','pointercancel'])document.addEventListener(event,clear,true);
+ window.addEventListener('scroll',clear,{passive:true,capture:true});
+ window.addEventListener('blur',clear);
 })();
 
 // The patterned strip and the round bank mark share one sticky boundary.

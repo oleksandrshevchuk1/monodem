@@ -46,7 +46,9 @@
 /* Full-width hit areas and press feedback; gutters belong inside each row. */
 .reference-operation-body .detail-menu,.reference-operation-body .incoming-menu{padding-left:0!important;padding-right:0!important;overflow:hidden}
 .reference-operation-body .detail-menu>.menu-row,.reference-operation-body .incoming-menu>.menu-row{padding-left:24px;padding-right:15px;margin-left:0;width:100%;border-radius:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-.reference-operation-body .detail-menu>.menu-row:active,.reference-operation-body .incoming-menu>.menu-row:active{background:#ffffff12;border-radius:0}
+@media (hover: hover) and (pointer: fine) {
+ .reference-operation-body .detail-menu>.menu-row:active,.reference-operation-body .incoming-menu>.menu-row:active{background:#ffffff12;border-radius:0}
+}
 .reference-operation-body .detail-menu>.menu-row+.menu-row:before{left:73px}
 .transfer-action-glyph{width:22px;height:22px;flex:none;color:#e1e1e1;shape-rendering:geometricPrecision}
 
@@ -59,7 +61,15 @@
 
 /* Keep only the bank strip and its shallow gray edge above the scrolling content. */
 .reference-operation.has-operation-boundary { padding-top: 0; }
-.operation-boundary-slot { position: sticky; top: 0; z-index: 6; pointer-events: none; }
+/* Keep the pinned artwork and moving content on separate paint layers. */
+#app.detail #screen:has(.has-operation-boundary) { backface-visibility: visible; }
+.operation-boundary-slot {
+ position: sticky;
+ top: 0;
+ z-index: 6;
+ pointer-events: none;
+ transform: translateZ(0);
+}
 #app.detail .operation-boundary-toolbar,
 .side-page-snapshot.detail .operation-boundary-toolbar {
  position: absolute;
@@ -92,11 +102,19 @@
  pointer-events: none;
 }
 
-/* Action rows finish above the home indicator and span the operation surface. */
+/* Extend the action surface through the bottom safe area. */
 .bank-reference-detail .reference-operation-body:has(> .detail-menu) {
- padding-bottom: max(52px, calc(var(--safe-bottom, 0px) + 26px));
+ padding-bottom: 0;
 }
 .bank-reference-detail .reference-operation-body > .detail-menu {
  margin-inline: -16px;
+ padding-bottom: max(52px, calc(var(--safe-bottom, 0px) + 26px));
  border-radius: 0;
+}
+.bank-reference-detail .detail-menu > .menu-row:last-child::after {
+ content: "";
+ position: absolute;
+ inset: auto 0 0 73px;
+ border-top: 1px solid #414143;
+ pointer-events: none;
 }
