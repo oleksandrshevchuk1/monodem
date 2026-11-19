@@ -114,7 +114,71 @@ modal=function(...args){delete $('#modal').dataset.kind;basicModal(...args)};
 function statsMetricIcon(tag){return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${tag?'<circle cx="12" cy="12" r="10" fill="currentColor"/><path d="m10 7-2 10m8-10-2 10M7 10h11M6 14h11" fill="none" stroke="#616176" stroke-width="1.7"/>':'<path fill="currentColor" fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20ZM7 7h4v4H7Zm6 0h4v4h-4Zm-6 6h4v4H7Zm6 0h4v4h-4Z"/>'}</svg>`}
 function statsArrow(income){return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${income?'M18 6 6 18M6 8v10h10':'M6 18 18 6M8 6h10v10'}"/></svg>`}
 function capitalIcon(){return `<svg class="icon" viewBox="0 0 28 28" aria-hidden="true" fill="currentColor"><ellipse cx="10" cy="6" rx="6" ry="3"/><path d="M4 9c3 2.4 9 2.4 12 0v4c-3 2.5-9 2.5-12 0Zm0 7c3 2.4 9 2.4 12 0v4c-3 2.5-9 2.5-12 0Z"/><ellipse cx="21" cy="13" rx="5" ry="2.5"/><path d="M16 16c3 2 7 2 10 0v4c-3 2-7 2-10 0Zm0 7c3 2 7 2 10 0v2c-3 2-7 2-10 0Z"/></svg>`}
-function initStats(){const track=$('#stats-carousel');if(!track)return;const cards=[...track.querySelectorAll('.stats-summary')],positions=cards.map(x=>x.offsetLeft-cards[0].offsetLeft);let motion=null,wheelTimer;const nearest=x=>Math.abs(x-positions[0])<=Math.abs(x-positions[1])?0:1;const dots=index=>document.querySelectorAll('.stats-dots button').forEach((b,i)=>b.classList.toggle('selected',i===index));const select=index=>{const previous=statsKind;statsKind=index?'income':'expense';if(previous!==statsKind){const summary=cards[index];animateSummaryValue(summary.querySelector(':scope>strong'),0,Number(summary.dataset.total),statsKind)}dots(index);updateStatsGroups();const list=$('#stats-group-list');if(list&&!shouldReduceMotion())list.animate([{opacity:.2},{opacity:1}],{duration:180,easing:'ease-out'})};const go=(kind,velocity=0)=>{motion?.cancel();const index=kind==='income'?1:0,target=Math.min(track.scrollWidth-track.clientWidth,positions[index]);select(index);if(shouldReduceMotion()){track.scrollLeft=target;return}motion=physicalSettle(()=>track.scrollLeft,x=>track.scrollLeft=x,target,velocity,()=>{})};track.scrollLeft=positions[statsKind==='income'?1:0];track.tabIndex=0;track.setAttribute('aria-label','Доходи та витрати: гортайте ліворуч або праворуч');bindHorizontalGesture(track,{read:()=>-track.scrollLeft,write:x=>track.scrollLeft=-x,cancel:()=>motion?.cancel(),settle:v=>go(nearest(track.scrollLeft-v*.12)?'income':'expense',-v)});track.addEventListener('scroll',()=>dots(nearest(track.scrollLeft)),{passive:true});track.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();go(e.key==='ArrowRight'?'income':'expense')}});track.addEventListener('wheel',e=>{if(Math.abs(e.deltaX)>Math.abs(e.deltaY)){e.preventDefault();motion?.cancel();track.scrollLeft+=e.deltaX;clearTimeout(wheelTimer);wheelTimer=setTimeout(()=>go(nearest(track.scrollLeft)?'income':'expense'),90)}},{passive:false});statsController={go,cancel:()=>motion?.cancel()}}
+function initStats(){
+  statsController?.cancel();
+  statsController=null;
+  const track=$('#stats-carousel');
+  if(!track)return;
+
+  const cards=[...track.querySelectorAll('.stats-summary')];
+  const position=index=>Math.min(track.scrollWidth-track.clientWidth,cards[index].offsetLeft-cards[0].offsetLeft);
+  const nearest=x=>x<=position(1)/2?0:1;
+  const dots=[...document.querySelectorAll('.stats-dots button')];
+  let motion,wheelTimer,activeIndex;
+  const showDot=index=>{
+    if(activeIndex===index)return;
+    activeIndex=index;
+    dots.forEach((button,i)=>button.classList.toggle('selected',i===index));
+  };
+  const cancel=()=>{
+    clearTimeout(wheelTimer);
+    motion?.cancel();
+  };
+  const go=(kind,velocity=0)=>{
+    cancel();
+    if(!track.isConnected)return;
+    const index=kind==='income'?1:0;
+    const target=position(index);
+    if(statsKind!==kind){
+      statsKind=kind;
+      const summary=cards[index];
+      animateSummaryValue(summary.querySelector(':scope>strong'),0,Number(summary.dataset.total),kind);
+      updateStatsGroups();
+      activeIndex=index;
+      if(!shouldReduceMotion())$('#stats-group-list')?.animate([{opacity:.2},{opacity:1}],{duration:180,easing:'ease-out'});
+    }
+    if(shouldReduceMotion()||track.scrollLeft===target){
+      track.scrollLeft=target;
+      showDot(index);
+      return;
+    }
+    motion=physicalSettle(()=>track.scrollLeft,x=>{track.scrollLeft=x},target,velocity,()=>showDot(index));
+  };
+
+  track.scrollLeft=position(statsKind==='income'?1:0);
+  track.tabIndex=0;
+  track.setAttribute('aria-label','Доходи та витрати: гортайте ліворуч або праворуч');
+  bindHorizontalGesture(track,{
+    read:()=>-track.scrollLeft,
+    write:x=>{track.scrollLeft=-x},
+    cancel,
+    settle:v=>go(nearest(track.scrollLeft-v*.12)?'income':'expense',-v)
+  });
+  track.addEventListener('scroll',()=>showDot(nearest(track.scrollLeft)),{passive:true});
+  track.addEventListener('keydown',e=>{
+    if(!['ArrowLeft','ArrowRight'].includes(e.key))return;
+    e.preventDefault();
+    go(e.key==='ArrowRight'?'income':'expense');
+  });
+  track.addEventListener('wheel',e=>{
+    if(Math.abs(e.deltaX)<=Math.abs(e.deltaY))return;
+    e.preventDefault();
+    cancel();
+    track.scrollLeft+=e.deltaX;
+    wheelTimer=setTimeout(()=>go(nearest(track.scrollLeft)?'income':'expense'),90);
+  },{passive:false});
+  statsController={go,cancel};
+}
 
 function bindRefresh(){}
 
@@ -171,7 +235,8 @@ function captureBankSurface(preserveArtwork=false){const app=$('#app'),rect=app.
 function fitMonetaryLabels(){for(const [selector,max,min] of [['.home-balance strong',46,26],['.stats-summary>strong',46,24],['.capital-total>strong',38,22],['.compact-card>strong',21,12],['.tx-amount',18,12]]){document.querySelectorAll(selector).forEach(el=>{if(el.dataset.numberMotion==='1')return;el.style.fontSize=max+'px';const available=el.clientWidth;if(available&&el.scrollWidth>available)el.style.fontSize=Math.max(min,Math.floor(max*available/el.scrollWidth))+'px'})}}
 function animateSummaryValue(el,from,to,kind){if(from===to||shouldReduceMotion())return;const available=el.clientWidth,style=getComputedStyle(el),canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');ctx.font=style.font;const label=n=>(kind==='expense'?'−':'')+displayMoney(n)+' ₴',width=Math.max(ctx.measureText(label(from)).width,ctx.measureText(label(to)).width);el.style.fontSize=Math.max(24,Math.min(parseFloat(style.fontSize),parseFloat(style.fontSize)*available/width))+'px';el.dataset.numberMotion='1';const start=performance.now();const step=now=>{if(!el.isConnected)return;const t=Math.min(1,(now-start)/240),n=from+(to-from)*(1-Math.pow(1-t,3));el.textContent=label(n);if(t<1)requestAnimationFrame(step);else{el.textContent=label(to);delete el.dataset.numberMotion}};requestAnimationFrame(step)}
 const beforeAmountRender=render;
-render=function(){const previous=route.page==='analytics'?new Map([...document.querySelectorAll('.stats-summary')].map(x=>[x.dataset.kind,Number(x.dataset.total)])):null;beforeAmountRender();requestAnimationFrame(()=>{fitMonetaryLabels();if(previous?.size)document.querySelectorAll('.stats-summary').forEach(x=>{if(previous.has(x.dataset.kind))animateSummaryValue(x.querySelector(':scope>strong'),previous.get(x.dataset.kind),Number(x.dataset.total),x.dataset.kind)})});document.fonts.ready.then(fitMonetaryLabels)};
+let refreshingStatsOverview=false;
+render=function(){const previous=route.page==='analytics'?new Map([...document.querySelectorAll('.stats-summary')].map(x=>[x.dataset.kind,Number(x.dataset.total)])):null;refreshingStatsOverview=Boolean(previous?.size);try{beforeAmountRender()}finally{refreshingStatsOverview=false}requestAnimationFrame(()=>{fitMonetaryLabels();if(previous?.size)document.querySelectorAll('.stats-summary').forEach(x=>{if(previous.has(x.dataset.kind))animateSummaryValue(x.querySelector(':scope>strong'),previous.get(x.dataset.kind),Number(x.dataset.total),x.dataset.kind)})});document.fonts.ready.then(fitMonetaryLabels)};
 
 render();
 
