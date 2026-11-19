@@ -2,13 +2,37 @@
 // Screens and assets measured from RPReplay_Final1794735286; data remains local.
 let referenceImage=(name,cls='')=>`<img class="${cls}" src="assets/reference/${name}.png" alt="" draggable="false">`;
 const demoBanks=[{id:'mono',name:'monobank',bankType:'mono',logo:null},{id:'pumb',name:'ПУМБ',bankType:'other',logo:'assets/reference/bank-pumb.png'},{id:'sense',name:'Sense Bank',bankType:'other',logo:'assets/reference/bank-sense.png'},{id:'other',name:'Інший банк',bankType:'other',logo:null}];
+// BIN data adapted from ramoona/banks-db (CC BY 4.0).
+// https://github.com/ramoona/banks-db/tree/main/banks/ua
+// Snapshot 2026-11-19. Names and local artwork mappings adapted here.
+const automaticBankBins = [{"id":"mono","prefixes":[444111,537541],"name":"monobank"},{"id":"privat","prefixes":[410653,414949,414960,414962,414963,423396,424600,432575,434158,440509,440535,440588,458122,462708,473118,473121,475538,476339,516798,516874,516875,516933,521153,521857,530217,532957,536354,544457,545709,552324,558335,558424],"name":"ПриватБанк"},{"id":"pumb","prefixes":[404170,406660,412717,419316,428337,431437,482415,510117,510536,512647,516059,516750,518778,518985,520173,521327,521514,521762,521832,523778,524729,524814,525410,525493,526858,530186,530359,533686,533731,537003,538814,539715,540892,540953,541271,542171,542521,544044,544187,545219,547650,548343,548919,549385,550250,552154,552611,553045,553053,557104,558262,558381,558591,670604,670832,676622,676652,676700,677210,677567,677701],"name":"ПУМБ (Перший Український Міжнародний Банк)"},{"id":"sense","prefixes":[410247,422605,423719,536364,543259,544904,547994],"name":"Sense Bank"},{"id":"credit-agricole","prefixes":[411948,512439,519745,520662,525822],"name":"Креді Агріколь Банк (Україна)"},{"id":"kredobank","prefixes":[438253],"name":"Кредобанк"},{"id":"oschadbank","prefixes":[515662,545265,555952,557744],"name":"Ощадбанк"},{"id":"otp","prefixes":[406760,406788,411749,416955,436323,471362,528534,533194,546886,547266],"name":"OTP Bank"},{"id":"pravex","prefixes":[404764,405247,409089,409388,409625,409881,461278,536444,541701,544142,552670,676274],"name":"ПРАВЕКС-БАНК"},{"id":"procredit","prefixes":[417679,433424],"name":"ПроКредит Банк (Украина)"},{"id":"raif","prefixes":[413062,414953,418844,423843,462775,512070,512557,512572,516913,518808,529919,532457,535160,536502,542465,543155,543759,545253,548658,548968,552657,557723,557881],"name":"Райффайзен Банк Аваль"},{"id":"ukreximbank","prefixes":[403520,406337,423297,427705,440272,478766,510140,515855,516882,518720,522473,522766,522872,523473,524876,527598,528953,529801,530004,530094,536270,539897,540381,540682,541740,541940,542031,543205,544510,547390,547734,547762,548390,548766,550617,552247,552571,552624,552735,553465,554966,557833,558311,558797,676895,676965,677046,677279,677325,677613],"name":"Укрэксимбанк"},{"id":"ukrgasbank","prefixes":[401800,403471,510449,512100,512743,516854,517725,517818,518654,521833,522654,522797,522967,524872,525672,525792,527412,528812,531007,531725,532343,539845,540305,540617,540637,543438,547313,547914,548883,549146,549582,549824,549896,553391,557110,670651,670669,670877,671103,677237,677490],"name":"УКРГАЗБАНК"},{"id":"ukrsib","prefixes":[407361,407368,417232,427830,434343,516930,529578,533037,535129],"name":"УКРСИББАНК"}];
+for(const bank of automaticBankBins){
+ if(!demoBanks.some(item=>item.id===bank.id)){
+  demoBanks.splice(demoBanks.length-1,0,{
+   id:bank.id,name:bank.name,bankType:bank.id==='mono'?'mono':'other',
+   logo:['privat','sense','pumb','raif','ukrsib'].includes(bank.id)?'assets/reference/bank-'+bank.id+'.png':null
+  });
+ }
+}
+const lookupBeforeAutomaticBins=bankForRecipient;
+bankForRecipient=function(number){
+ const card=normalizedCard(number);
+ const override=window.cabinetStorage?.getItem('recipient-bank:'+card);
+ const selected=demoBanks.find(bank=>bank.id===override);
+ if(selected)return {bankId:selected.id,bankName:selected.name,bankType:selected.bankType,logo:selected.logo};
+ const existing=lookupBeforeAutomaticBins(number);
+ if(existing.bankType==='mono'||existing.bankName&&existing.bankName!=='Інший банк')return existing;
+ const match=automaticBankBins.find(bank=>bank.prefixes.some(prefix=>card.startsWith(String(prefix))));
+ const bank=match&&demoBanks.find(item=>item.id===match.id);
+ return bank?{bankId:bank.id,bankName:bank.name,bankType:bank.bankType,logo:bank.logo}:existing;
+};
 function bankPreset(person){return demoBanks.find(b=>b.id===person?.bankId)||demoBanks.find(b=>b.id!=='other'&&(person?.bankName||'').toLowerCase().includes(b.name.toLowerCase()))||(person?.bankType==='mono'?demoBanks[0]:demoBanks[3])}
 function bankBadge(person){const bank=bankPreset(person);return bank.id==='mono'?'<b class="bank-badge mono-badge">m</b>':bank.logo?`<img class="bank-badge bank-mark bank-mark-${bank.id}" src="${bank.logo}" alt="${esc(bank.name)}" draggable="false">`:`<span class="bank-badge generic-bank">${icon('wallet')}</span>`}
 const previousRecipientPicture=recipientPicture;
 recipientPicture=function(person){return transferSymbol()+bankBadge(person)};
 function bankChoices(selected){return demoBanks.map(b=>`<button type="button" class="bank-choice" data-action="choose-recipient-bank" data-id="${b.id}"><span class="recipient-icon mono">${recipientPicture({bankId:b.id,bankType:b.bankType,bankName:b.name})}</span><span>${esc(b.name)}</span>${selected===b.id?icon('check'):''}</button>`).join('')}
 actions['recipient-bank']=()=>{if(!recipientDraft)return;modal('Банк одержувача',bankChoices(bankPreset(recipientDraft).id),null);$('#modal').dataset.kind='bank-picker'};
-actions['choose-recipient-bank']=b=>{const bank=demoBanks.find(x=>x.id===b.dataset.id);if(!bank||!recipientDraft)return;Object.assign(recipientDraft,{bankId:bank.id,bankName:bank.name,bankType:bank.bankType,logo:bank.logo});$('#modal').close();render()};
+actions['choose-recipient-bank']=b=>{const bank=demoBanks.find(x=>x.id===b.dataset.id);if(!bank||!recipientDraft)return;Object.assign(recipientDraft,{bankId:bank.id,bankName:bank.name,bankType:bank.bankType,logo:bank.logo});try{window.cabinetStorage?.setItem('recipient-bank:'+normalizedCard(recipientDraft.recipient),bank.id)}catch{}$('#modal').close();render()};
 const beforeBankAmount=transferAmountPage;
 transferAmountPage=function(){return beforeBankAmount().replace('<span class="recipient-icon ', '<button type="button" data-action="recipient-bank" aria-label="Вибрати банк одержувача" class="recipient-icon ').replace('</span><div>', '</button><div>')};
 function addBankAdminPicker(person,collection,id){
