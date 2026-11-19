@@ -34,3 +34,16 @@
 .home .operation-panel > .empty {
   padding-block: 16px;
 }
+
+/* Keep the operations panel edge continuous as the list extends below it. */
+.home .operation-panel {
+  border-radius: 28px 28px 0 0;
+  border-start-start-radius: 28px;
+  border-start-end-radius: 28px;
+  padding-block: 24px 12px;
+  corner-shape: squircle squircle round round;
+}
+
+.home:not(.swiping-cards) .operation-panel {
+  box-shadow: inset 0 1px 0 #ffffff0e;
+}

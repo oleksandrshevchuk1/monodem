@@ -85,3 +85,68 @@ body{font-family:-apple-system,BlinkMacSystemFont,DemoInter,'Helvetica Neue',Ari
 .transition-screen{min-height:100dvh;position:relative;overflow-wrap:break-word}.transition-nav{position:fixed;left:50%;transform:translateX(-50%);bottom:max(30px,env(safe-area-inset-bottom));width:min(355px,calc(100% - 38px));display:flex;gap:8px;z-index:15}.transition-nav[hidden]{display:none}
 .home .tx-content strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.stats-summary .summary-arrow .icon{height:28px;width:28px;opacity:1}
 .card-number-overlay{position:absolute;top:-24px;left:50%;transform:translateX(-50%);color:#d2daeb;font:14px/20px "Courier New",monospace;letter-spacing:1.25px;white-space:nowrap;padding:4px 7px;min-height:28px;transition:opacity 120ms ease-out}.card-number-overlay:active{opacity:.55}.card-printed-number{display:none;position:absolute;left:7%;top:51%;font:17px/24px "Courier New",monospace;letter-spacing:1.3px;color:#d2d2d5;white-space:nowrap}.expanded-card .card-printed-number,.card-transition .card-printed-number{display:block}.is-white .card-printed-number{color:#35394c}.card-transition-shade{position:absolute;inset:0;border-radius:inherit;pointer-events:none}.card-transition .card-printed-number{z-index:1}.card-gesture-active .card-number-overlay{will-change:auto}
+
+.stats-page {
+  --stats-surface: #30334b;
+  --stats-raised: #424867;
+}
+
+.stats-page .stats-source {
+  background: var(--stats-surface);
+  min-height: 66px;
+}
+
+.stats-page .stats-summary {
+  background: linear-gradient(155deg, var(--stats-raised), var(--stats-surface));
+  border-radius: 22px;
+}
+
+.stats-page .summary-count {
+  min-height: 52px;
+}
+
+.stats-page .summary-metrics > button {
+  min-width: 0;
+  min-height: 118px;
+  border-color: #ffffff26;
+}
+
+.stats-page .stats-tabs {
+  gap: 3px;
+  padding: 3px;
+}
+
+.stats-category-page .category-transaction-list {
+  border-top: 1px solid #ffffff29;
+  padding-top: 4px;
+}
+
+.stats-empty-state {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 14px;
+  min-height: 350px;
+  padding: 24px 20px 32px;
+  border-radius: 22px;
+  background: var(--stats-surface);
+  text-align: center;
+}
+
+.stats-empty-state img {
+  display: block;
+  width: min(100%, 204px);
+  height: auto;
+}
+
+.stats-empty-state h2 {
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.stats-empty-state p {
+  max-width: 29ch;
+  color: #d1d3e0;
+  font-size: 14px;
+  line-height: 1.4;
+}
