@@ -25,10 +25,92 @@ showEntry=function(){if(adminMode)return;if($('#modal')?.open)$('#modal').close(
 };
 document.addEventListener('keydown',e=>{if(!$('.entry-native')||$('#modal').open)return;if(/^\d$/.test(e.key)||e.key==='Backspace'){e.preventDefault();pressNativePin(e.key==='Backspace'?'delete':e.key)}});
 clearTimeout(entryScanTimer);entryScanTimer=null;const replacingEntry=!!$('.entry-overlay');if(replacingEntry){$('.entry-overlay').remove();showEntry()}actions['lock-demo']=()=>showEntry();
-// All-cards overview floats above the same home surface, softly blurring it.
-let allCardsScene=null;
-const paintBeforeCardsOverview=paint;
-paint=function(direction){const app=$('#app'),screen=$('#screen'),leaving=app.classList.contains('cards');if(!adminMode&&route.page==='cards'&&!leaving){allCardsScene?.backdrop.remove();allCardsScene?.motion?.cancel();const backdrop=freezePageSurface();backdrop.className='all-cards-backdrop home';backdrop.style.zIndex='35';document.body.append(backdrop);render();const duration=shouldReduceMotion()?140:280;app.classList.add('overview-visible');const motion=screen.animate(shouldReduceMotion()?[{opacity:0},{opacity:1}]:[{opacity:0,transform:'translate3d(0,20px,0) scale(.98)'},{opacity:1,transform:'translate3d(0,0,0) scale(1)'}],{duration,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});const blur=backdrop.animate([{filter:'blur(0px)',opacity:1},{filter:'blur(14px)',opacity:.65}],{duration,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});allCardsScene={backdrop,motion,blur};return}if(!adminMode&&leaving&&route.page!=='cards'){const scene=allCardsScene,pose=getComputedStyle(screen),snapshot=freezePageSurface();snapshot.className='all-cards-exit cards';snapshot.style.zIndex='43';const copy=snapshot.querySelector('.transition-screen');if(copy){copy.style.opacity=pose.opacity;copy.style.transform=pose.transform}scene?.motion.cancel();document.body.append(snapshot);render();const duration=shouldReduceMotion()?140:280;snapshot.animate([{opacity:1},{opacity:0}],{duration,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'}).finished.catch(()=>{}).finally(()=>{snapshot.remove();scene?.backdrop.remove();if(allCardsScene===scene)allCardsScene=null});copy?.animate([{transform:copy.style.transform||'none'},{transform:shouldReduceMotion()?'none':'translate3d(0,20px,0) scale(.98)'}],{duration,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});scene?.backdrop.animate([{opacity:.65,filter:'blur(14px)'},{opacity:0,filter:'blur(0px)'}],{duration,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});return}return paintBeforeCardsOverview(direction)};
+// Keep the home surface in place for both directions of the overview transition.
+let allCardsScene = null;
+const paintBeforeCardsOverview = paint;
+const cardsRestingPose = {transform: 'translate3d(0,0,0)', opacity: 1};
+const cardsHiddenPose = reduced => ({
+ transform: reduced ? cardsRestingPose.transform : 'translate3d(0,64px,0)',
+ opacity: 0
+});
+const clearCardsBackdrop = {filter: 'blur(0px) brightness(1)'};
+const blurredCardsBackdrop = {filter: 'blur(14px) brightness(.68)'};
+
+function cardsViewportSnapshot() {
+ const snapshot = freezePageSurface();
+ const top = parseFloat(snapshot.style.top);
+ snapshot.style.top = '0px';
+ snapshot.style.height = (window.visualViewport?.height || innerHeight) + 'px';
+ snapshot.firstElementChild.style.marginTop = top + 'px';
+ const nav = snapshot.querySelector('.transition-nav');
+ if (nav) nav.style.top = (parseFloat(nav.style.top) + top) + 'px';
+ return snapshot;
+}
+
+function cardsPose(element) {
+ const {transform, opacity} = getComputedStyle(element);
+ return {transform, opacity};
+}
+
+paint = function(direction) {
+ const app = $('#app'), screen = $('#screen');
+ const wasOverview = app.classList.contains('cards');
+ const isOverview = route.page === 'cards';
+ if (adminMode || wasOverview === isOverview) return paintBeforeCardsOverview(direction);
+
+ const previous = allCardsScene;
+ const reduced = shouldReduceMotion();
+ const options = {duration: reduced ? 140 : 380, easing: slideEase, fill: 'both'};
+ const backdrop = previous?.backdrop || (isOverview ? cardsViewportSnapshot() : null);
+ const source = isOverview ? previous?.exit?.firstElementChild : screen;
+ const initialPose = source ? cardsPose(source) : cardsHiddenPose(reduced);
+ const homeCard = previous ? previous.homeCard : (newCardSelected ? null : state.activeCard);
+ const returningToSameHome = route.page === 'home' && homeCard === (newCardSelected ? null : state.activeCard);
+ const initialBackdrop = backdrop && previous
+  ? {filter: getComputedStyle(backdrop).filter, opacity: getComputedStyle(backdrop).opacity}
+  : {...clearCardsBackdrop, opacity: 1};
+
+ previous?.motion.cancel();
+ previous?.blur?.cancel();
+ previous?.exit?.remove();
+ finishSideEntrance();
+
+ let exit = null;
+ if (isOverview) {
+  backdrop.classList.add('all-cards-backdrop');
+  backdrop.style.zIndex = '35';
+  if (!backdrop.isConnected) document.body.append(backdrop);
+ } else {
+  exit = cardsViewportSnapshot();
+  exit.classList.add('all-cards-exit');
+  exit.style.zIndex = '43';
+  if (backdrop) backdrop.style.zIndex = '40';
+  document.body.append(exit);
+ }
+
+ render();
+ if (isOverview) app.classList.add('overview-visible');
+
+ const content = exit ? exit.firstElementChild : screen;
+ const motion = content.animate([initialPose, isOverview ? cardsRestingPose : cardsHiddenPose(reduced)], options);
+ const targetBackdrop = isOverview
+  ? {...blurredCardsBackdrop, opacity: 1}
+  : {...clearCardsBackdrop, opacity: returningToSameHome ? 1 : 0};
+ const blur = backdrop?.animate([initialBackdrop, targetBackdrop], options);
+ const scene = {backdrop, exit, motion, blur, homeCard};
+ allCardsScene = scene;
+ playAfterFirstPaint(...[motion, blur].filter(Boolean));
+ motion.finished.catch(() => {}).finally(() => {
+  if (allCardsScene !== scene) return;
+  motion.cancel();
+  if (isOverview) return;
+  exit.remove();
+  backdrop?.remove();
+  blur?.cancel();
+  allCardsScene = null;
+ });
+};
+
 // Card details keep the recorded grouping and the user's current card data.
 const cardBeforeReferenceGrouping=cardPage;cardPage=function(){let html=cardBeforeReferenceGrouping();html=html.replace('data-page="regular"','data-page="subscriptions"').replace('Керування списаннями з картки','Керування списаннями з картки');return html};
 // History search exposes the controls shown in the latest recording.

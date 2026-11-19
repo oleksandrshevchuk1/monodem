@@ -148,19 +148,141 @@ let sideEntrance=null,sideSnapshot=null,sideDrag=0,pendingSideSnapshot=null,side
 function suppressSideReturnClick(){sideReturnClickUntil=performance.now()+450}
 document.addEventListener('pointerdown',()=>{sideReturnClickUntil=0},{capture:true,passive:true});
 document.addEventListener('click',event=>{if(event.detail&&performance.now()<sideReturnClickUntil){event.preventDefault();event.stopImmediatePropagation()}},true);
-function finishSideEntrance(){const previous=sideEntrance;if(!previous)return;sideEntrance=null;delete document.documentElement.dataset.routeMotion;if(previous.isRouteExit){previous.effect?.target?.remove();previous.cancel();return}try{previous.finish()}catch{}previous.cancel()}
-const sidePages=new Set(['limits','abroad','detail']),paintWithOperations=paint;
-function freezePageSurface(){const app=$('#app'),surface=captureBankSurface(true),source=$('#screen'),copy=surface.firstElementChild;copy.removeAttribute('id');copy.classList.add('transition-screen');copy.style.paddingBottom=getComputedStyle(source).paddingBottom;copy.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));surface.firstElementChild.replaceWith(copy);surface.className='side-page-snapshot '+app.className;surface.style.background=getComputedStyle(app).background;return surface}
-paint=function(direction){
- pageTransition?.skipTransition();pageAnimation?.cancel();
- if(skipPageMotion){skipPageMotion=false;finishSideEntrance();render();return}
+const sidePages = new Set(['limits','abroad','detail']), paintWithOperations = paint;
+const slidingTransferPages = new Set(['detail', 'transfer', 'transferAmount', 'transferArchive']);
+const slideEase = 'cubic-bezier(.32,.72,0,1)';
+const translateX = x => `translate3d(${x}px,0,0)`;
 
- const app=$('#app'),fromSide=[...sidePages].some(p=>app.classList.contains(p));
- if(shouldReduceMotion()){finishSideEntrance();render();return}
- if(direction==='back'&&fromSide){const rect=app.getBoundingClientRect(),pose=new DOMMatrixReadOnly(getComputedStyle(app).transform),dx=pose.m41;finishSideEntrance();const snapshot=freezePageSurface();const live=$('#screen'),frozen=snapshot.querySelector('.transition-screen');if(frozen)frozen.replaceChildren(...live.childNodes);sideDrag=0;snapshot.style.left=(rect.x-dx)+'px';snapshot.style.top=-pageScrollY()+'px';snapshot.style.zIndex=45;document.body.append(snapshot);app.style.transform='';app.style.zIndex='';render();const exit=snapshot.animate([{transform:`translate3d(${dx}px,0,0)`},{transform:`translate3d(${app.clientWidth}px,0,0)`}],{duration:240,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});exit.isRouteExit=true;sideEntrance=exit;document.documentElement.dataset.routeMotion='active';exit.finished.catch(()=>{}).finally(()=>{snapshot.remove();if(sideEntrance===exit){sideEntrance=null;delete document.documentElement.dataset.routeMotion}exit.cancel()});return}
- if(route.page==='history')return paintWithOperations(direction);
- if(sidePages.has(route.page)){finishSideEntrance();sideSnapshot?.remove();sideSnapshot=pendingSideSnapshot||freezePageSurface();const snapshot=sideSnapshot.cloneNode(true);snapshot.style.zIndex=35;document.body.append(snapshot);render();app.style.zIndex='41';const entrance=app.animate([{transform:`translate3d(${app.clientWidth}px,0,0)`},{transform:'translate3d(0,0,0)'}],{duration:280,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});sideEntrance=entrance;document.documentElement.dataset.routeMotion='active';entrance.finished.catch(()=>{}).finally(()=>{snapshot.remove();entrance.cancel();if(sideEntrance===entrance){app.style.zIndex='';sideEntrance=null;delete document.documentElement.dataset.routeMotion}});return}
- finishSideEntrance();render()
+// Keep the initial pose on screen while the browser prepares the new page's layers.
+function playAfterFirstPaint(...motions) {
+ for (const motion of motions) {
+  motion.pause();
+  motion.currentTime = 0;
+ }
+ requestAnimationFrame(() => requestAnimationFrame(() => {
+  for (const motion of motions) if (motion.playState === 'paused') motion.play();
+ }));
+}
+
+function finishSideEntrance() {
+ const previous = sideEntrance;
+ if (!previous) return;
+ sideEntrance = null;
+ delete document.documentElement.dataset.routeMotion;
+ previous.cancel();
+ previous.cleanup?.();
+}
+
+function freezePageSurface() {
+ const app = $('#app'), surface = captureBankSurface(true), source = $('#screen');
+ const copy = surface.firstElementChild;
+ copy.style.paddingBottom = getComputedStyle(source).paddingBottom;
+ surface.className = 'side-page-snapshot ' + app.className;
+ const nav = surface.querySelector('.transition-nav');
+ if (nav) {
+  const rect = $('#nav').getBoundingClientRect();
+  Object.assign(nav.style, {
+   position: 'absolute', left: (rect.left - parseFloat(surface.style.left)) + 'px',
+   top: (rect.top - parseFloat(surface.style.top)) + 'px', bottom: 'auto',
+   width: rect.width + 'px', transform: 'none'
+  });
+ }
+ return surface;
+}
+
+function trackSideMotion(motion, snapshot, underlay, companion) {
+ const app = $('#app');
+ sideEntrance = motion;
+ document.documentElement.dataset.routeMotion = 'active';
+ motion.cleanup = () => {
+  snapshot?.remove();
+  underlay?.remove();
+  companion?.cancel();
+  if (!sideEntrance || sideEntrance === motion) app.style.zIndex = '';
+ };
+ motion.finished.catch(() => {}).finally(() => {
+  motion.cleanup?.();
+  if (sideEntrance === motion) {
+   sideEntrance = null;
+   delete document.documentElement.dataset.routeMotion;
+  }
+  motion.cancel();
+ });
+}
+
+paint = function(direction) {
+ pageTransition?.skipTransition();
+ pageAnimation?.cancel();
+ if (skipPageMotion || shouldReduceMotion()) {
+  skipPageMotion = false;
+  finishSideEntrance();
+  render();
+  return;
+ }
+
+ const app = $('#app');
+ const fromSide = [...sidePages].find(page => app.classList.contains(page));
+ if (direction === 'back' && fromSide) {
+  const rect = app.getBoundingClientRect();
+  const dx = new DOMMatrixReadOnly(getComputedStyle(app).transform).m41;
+  const snapshot = freezePageSurface();
+  finishSideEntrance();
+  const frozen = snapshot.querySelector('.transition-screen');
+  frozen.replaceChildren(...$('#screen').childNodes);
+  sideDrag = 0;
+  snapshot.style.left = (rect.x - dx) + 'px';
+  snapshot.style.top = -pageScrollY() + 'px';
+  snapshot.style.zIndex = 45;
+  document.body.append(snapshot);
+  app.style.transform = '';
+  render();
+
+  const width = app.clientWidth;
+  const parallax = slidingTransferPages.has(fromSide);
+  const options = {duration: parallax ? 360 : 240, easing: slideEase, fill: 'both'};
+  const exit = snapshot.animate([{transform: translateX(dx)}, {transform: translateX(width)}], options);
+  exit.isRouteExit = true;
+  let underlay, companion;
+  if (parallax) {
+   underlay = freezePageSurface();
+   underlay.classList.add('side-return-underlay');
+   underlay.style.zIndex = '40';
+   document.body.append(underlay);
+   companion = underlay.animate([
+    {transform: translateX(-Math.max(0, width - dx) * .25)},
+    {transform: translateX(0)}
+   ], options);
+   playAfterFirstPaint(exit, companion);
+  }
+  trackSideMotion(exit, snapshot, underlay, companion);
+  return;
+ }
+
+ if (route.page === 'history') return paintWithOperations(direction);
+ if (sidePages.has(route.page)) {
+  finishSideEntrance();
+  sideSnapshot?.remove();
+  sideSnapshot = pendingSideSnapshot || freezePageSurface();
+  const snapshot = sideSnapshot.cloneNode(true);
+  snapshot.style.zIndex = 35;
+  document.body.append(snapshot);
+  render();
+  app.style.zIndex = '41';
+
+  const width = app.clientWidth;
+  const parallax = slidingTransferPages.has(route.page);
+  const options = {duration: parallax ? 360 : 280, easing: slideEase, fill: 'both'};
+  const entrance = app.animate([{transform: translateX(width)}, {transform: translateX(0)}], options);
+  let companion;
+  if (parallax) {
+   companion = snapshot.animate([{transform: translateX(0)}, {transform: translateX(-width * .25)}], options);
+   playAfterFirstPaint(entrance, companion);
+  }
+  trackSideMotion(entrance, snapshot, null, companion);
+  return;
+ }
+ finishSideEntrance();
+ render();
 };
 const navigateBeforeSideViewport=navigate;navigate=function(page,id){if(sidePages.has(page)&&page!==route.page)pendingSideSnapshot=freezePageSurface();try{return navigateBeforeSideViewport(page,id)}finally{pendingSideSnapshot=null}};
 function bindSideReturn(){const app=$('#app');let start=null,active=false,underlay=null;const begin=(x,y,target,id)=>{if(x-app.getBoundingClientRect().left>36||target.closest('input,textarea,select'))return;if(sideEntrance?.isRouteExit)return;start={x,y,id};active=false;sideDrag=0};const move=(x,y)=>{if(!start)return false;const dx=x-start.x,dy=y-start.y;if(!active&&Math.abs(dy)>8&&Math.abs(dy)>Math.abs(dx)){start=null;return false}if(!active&&dx>8&&dx>Math.abs(dy)*1.3){finishSideEntrance();active=true;underlay=sideSnapshot?.cloneNode(true);if(underlay){underlay.style.zIndex=35;document.body.append(underlay)}app.style.zIndex=41}if(!active)return false;sideDrag=Math.max(0,dx);app.style.transform=`translate3d(${sideDrag}px,0,0)`;return true};const end=cancelled=>{if(!start)return;start=null;if(!active)return;active=false;suppressSideReturnClick();const stop=e=>{e.preventDefault();e.stopPropagation()};document.addEventListener('click',stop,true);setTimeout(()=>document.removeEventListener('click',stop,true),0);if(!cancelled&&sideDrag>app.clientWidth*.23){back();underlay?.remove();return}const dx=sideDrag;sideDrag=0;app.style.transform='';const settle=app.animate([{transform:`translate3d(${dx}px,0,0)`},{transform:'translate3d(0,0,0)'}],{duration:220,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});sideEntrance=settle;document.documentElement.dataset.routeMotion='active';settle.finished.catch(()=>{}).finally(()=>{underlay?.remove();if(sideEntrance===settle){sideEntrance=null;app.style.zIndex='';delete document.documentElement.dataset.routeMotion}settle.cancel()})};app.onpointerdown=e=>{if(e.pointerType==='mouse')begin(e.clientX,e.clientY,e.target,e.pointerId)};app.onpointermove=e=>{if(e.pointerType==='mouse'&&move(e.clientX,e.clientY))app.setPointerCapture(e.pointerId)};app.onpointerup=e=>{if(e.pointerType==='mouse')end(false)};app.onpointercancel=()=>end(true);app.ontouchstart=e=>{if(e.touches.length===1)begin(e.touches[0].clientX,e.touches[0].clientY,e.target)};app.ontouchmove=e=>{if(e.touches.length===1&&move(e.touches[0].clientX,e.touches[0].clientY))e.preventDefault()};app.ontouchend=()=>end(false);app.ontouchcancel=()=>end(true)}

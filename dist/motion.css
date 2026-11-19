@@ -59,3 +59,6 @@
 .uploaded-receipt-pdf{display:block;width:100%;height:calc(100dvh - 210px);min-height:420px;border:0}
 .uploaded-receipt-stage{min-height:calc(100dvh - 190px)}
 .file .receipt-bottom:before{content:'';display:block;width:36px;height:4px;margin:-6px auto 14px;border-radius:4px;background:#716b73}
+
+/* The snapshot carries the tab bar while the closing page covers it. */
+body:has(.side-return-underlay) #nav,body:has(.all-cards-backdrop):has(.all-cards-exit) #nav{visibility:hidden}
