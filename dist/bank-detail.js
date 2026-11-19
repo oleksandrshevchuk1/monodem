@@ -45,7 +45,13 @@ detail=function(){
   if(avatar){avatar.className='reference-operation-avatar incoming-avatar full-bank-avatar';avatar.innerHTML=`<img src="${bank.logo}" alt="${esc(bank.name)}" decoding="sync" draggable="false">`}
  }else if(tx.amount<0&&bank.id!=='sense'){
   if(pattern){pattern.replaceChildren();pattern.classList.remove('avatar-operation-background')}
-  if(avatar){avatar.className='reference-operation-avatar outgoing-bank-avatar';avatar.innerHTML=transferSymbol()+bankBadge(tx)}
+  if(avatar){
+   avatar.className='reference-operation-avatar outgoing-bank-avatar';
+   const badge = bank.id === 'privat'
+    ? `<svg class="bank-badge bank-mark bank-mark-privat" viewBox="0 0 100 100" role="img" aria-label="${esc(bank.name)}"><circle cx="50" cy="50" r="50" fill="#dff4d6"/><g transform="translate(24 24) scale(.52)">${privatMark}</g></svg>`
+    : bankBadge(tx);
+   avatar.innerHTML=transferSymbol()+badge;
+  }
  }
  if(tx.amount>0&&bank.id==='mono'&&pattern){const source=tx.recipientAvatar||tx.logo||'assets/launch/mark.svg';pattern.classList.add('bank-image-background');pattern.removeAttribute('data-original-pattern');pattern.innerHTML=`<img src="${esc(source)}" alt="" decoding="sync">`}
  // Incoming actions depend on the sending bank, never on whether a photo exists.
@@ -96,7 +102,7 @@ render = function() {
  const pattern = operation?.querySelector('.reference-operation-pattern');
  if (!toolbar || !avatar || !pattern) return;
 
- const headerStyle = getComputedStyle(head);
+ const {backgroundColor: capColor, borderTopLeftRadius: capRadius} = getComputedStyle(head);
  const boundary = head.getBoundingClientRect().top - operation.getBoundingClientRect().top;
  const avatarTop = avatar.getBoundingClientRect().top - operation.getBoundingClientRect().top;
  const height = Math.max(boundary, avatarTop + avatar.offsetHeight) + 6;
@@ -117,8 +123,8 @@ render = function() {
  scroller.append(content);
  toolbar.style.setProperty('--operation-toolbar-height', height + 'px');
  toolbar.style.setProperty('--operation-avatar-top', avatarTop + 'px');
- toolbar.style.setProperty('--operation-cap-color', headerStyle.backgroundColor);
- toolbar.style.setProperty('--operation-cap-radius', headerStyle.borderTopLeftRadius);
+ toolbar.style.setProperty('--operation-cap-color', capColor);
+ toolbar.style.setProperty('--operation-cap-radius', capRadius);
  toolbar.classList.add('operation-boundary-toolbar');
  toolbar.prepend(backdrop);
  toolbar.append(avatar);
