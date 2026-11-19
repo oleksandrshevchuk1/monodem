@@ -65,6 +65,7 @@
  position: absolute;
  inset: 0 0 auto;
  height: var(--operation-toolbar-height);
+ min-height: var(--operation-toolbar-height);
  z-index: 6;
  isolation: isolate;
  pointer-events: none;
@@ -89,4 +90,13 @@
 .operation-boundary-toolbar > .reference-operation-avatar {
  top: var(--operation-avatar-top);
  pointer-events: none;
+}
+
+/* Action rows finish above the home indicator and span the operation surface. */
+.bank-reference-detail .reference-operation-body:has(> .detail-menu) {
+ padding-bottom: max(52px, calc(var(--safe-bottom, 0px) + 26px));
+}
+.bank-reference-detail .reference-operation-body > .detail-menu {
+ margin-inline: -16px;
+ border-radius: 0;
 }
