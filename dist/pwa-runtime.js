@@ -17,6 +17,8 @@ for(const name of ['pointerup','pointercancel'])document.addEventListener(name,e
 function settleInterruptedPwa(){
  for(const [pointerId,pointer]of activePwaPointers){if(pointer.target.isConnected)pointer.target.dispatchEvent(new PointerEvent('pointercancel',{pointerId,pointerType:pointer.type,bubbles:true}))}activePwaPointers.clear();
  document.dispatchEvent(new Event('touchcancel',{bubbles:true}));
+ if(operationsScene?.phase==='closing')operationsScene.finish();
+ else endOperationsEntrance();
  cardSlideAnimation?.cancel();
  if(swipeLayers){const index=swipeLayers.index;cleanupSwipe();if(route.page==='home')setCarouselPosition(index)}
  if(typeof glassHistory!=='undefined'&&glassHistory){const scene=glassHistory;scene.motions.forEach(motion=>motion.cancel());if(route.page==='home')cleanupGlassHistory(scene);else if(route.page==='history'){setGlassHistoryProgress(scene,1);finishSideHistoryOpen(scene)}}

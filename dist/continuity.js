@@ -32,9 +32,61 @@ function bindUnifiedHistory(){
  screen.onpointerdown=screen.onpointermove=screen.onpointerup=screen.onpointercancel=null;
  screen.ontouchstart=screen.ontouchmove=screen.ontouchend=screen.ontouchcancel=null;
  let start=null,axis=null,distance=0,settling=null;
- const begin=(x,y,target)=>{if(route.page!=='history'||target.closest('input,textarea,select'))return;settling?.finish();endOperationsEntrance();start={x,y,scroll:pageScrollY()};axis=null;distance=0};
- const move=(x,y)=>{if(!start||route.page!=='history')return false;const dx=x-start.x,dy=y-start.y;if(!axis&&Math.max(Math.abs(dx),Math.abs(dy))>9){if(dy>Math.abs(dx)*1.2&&dy>0&&start.scroll<=1)axis='down';else if(historyPresentation==='drawer'&&dx<-Math.abs(dy)*1.2)axis='left';else{start=null;return false}}if(axis==='down'){distance=Math.min(180,Math.max(0,dy*.65));moveOperationsScene(distance);return true}if(axis==='left'){distance=Math.min(0,dx);moveEdgeReturn(distance);return true}return false};
- const end=cancelled=>{if(!start)return;start=null;if(!axis)return;const mode=axis;axis=null;const stop=e=>{e.preventDefault();e.stopPropagation()};document.addEventListener('click',stop,true);setTimeout(()=>document.removeEventListener('click',stop,true),0);if(!cancelled&&Math.abs(distance)>40){if(mode==='down')backBeforeEdgeReturn();else back();return}const scene=mode==='down'?operationsScene:edgeReturnScene;if(!scene)return;settling=scene.layer.animate([{transform:getComputedStyle(scene.layer).transform,opacity:getComputedStyle(scene.layer).opacity,filter:getComputedStyle(scene.layer).filter},{transform:'translate3d(0,0,0)',opacity:1,filter:'blur(0px)'}],{duration:220,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});settling.finished.then(()=>{if(mode==='down')removeOperationsScene(scene,true);else{screen.append(scene.page);scene.page.style.marginTop='';scene.layer.remove();scene.home?.remove();edgeReturnScene=null;delete document.documentElement.dataset.gesture}}).catch(()=>{})};
+ const begin=(x,y,target)=>{
+  if(route.page!=='history'||target.closest('input,textarea,select')||operationsScene?.phase==='closing')return;
+  settling?.finish();
+  start={x,y,scroll:pageScrollY()};
+  axis=null;
+  distance=0;
+ };
+ const move=(x,y)=>{
+  if(!start||route.page!=='history')return false;
+  const dx=x-start.x,dy=y-start.y;
+  if(!axis&&Math.max(Math.abs(dx),Math.abs(dy))>9){
+   if(dy>Math.abs(dx)*1.2&&dy>0&&start.scroll<=1)axis='down';
+   else if(historyPresentation==='drawer'&&dx<-Math.abs(dy)*1.2)axis='left';
+   else{start=null;return false}
+  }
+  if(axis==='down'){
+   distance=Math.max(0,dy);
+   return true;
+  }
+  if(axis==='left'){
+   distance=Math.min(0,dx);
+   moveEdgeReturn(distance);
+   return true;
+  }
+  return false;
+ };
+ const end=cancelled=>{
+  if(!start)return;
+  start=null;
+  const mode=axis;
+  axis=null;
+  if(!mode)return;
+  if(mode==='down'){
+   if(!cancelled&&distance>=18)back();
+   return;
+  }
+  const stop=e=>{e.preventDefault();e.stopPropagation()};
+  document.addEventListener('click',stop,true);
+  setTimeout(()=>document.removeEventListener('click',stop,true),0);
+  if(!cancelled&&distance<-40){back();return}
+  const scene=edgeReturnScene;
+  if(!scene)return;
+  settling=scene.layer.animate([
+   {transform:getComputedStyle(scene.layer).transform},
+   {transform:'translate3d(0,0,0)'}
+  ],{duration:220,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});
+  settling.finished.then(()=>{
+   screen.append(scene.page);
+   scene.page.style.marginTop='';
+   scene.layer.remove();
+   scene.home?.remove();
+   edgeReturnScene=null;
+   delete document.documentElement.dataset.gesture;
+  }).catch(()=>{});
+ };
  const pd=e=>{if(e.pointerType==='mouse'&&e.button===0)begin(e.clientX,e.clientY,e.target)},pm=e=>{if(e.pointerType==='mouse'&&move(e.clientX,e.clientY))e.preventDefault()},pu=e=>{if(e.pointerType==='mouse')end(e.type==='pointercancel')};
  const ts=e=>{if(e.touches.length===1)begin(e.touches[0].clientX,e.touches[0].clientY,e.target)},tm=e=>{if(e.touches.length===1&&move(e.touches[0].clientX,e.touches[0].clientY))e.preventDefault()},te=e=>end(e.type==='touchcancel');
  screen.addEventListener('pointerdown',pd);document.addEventListener('pointermove',pm);document.addEventListener('pointerup',pu);document.addEventListener('pointercancel',pu);screen.addEventListener('touchstart',ts,{passive:true});document.addEventListener('touchmove',tm,{passive:false});document.addEventListener('touchend',te);document.addEventListener('touchcancel',te);
