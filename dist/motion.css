@@ -69,3 +69,6 @@ body:has(.side-return-underlay) #nav,body:has(.all-cards-backdrop):has(.all-card
 /* Keep the edge of the moving page flush and the captured selector still. */
 #app.paired-side-motion{will-change:transform;box-shadow:none}
 .frozen-card-selector :is(.selector-label,.selector-dots,.selector-dots > *){transition:none}
+
+/* Move the stationary home card and its selector as part of one surface. */
+.side-page-snapshot.home :is(.card-track,.selector-label,.selector-dots){will-change:auto}

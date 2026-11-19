@@ -169,7 +169,10 @@ function playAfterFirstPaint(...motions) {
 // Both surfaces use the same position in every frame, including the swipe handoff.
 function placeSideSurfaces(app, preview, x, width) {
  app.style.transform = translateX(x);
- preview.style.transform = translateX(-(width - x) * .25);
+ const offset = -(width - x) * .25;
+ const scale = window.devicePixelRatio || 1;
+ // Keep the home artwork on the same device-pixel rows throughout parallax.
+ preview.style.transform = translateX(Math.round(offset * scale) / scale);
 }
 
 let pairedSideMotion = null;
@@ -233,6 +236,13 @@ function freezePageSurface() {
  surface.classList.remove('paired-side-motion');
  const scroll = source.querySelector('.operation-content-scroll')?.scrollTop;
  if (scroll) copy.querySelector('.operation-content').style.transform = 'translateY(' + (-scroll) + 'px)';
+ const track = source.querySelector('.card-track');
+ const frozenTrack = copy.querySelector('.card-track');
+ if (track && frozenTrack) {
+  const pose = new DOMMatrixReadOnly(getComputedStyle(track).transform);
+  // The track only translates. Flatten its motion layer inside the static image of Home.
+  frozenTrack.style.transform = 'translate(' + pose.m41 + 'px,' + pose.m42 + 'px)';
+ }
  const selector = source.querySelector('.card-selector');
  const frozenSelector = copy.querySelector('.card-selector');
  if (selector && frozenSelector) {
