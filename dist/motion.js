@@ -164,6 +164,52 @@ function playAfterFirstPaint(...motions) {
  }));
 }
 
+// Both surfaces use the same position in every frame, including the swipe handoff.
+function placeSideSurfaces(app, preview, x, width) {
+ app.style.transform = translateX(x);
+ preview.style.transform = translateX(-(width - x) * .25);
+}
+
+let pairedSideMotion = null;
+function animateSideSurfaces(app, preview, from, to, duration) {
+ const owner = {};
+ pairedSideMotion = owner;
+ const width = app.clientWidth;
+ let frame, lastTime, elapsed = 0, settled = false, resolve;
+ const finished = new Promise(done => { resolve = done; });
+ placeSideSurfaces(app, preview, from, width);
+ app.classList.add('paired-side-motion');
+
+ const stop = () => {
+  if (settled) return;
+  settled = true;
+  cancelAnimationFrame(frame);
+  resolve();
+ };
+ const advance = time => {
+  if (lastTime !== undefined) elapsed += Math.min(time - lastTime, 1000 / 60);
+  lastTime = time;
+  const progress = Math.min(1, elapsed / duration);
+  // Ease gently from the first visible pixels, then slow near the destination.
+  const eased = progress * progress * (3 - 2 * progress);
+  placeSideSurfaces(app, preview, from + (to - from) * eased, width);
+  if (progress === 1) stop();
+  else frame = requestAnimationFrame(advance);
+ };
+ frame = requestAnimationFrame(advance);
+ return {
+  finished,
+  finish() { if (!settled) { placeSideSurfaces(app, preview, to, width); stop(); } },
+  cancel() {
+   stop();
+   if (pairedSideMotion !== owner) return;
+   pairedSideMotion = null;
+   app.style.transform = '';
+   app.classList.remove('paired-side-motion');
+  }
+ };
+}
+
 function finishSideEntrance() {
  const previous = sideEntrance;
  if (!previous) return;
@@ -178,6 +224,22 @@ function freezePageSurface() {
  const copy = surface.firstElementChild;
  copy.style.paddingBottom = getComputedStyle(source).paddingBottom;
  surface.className = 'side-page-snapshot ' + app.className;
+ surface.classList.remove('paired-side-motion');
+ const selector = source.querySelector('.card-selector');
+ const frozenSelector = copy.querySelector('.card-selector');
+ if (selector && frozenSelector) {
+  const style = getComputedStyle(selector);
+  frozenSelector.classList.add('frozen-card-selector');
+  frozenSelector.style.inlineSize = style.inlineSize;
+  frozenSelector.style.blockSize = style.blockSize;
+  for (const part of ['.selector-label', '.selector-dots']) {
+   const livePart = selector.querySelector(part), frozenPart = frozenSelector.querySelector(part);
+   if (!livePart || !frozenPart) continue;
+   const pose = getComputedStyle(livePart);
+   frozenPart.style.opacity = pose.opacity;
+   frozenPart.style.filter = pose.filter;
+  }
+ }
  const nav = surface.querySelector('.transition-nav');
  if (nav) {
   const rect = $('#nav').getBoundingClientRect();
@@ -195,7 +257,11 @@ function trackSideMotion(motion, snapshot, underlay, companion) {
  sideEntrance = motion;
  document.documentElement.dataset.routeMotion = 'active';
  motion.cleanup = () => {
-  snapshot?.remove();
+  motion.cleanup = null;
+  if (snapshot) {
+   snapshot.remove();
+   snapshot.style.transform = '';
+  }
   underlay?.remove();
   companion?.cancel();
   if (!sideEntrance || sideEntrance === motion) app.style.zIndex = '';
@@ -273,7 +339,7 @@ paint = function(direction) {
   sideSnapshot?.remove();
   sideSnapshot = pendingSideSnapshot || freezePageSurface();
   if (sideSnapshot.classList.contains('home')) sideHomeSnapshot = sideSnapshot;
-  const snapshot = sideSnapshot.cloneNode(true);
+  const snapshot = sideSnapshot;
   snapshot.style.zIndex = 35;
   document.body.append(snapshot);
   render();
@@ -282,13 +348,10 @@ paint = function(direction) {
   const width = app.clientWidth;
   const parallax = slidingTransferPages.has(route.page);
   const options = {duration: parallax ? 360 : 280, easing: slideEase, fill: 'both'};
-  const entrance = app.animate([{transform: translateX(width)}, {transform: translateX(0)}], options);
-  let companion;
-  if (parallax) {
-   companion = snapshot.animate([{transform: translateX(0)}, {transform: translateX(-width * .25)}], options);
-   playAfterFirstPaint(entrance, companion);
-  }
-  trackSideMotion(entrance, snapshot, null, companion);
+  const entrance = parallax
+   ? animateSideSurfaces(app, snapshot, width, 0, options.duration)
+   : app.animate([{transform: translateX(width)}, {transform: translateX(0)}], options);
+  trackSideMotion(entrance, snapshot);
   return;
  }
  finishSideEntrance();
@@ -322,6 +385,7 @@ function resetSideSwipe() {
  delete document.documentElement.dataset.routeMotion;
  $('#app').style.zIndex = '';
  $('#app').style.transform = '';
+ $('#app').classList.remove('paired-side-motion');
 }
 
 function startLiveSideExit(source, commit) {
@@ -336,13 +400,9 @@ function startLiveSideExit(source, commit) {
  app.style.transform = '';
  app.style.zIndex = '41';
 
- const options = {duration: Math.max(180, 360 * (1 - x / width)), easing: slideEase, fill: 'both'};
- const exit = app.animate([{transform: translateX(x)}, {transform: translateX(width)}], options);
- const companion = preview.animate([
-  {transform: translateX(-(width - x) * .25)}, {transform: translateX(0)}
- ], options);
+ const exit = animateSideSurfaces(app, preview, x, width, Math.max(210, 350 * (1 - x / width)));
  exit.isRouteExit = true;
- trackSideMotion(exit, null, preview, companion);
+ trackSideMotion(exit, null, preview);
  const cleanup = exit.cleanup;
  exit.cleanup = () => {
   // Commit navigation in the same frame that removes the outgoing page.
@@ -398,8 +458,10 @@ function bindSideReturn() {
    document.documentElement.dataset.routeMotion = 'active';
   }
   x = Math.min(app.clientWidth, Math.max(0, origin + dx));
-  app.style.transform = translateX(x);
-  if (slidingTransferPages.has(route.page)) sideSwipeLayer.style.transform = translateX(-(app.clientWidth - x) * .25);
+  if (slidingTransferPages.has(route.page)) {
+   placeSideSurfaces(app, sideSwipeLayer, x, app.clientWidth);
+   app.classList.add('paired-side-motion');
+  } else app.style.transform = translateX(x);
   return true;
  };
  const end = cancelled => {
@@ -416,12 +478,10 @@ function bindSideReturn() {
   sideSwipeLayer = null;
   app.style.transform = '';
   const options = {duration: 220, easing: slideEase, fill: 'both'};
-  const settle = app.animate([{transform: translateX(x)}, {transform: translateX(0)}], options);
-  const companion = slidingTransferPages.has(route.page) ? layer.animate([
-   {transform: translateX(-(app.clientWidth - x) * .25)},
-   {transform: translateX(-app.clientWidth * .25)}
-  ], options) : null;
-  trackSideMotion(settle, null, layer, companion);
+  const settle = slidingTransferPages.has(route.page)
+   ? animateSideSurfaces(app, layer, x, 0, options.duration)
+   : app.animate([{transform: translateX(x)}, {transform: translateX(0)}], options);
+  trackSideMotion(settle, null, layer);
  };
 
  // Track the same touch after the translated page moves away from the finger.
