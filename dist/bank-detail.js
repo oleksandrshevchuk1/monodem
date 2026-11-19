@@ -121,7 +121,7 @@ render = function() {
  content.style.paddingTop = getComputedStyle(operation).paddingTop;
  content.append(...operation.childNodes);
  scroller.append(content);
- toolbar.style.setProperty('--operation-toolbar-height', height + 'px');
+ slot.style.setProperty('--operation-toolbar-height', height + 'px');
  toolbar.style.setProperty('--operation-avatar-top', avatarTop + 'px');
  toolbar.style.setProperty('--operation-cap-color', capColor);
  toolbar.style.setProperty('--operation-cap-radius', capRadius);

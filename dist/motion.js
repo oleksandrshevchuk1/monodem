@@ -196,7 +196,11 @@ function animateSideSurfaces(app, preview, from, to, duration) {
   if (progress === 1) stop();
   else frame = requestAnimationFrame(advance);
  };
- frame = requestAnimationFrame(advance);
+ // Let WebKit prepare the complete header before it crosses the clipping edge.
+ const preparesHeader = from === width && to === 0 && app.querySelector('.operation-boundary-slot');
+ frame = preparesHeader
+  ? requestAnimationFrame(() => { frame = requestAnimationFrame(advance); })
+  : requestAnimationFrame(advance);
  return {
   finished,
   finish() { if (!settled) { placeSideSurfaces(app, preview, to, width); stop(); } },

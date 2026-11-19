@@ -85,6 +85,8 @@
  position: absolute;
  inset: 0 0 auto;
  z-index: 6;
+ height: var(--operation-toolbar-height);
+ contain: paint;
  pointer-events: none;
 }
 #app.detail .operation-boundary-toolbar,
@@ -93,17 +95,15 @@
  inset: 0 0 auto;
  height: var(--operation-toolbar-height);
  min-height: var(--operation-toolbar-height);
- z-index: 6;
- isolation: isolate;
  pointer-events: none;
 }
-.operation-boundary-toolbar > button { pointer-events: auto; }
+.operation-boundary-toolbar > button { z-index: 2; pointer-events: auto; }
 .operation-boundary-pattern {
  position: absolute;
  inset: 0 0 auto;
  height: calc(var(--operation-boundary) + var(--operation-cap-radius));
  overflow: hidden;
- z-index: -2;
+ z-index: 0;
 }
 .operation-boundary-pattern > .reference-operation-pattern { z-index: auto; }
 .operation-boundary-toolbar::before {
@@ -112,10 +112,11 @@
  inset: var(--operation-boundary) 0 0;
  border-radius: var(--operation-cap-radius) var(--operation-cap-radius) 0 0;
  background: var(--operation-cap-color);
- z-index: -1;
+ z-index: 1;
 }
 .operation-boundary-toolbar > .reference-operation-avatar {
  top: var(--operation-avatar-top);
+ z-index: 2;
  pointer-events: none;
 }
 
