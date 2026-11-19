@@ -79,3 +79,41 @@ detail=function(){
  document.addEventListener('pointermove',e=>{if(press&&Math.hypot(e.clientX-press.x,e.clientY-press.y)>10)clear()},{passive:true});
  for(const event of ['pointerup','pointercancel'])document.addEventListener(event,clear,true);window.addEventListener('blur',clear);
 })();
+
+// The patterned strip and the round bank mark share one sticky boundary.
+const renderBeforeOperationBoundary = render;
+render = function() {
+ renderBeforeOperationBoundary();
+ if (adminMode || route.page !== 'detail') return;
+
+ const operation = $('#screen .reference-operation');
+ const toolbar = $('#screen > .toolbar');
+ const head = operation?.querySelector('.reference-operation-head');
+ const avatar = head?.querySelector('.reference-operation-avatar');
+ const pattern = operation?.querySelector('.reference-operation-pattern');
+ if (!toolbar || !avatar || !pattern) return;
+
+ const headerStyle = getComputedStyle(head);
+ const boundary = head.getBoundingClientRect().top - operation.getBoundingClientRect().top;
+ const avatarTop = avatar.getBoundingClientRect().top - operation.getBoundingClientRect().top;
+ const height = Math.max(boundary, avatarTop + avatar.offsetHeight) + 2;
+ const backdrop = document.createElement('div');
+ backdrop.className = 'operation-boundary-pattern';
+ backdrop.setAttribute('aria-hidden', 'true');
+ backdrop.append(pattern.cloneNode(true));
+
+ toolbar.style.setProperty('--operation-boundary', boundary + 'px');
+ const slot = document.createElement('div');
+ slot.className = 'operation-boundary-slot';
+ slot.style.height = getComputedStyle(operation).paddingTop;
+ toolbar.style.setProperty('--operation-toolbar-height', height + 'px');
+ toolbar.style.setProperty('--operation-avatar-top', avatarTop + 'px');
+ toolbar.style.setProperty('--operation-cap-color', headerStyle.backgroundColor);
+ toolbar.style.setProperty('--operation-cap-radius', headerStyle.borderTopLeftRadius);
+ toolbar.classList.add('operation-boundary-toolbar');
+ toolbar.prepend(backdrop);
+ toolbar.append(avatar);
+ operation.classList.add('has-operation-boundary');
+ slot.append(toolbar);
+ operation.prepend(slot);
+};

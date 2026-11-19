@@ -56,3 +56,37 @@
 
 /* Match the original thin 32-point silhouettes inside a consistent 24px slot. */
 .transfer-action-glyph{width:24px;height:24px;margin-right:-2px;stroke-width:1.5;color:#dedede}
+
+/* Keep only the bank strip and its shallow gray edge above the scrolling content. */
+.reference-operation.has-operation-boundary { padding-top: 0; }
+.operation-boundary-slot { position: sticky; top: 0; z-index: 6; pointer-events: none; }
+#app.detail .operation-boundary-toolbar,
+.side-page-snapshot.detail .operation-boundary-toolbar {
+ position: absolute;
+ inset: 0 0 auto;
+ height: var(--operation-toolbar-height);
+ z-index: 6;
+ isolation: isolate;
+ pointer-events: none;
+}
+.operation-boundary-toolbar > button { pointer-events: auto; }
+.operation-boundary-pattern {
+ position: absolute;
+ inset: 0 0 auto;
+ height: calc(var(--operation-boundary) + var(--operation-cap-radius));
+ overflow: hidden;
+ z-index: -2;
+}
+.operation-boundary-pattern > .reference-operation-pattern { z-index: auto; }
+.operation-boundary-toolbar::before {
+ content: "";
+ position: absolute;
+ inset: var(--operation-boundary) 0 0;
+ border-radius: var(--operation-cap-radius) var(--operation-cap-radius) 0 0;
+ background: var(--operation-cap-color);
+ z-index: -1;
+}
+.operation-boundary-toolbar > .reference-operation-avatar {
+ top: var(--operation-avatar-top);
+ pointer-events: none;
+}
