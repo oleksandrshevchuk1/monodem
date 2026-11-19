@@ -150,3 +150,43 @@ body{font-family:-apple-system,BlinkMacSystemFont,DemoInter,'Helvetica Neue',Ari
   font-size: 14px;
   line-height: 1.4;
 }
+
+.stats-source-label {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 3px;
+}
+
+.stats-source-label strong {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.stats-source-label small {
+  color: #c0c4d9;
+  font-size: 14px;
+}
+
+#modal[data-kind=sheet]:has(.source-options) {
+  background: #30334b;
+  border-radius: 24px 24px 0 0;
+}
+
+.source-options label {
+  min-height: 67px;
+  border-top: 1px solid #ffffff24;
+}
+
+.source-options input {
+  flex: none;
+  margin: 0;
+}
+
+.stats-category-page .category-transaction-list {
+  margin-top: 18px;
+}
+
+.stats-category-page .transaction {
+  min-height: 72px;
+}
