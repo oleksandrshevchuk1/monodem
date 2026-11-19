@@ -56,3 +56,30 @@
 
 /* Match the original thin 32-point silhouettes inside a consistent 24px slot. */
 .transfer-action-glyph{width:24px;height:24px;margin-right:-2px;stroke-width:1.5;color:#dedede}
+
+/* Take up no extra space at rest. Content scrolls beneath this strip. */
+#app.detail .operation-scroll-toolbar,
+.side-page-snapshot.detail .operation-scroll-toolbar {
+ --operation-toolbar-height: calc(var(--safe-header, 44px) + 46px);
+ position: sticky;
+ top: 0;
+ height: var(--operation-toolbar-height);
+ margin-top: calc(-1 * var(--operation-inset));
+ margin-bottom: calc(var(--operation-inset) - var(--operation-toolbar-height));
+ z-index: 6;
+ isolation: isolate;
+ pointer-events: none;
+}
+.operation-scroll-toolbar > button { pointer-events: auto; }
+.operation-scroll-pattern {
+ position: absolute;
+ inset: 0;
+ overflow: hidden;
+ z-index: -1;
+}
+.operation-scroll-toolbar > .reference-operation-avatar {
+ top: var(--operation-avatar-top);
+ transform-origin: center;
+ pointer-events: none;
+}
+.operation-scroll-pattern > .reference-operation-pattern { z-index: auto; }
