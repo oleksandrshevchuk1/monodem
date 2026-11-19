@@ -89,16 +89,7 @@ function statsGroups(){const groups={};for(const t of statsTransactions()){const
 function statsGroupRows(){const total=statsTotal(statsKind);return statsGroups().map((g,i)=>`<button class="stats-category" data-action="stats-category" data-category="${esc(g.name)}"><span class="stats-category-icon tone-${i%4}">${icon(g.icon)}</span><span><strong>${esc(g.name)}</strong><small>${g.count} транзакцій</small></span><span class="stats-category-amount ${statsKind==='income'?'green':''}">${statsKind==='expense'?'−':''}${displayMoney(g.total)} ₴<small>${total?Math.round(g.total/total*100):0}%</small></span></button>`).join('')||empty('Немає операцій','Оберіть інший період або картки.')}
 function statsTabs(){return `<div class="stats-tabs"><button data-action="stats-tab" data-tab="categories" class="${statsTab==='categories'?'selected':''}">Категорії</button><button data-action="stats-tab" data-tab="tags" class="${statsTab==='tags'?'selected':''}">Теги</button></div>`}
 function summaryCard(kind){const tx=statsTransactions(kind),count=new Set(tx.map(t=>t.category||'Інше')).size,total=statsTotal(kind),income=kind==='income';return `<section class="stats-summary" data-kind="${kind}" data-total="${total}"><span class="summary-arrow ${income?'income':'expense'}">${statsArrow(income)}</span><span class="currency-badge">UAH</span><h2>${income?'Надходження':'Витрати'}</h2><strong>${income?'':'−'}${displayMoney(total)} ₴</strong><div class="summary-count">${icon('receipt')}Усього ви зробили ${tx.length} транзакцій</div><div class="summary-metrics"><button data-action="stats-tab" data-tab="categories">${statsMetricIcon(false)}<strong>${count}</strong><span>Категорії</span></button><button data-action="stats-tab" data-tab="tags">${statsMetricIcon(true)}<strong>${new Set(tx.filter(t=>t.tag).map(t=>t.tag)).size}</strong><span>Тегів</span></button></div></section>`}
-function statsOverview(){
-  if (!statsTransactions('expense').length && !statsTransactions('income').length) {
-    return `<section class="stats-empty-state"><img src="assets/reference/statistics-empty-cat.png" alt="" width="1254" height="1254"><h2>Немає операцій</h2><p>За вибраний період за цим джерелом не було операцій</p></section>`;
-  }
-  return `<div class="stats-carousel" id="stats-carousel">${summaryCard('expense')}${summaryCard('income')}</div><div class="stats-dots"><button class="${statsKind==='expense'?'selected':''}" data-action="stats-kind" data-kind="expense" aria-label="Витрати"></button><button class="${statsKind==='income'?'selected':''}" data-action="stats-kind" data-kind="income" aria-label="Надходження"></button></div>${statsTabs()}<div id="stats-group-list">${statsGroupRows()}</div>`;
-}
-analytics=function(){
-  const selectedCard=statsCards?.length===1 ? allCards().find(card=>card.id===statsCards[0]) : null;
-  const sourceName=selectedCard?.account || (statsCards?.length===1 ? 'Картка' : statsCards ? statsCards.length+' картки' : 'Усі картки');
-  return `<div class="stats-page"><div class="stats-toolbar"><button data-action="back" aria-label="Назад">${icon('arrow-left')}</button><button data-action="nav" data-page="capital" aria-label="Капітал">${capitalIcon()}</button></div><h1>Статистика</h1><button class="stats-period" data-action="stats-period">${esc(periodLabel())}${icon('calendar')}</button><button class="stats-source" data-action="stats-source"><span class="stats-mini-card">${cardArtwork(selectedCard||mainCard())}</span><span class="stats-source-label"><strong>${esc(sourceName)}</strong>${selectedCard?`<small>${displayMoney(cardBalance(selectedCard))} ₴</small>`:''}</span><span class="vertical-dots" aria-hidden="true">⋮</span></button>${statsOverview()}</div>`};
+analytics=function(){return `<div class="stats-page"><div class="stats-toolbar"><button data-action="back" aria-label="Назад">${icon('arrow-left')}</button><button data-action="nav" data-page="capital" aria-label="Капітал">${capitalIcon()}</button></div><h1>Статистика</h1><button class="stats-period" data-action="stats-period">${esc(periodLabel())}${icon('calendar')}</button><button class="stats-source" data-action="stats-source"><span class="stats-mini-card">${cardArtwork(statsCards?.length===1?allCards().find(c=>c.id===statsCards[0])||mainCard():mainCard())}</span><strong>${statsCards?.length===1?esc(allCards().find(c=>c.id===statsCards[0])?.account||'Картка'):statsCards?statsCards.length+' картки':'Усі картки'}</strong><span class="vertical-dots">⋮</span></button><div class="stats-carousel" id="stats-carousel">${summaryCard('expense')}${summaryCard('income')}</div><div class="stats-dots"><button class="${statsKind==='expense'?'selected':''}" data-action="stats-kind" data-kind="expense" aria-label="Витрати"></button><button class="${statsKind==='income'?'selected':''}" data-action="stats-kind" data-kind="income" aria-label="Надходження"></button></div>${statsTabs()}<div id="stats-group-list">${statsGroupRows()}</div></div>`};
 function capitalPage(){const cards=allCards().filter(c=>!statsCards||statsCards.includes(c.id)),total=cards.reduce((n,c)=>n+cardBalance(c),0)+state.jars.reduce((n,j)=>n+j.amount,0)+state.deposits.reduce((n,d)=>n+d.amount,0);return `<div class="capital-page"><div class="stats-toolbar"><button data-action="nav" data-page="analytics" aria-label="Назад">${icon('arrow-left')}</button></div><h1>Капітал</h1><section class="capital-total"><span class="capital-symbol">${icon('wallet')}</span><span class="currency-badge">UAH</span><p>Сума</p><strong>${displayMoney(total)} ₴</strong><div class="capital-note">Ваш капітал складається з ${cards.length+state.jars.length+state.deposits.length} джерел</div></section><div class="capital-sources">${cards.map(c=>`<button data-action="capital-card" data-id="${c.id}"><span class="stats-mini-card">${cardArtwork(c)}</span><small>${esc(c.account)}</small><strong>${displayMoney(cardBalance(c))} ₴</strong></button>`).join('')}${state.jars.map(j=>`<div><span class="capital-symbol">${uiIcon('jar-native')}</span><small>${esc(j.name)}</small><strong>${displayMoney(j.amount)} ₴</strong></div>`).join('')}${state.deposits.map(d=>`<div><span class="capital-symbol">${uiIcon('deposit-native')}</span><small>${esc(d.name)}</small><strong>${displayMoney(d.amount)} ₴</strong></div>`).join('')}</div></div>`}
 function statsCategoryPage(){const name=decodeURIComponent(route.id||''),tx=statsTransactions().filter(t=>(statsTab==='tags'?(t.tag||'Без тегів'):(t.category||'Інше'))===name);return `<div class="stats-page stats-category-page"><div class="stats-toolbar"><button data-action="nav" data-page="analytics" aria-label="Назад">${icon('arrow-left')}</button><button data-action="nav" data-page="capital" aria-label="Капітал">${capitalIcon()}</button></div><h1>${esc(name)}</h1><p class="stats-period-label">${esc(periodLabel())}</p><div class="category-transaction-list">${grouped(tx)}</div></div>`}
 function bottomSheet(title,html,fn,cta='Показати'){modal(title,html,fn,cta);$('#modal').dataset.kind='sheet'}
@@ -117,71 +108,7 @@ modal=function(...args){delete $('#modal').dataset.kind;basicModal(...args)};
 function statsMetricIcon(tag){return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${tag?'<circle cx="12" cy="12" r="10" fill="currentColor"/><path d="m10 7-2 10m8-10-2 10M7 10h11M6 14h11" fill="none" stroke="#616176" stroke-width="1.7"/>':'<path fill="currentColor" fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20ZM7 7h4v4H7Zm6 0h4v4h-4Zm-6 6h4v4H7Zm6 0h4v4h-4Z"/>'}</svg>`}
 function statsArrow(income){return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${income?'M18 6 6 18M6 8v10h10':'M6 18 18 6M8 6h10v10'}"/></svg>`}
 function capitalIcon(){return `<svg class="icon" viewBox="0 0 28 28" aria-hidden="true" fill="currentColor"><ellipse cx="10" cy="6" rx="6" ry="3"/><path d="M4 9c3 2.4 9 2.4 12 0v4c-3 2.5-9 2.5-12 0Zm0 7c3 2.4 9 2.4 12 0v4c-3 2.5-9 2.5-12 0Z"/><ellipse cx="21" cy="13" rx="5" ry="2.5"/><path d="M16 16c3 2 7 2 10 0v4c-3 2-7 2-10 0Zm0 7c3 2 7 2 10 0v2c-3 2-7 2-10 0Z"/></svg>`}
-function initStats(){
-  statsController?.cancel();
-  statsController=null;
-  const track=$('#stats-carousel');
-  if(!track)return;
-
-  const cards=[...track.querySelectorAll('.stats-summary')];
-  const position=index=>Math.min(track.scrollWidth-track.clientWidth,cards[index].offsetLeft-cards[0].offsetLeft);
-  const nearest=x=>x<=position(1)/2?0:1;
-  const dots=[...document.querySelectorAll('.stats-dots button')];
-  let motion,wheelTimer,activeIndex;
-  const showDot=index=>{
-    if(activeIndex===index)return;
-    activeIndex=index;
-    dots.forEach((button,i)=>button.classList.toggle('selected',i===index));
-  };
-  const cancel=()=>{
-    clearTimeout(wheelTimer);
-    motion?.cancel();
-  };
-  const go=(kind,velocity=0)=>{
-    cancel();
-    if(!track.isConnected)return;
-    const index=kind==='income'?1:0;
-    const target=position(index);
-    if(statsKind!==kind){
-      statsKind=kind;
-      const summary=cards[index];
-      animateSummaryValue(summary.querySelector(':scope>strong'),0,Number(summary.dataset.total),kind);
-      updateStatsGroups();
-      activeIndex=index;
-      if(!shouldReduceMotion())$('#stats-group-list')?.animate([{opacity:.2},{opacity:1}],{duration:180,easing:'ease-out'});
-    }
-    if(shouldReduceMotion()||track.scrollLeft===target){
-      track.scrollLeft=target;
-      showDot(index);
-      return;
-    }
-    motion=physicalSettle(()=>track.scrollLeft,x=>{track.scrollLeft=x},target,velocity,()=>showDot(index));
-  };
-
-  track.scrollLeft=position(statsKind==='income'?1:0);
-  track.tabIndex=0;
-  track.setAttribute('aria-label','Доходи та витрати: гортайте ліворуч або праворуч');
-  bindHorizontalGesture(track,{
-    read:()=>-track.scrollLeft,
-    write:x=>{track.scrollLeft=-x},
-    cancel,
-    settle:v=>go(nearest(track.scrollLeft-v*.12)?'income':'expense',-v)
-  });
-  track.addEventListener('scroll',()=>showDot(nearest(track.scrollLeft)),{passive:true});
-  track.addEventListener('keydown',e=>{
-    if(!['ArrowLeft','ArrowRight'].includes(e.key))return;
-    e.preventDefault();
-    go(e.key==='ArrowRight'?'income':'expense');
-  });
-  track.addEventListener('wheel',e=>{
-    if(Math.abs(e.deltaX)<=Math.abs(e.deltaY))return;
-    e.preventDefault();
-    cancel();
-    track.scrollLeft+=e.deltaX;
-    wheelTimer=setTimeout(()=>go(nearest(track.scrollLeft)?'income':'expense'),90);
-  },{passive:false});
-  statsController={go,cancel};
-}
+function initStats(){const track=$('#stats-carousel');if(!track)return;const cards=[...track.querySelectorAll('.stats-summary')],positions=cards.map(x=>x.offsetLeft-cards[0].offsetLeft);let motion=null,wheelTimer;const nearest=x=>Math.abs(x-positions[0])<=Math.abs(x-positions[1])?0:1;const dots=index=>document.querySelectorAll('.stats-dots button').forEach((b,i)=>b.classList.toggle('selected',i===index));const select=index=>{const previous=statsKind;statsKind=index?'income':'expense';if(previous!==statsKind){const summary=cards[index];animateSummaryValue(summary.querySelector(':scope>strong'),0,Number(summary.dataset.total),statsKind)}dots(index);updateStatsGroups();const list=$('#stats-group-list');if(list&&!shouldReduceMotion())list.animate([{opacity:.2},{opacity:1}],{duration:180,easing:'ease-out'})};const go=(kind,velocity=0)=>{motion?.cancel();const index=kind==='income'?1:0,target=Math.min(track.scrollWidth-track.clientWidth,positions[index]);select(index);if(shouldReduceMotion()){track.scrollLeft=target;return}motion=physicalSettle(()=>track.scrollLeft,x=>track.scrollLeft=x,target,velocity,()=>{})};track.scrollLeft=positions[statsKind==='income'?1:0];track.tabIndex=0;track.setAttribute('aria-label','Доходи та витрати: гортайте ліворуч або праворуч');bindHorizontalGesture(track,{read:()=>-track.scrollLeft,write:x=>track.scrollLeft=-x,cancel:()=>motion?.cancel(),settle:v=>go(nearest(track.scrollLeft-v*.12)?'income':'expense',-v)});track.addEventListener('scroll',()=>dots(nearest(track.scrollLeft)),{passive:true});track.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();go(e.key==='ArrowRight'?'income':'expense')}});track.addEventListener('wheel',e=>{if(Math.abs(e.deltaX)>Math.abs(e.deltaY)){e.preventDefault();motion?.cancel();track.scrollLeft+=e.deltaX;clearTimeout(wheelTimer);wheelTimer=setTimeout(()=>go(nearest(track.scrollLeft)?'income':'expense'),90)}},{passive:false});statsController={go,cancel:()=>motion?.cancel()}}
 
 function bindRefresh(){}
 
@@ -238,8 +165,7 @@ function captureBankSurface(preserveArtwork=false){const app=$('#app'),rect=app.
 function fitMonetaryLabels(){for(const [selector,max,min] of [['.home-balance strong',46,26],['.stats-summary>strong',46,24],['.capital-total>strong',38,22],['.compact-card>strong',21,12],['.tx-amount',18,12]]){document.querySelectorAll(selector).forEach(el=>{if(el.dataset.numberMotion==='1')return;el.style.fontSize=max+'px';const available=el.clientWidth;if(available&&el.scrollWidth>available)el.style.fontSize=Math.max(min,Math.floor(max*available/el.scrollWidth))+'px'})}}
 function animateSummaryValue(el,from,to,kind){if(from===to||shouldReduceMotion())return;const available=el.clientWidth,style=getComputedStyle(el),canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');ctx.font=style.font;const label=n=>(kind==='expense'?'−':'')+displayMoney(n)+' ₴',width=Math.max(ctx.measureText(label(from)).width,ctx.measureText(label(to)).width);el.style.fontSize=Math.max(24,Math.min(parseFloat(style.fontSize),parseFloat(style.fontSize)*available/width))+'px';el.dataset.numberMotion='1';const start=performance.now();const step=now=>{if(!el.isConnected)return;const t=Math.min(1,(now-start)/240),n=from+(to-from)*(1-Math.pow(1-t,3));el.textContent=label(n);if(t<1)requestAnimationFrame(step);else{el.textContent=label(to);delete el.dataset.numberMotion}};requestAnimationFrame(step)}
 const beforeAmountRender=render;
-let refreshingStatsOverview=false;
-render=function(){const previous=route.page==='analytics'?new Map([...document.querySelectorAll('.stats-summary')].map(x=>[x.dataset.kind,Number(x.dataset.total)])):null;refreshingStatsOverview=Boolean(previous?.size);try{beforeAmountRender()}finally{refreshingStatsOverview=false}requestAnimationFrame(()=>{fitMonetaryLabels();if(previous?.size)document.querySelectorAll('.stats-summary').forEach(x=>{if(previous.has(x.dataset.kind))animateSummaryValue(x.querySelector(':scope>strong'),previous.get(x.dataset.kind),Number(x.dataset.total),x.dataset.kind)})});document.fonts.ready.then(fitMonetaryLabels)};
+render=function(){const previous=route.page==='analytics'?new Map([...document.querySelectorAll('.stats-summary')].map(x=>[x.dataset.kind,Number(x.dataset.total)])):null;beforeAmountRender();requestAnimationFrame(()=>{fitMonetaryLabels();if(previous?.size)document.querySelectorAll('.stats-summary').forEach(x=>{if(previous.has(x.dataset.kind))animateSummaryValue(x.querySelector(':scope>strong'),previous.get(x.dataset.kind),Number(x.dataset.total),x.dataset.kind)})});document.fonts.ready.then(fitMonetaryLabels)};
 
 render();
 
