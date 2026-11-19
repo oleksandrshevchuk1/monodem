@@ -3,8 +3,9 @@ const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>
 let icon=n=>`<img class="icon" src="assets/icons/${n}.svg" alt="" aria-hidden="true">`;
 const uid=()=>crypto.randomUUID(),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},money=n=>new Intl.NumberFormat('uk-UA',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n),safeID=v=>typeof v==='string'&&/^[a-zA-Z0-9-]+$/.test(v),validTypes=['image/jpeg','image/png','image/webp','application/pdf'];
 let state={"name":"Демо-користувач","holder":"DEMO USER","card":"0000 0000 0000 0000","account":"Чорна картка","opening":0,"cashback":0,"avatar":null,"transactions":[],"files":[],"extraCards":[],"activeCard":"main","jars":[],"deposits":[],"categories":[],"contacts":[],"messages":[],"regular":[],"creditLimit":0,"notifications":0,"cardSettings":{}};
-function pageScrollY(){return document.getElementById('pwa-scroll')?.scrollTop??window.scrollY}
-function pageScrollTo(...args){const host=document.getElementById('pwa-scroll');return host?host.scrollTo(...args):window.scrollTo(...args)}
+function pageScrollHost(){return $('#app.detail .operation-content-scroll')||document.getElementById('pwa-scroll')}
+function pageScrollY(){return pageScrollHost()?.scrollTop??window.scrollY}
+function pageScrollTo(...args){const host=pageScrollHost();return host?host.scrollTo(...args):window.scrollTo(...args)}
 const adminMode=/^\/admin(?:\/|\.html$)/.test(location.pathname);
 const initialHash=location.hash.slice(1).split('/');
 let route={page:initialHash[0]||'home',id:initialHash[1]},db,submit,showNumber=false,fileURL,loading=true,returnRoute={page:'home'},fileReturn={page:'files'};

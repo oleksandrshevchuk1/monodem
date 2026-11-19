@@ -82,9 +82,10 @@ detail=function(){
  window.addEventListener('blur',clear);
 })();
 
-// The patterned strip and the round bank mark share one sticky boundary.
+// Keep the bank header outside the native content scroller.
 const renderBeforeOperationBoundary = render;
 render = function() {
+ const savedScroll = pendingRouteScroll ?? $('#app.detail .operation-content-scroll')?.scrollTop ?? 0;
  renderBeforeOperationBoundary();
  if (adminMode || route.page !== 'detail') return;
 
@@ -98,7 +99,7 @@ render = function() {
  const headerStyle = getComputedStyle(head);
  const boundary = head.getBoundingClientRect().top - operation.getBoundingClientRect().top;
  const avatarTop = avatar.getBoundingClientRect().top - operation.getBoundingClientRect().top;
- const height = Math.max(boundary, avatarTop + avatar.offsetHeight) + 2;
+ const height = Math.max(boundary, avatarTop + avatar.offsetHeight) + 6;
  const backdrop = document.createElement('div');
  backdrop.className = 'operation-boundary-pattern';
  backdrop.setAttribute('aria-hidden', 'true');
@@ -107,7 +108,13 @@ render = function() {
  toolbar.style.setProperty('--operation-boundary', boundary + 'px');
  const slot = document.createElement('div');
  slot.className = 'operation-boundary-slot';
- slot.style.height = getComputedStyle(operation).paddingTop;
+ const scroller = document.createElement('div');
+ scroller.className = 'operation-content-scroll';
+ const content = document.createElement('div');
+ content.className = 'operation-content';
+ content.style.paddingTop = getComputedStyle(operation).paddingTop;
+ content.append(...operation.childNodes);
+ scroller.append(content);
  toolbar.style.setProperty('--operation-toolbar-height', height + 'px');
  toolbar.style.setProperty('--operation-avatar-top', avatarTop + 'px');
  toolbar.style.setProperty('--operation-cap-color', headerStyle.backgroundColor);
@@ -117,5 +124,8 @@ render = function() {
  toolbar.append(avatar);
  operation.classList.add('has-operation-boundary');
  slot.append(toolbar);
- operation.prepend(slot);
+ operation.append(scroller, slot);
+ const outer = document.getElementById('pwa-scroll');
+ if (outer?.scrollTop) outer.scrollTop = 0;
+ scroller.scrollTop = savedScroll;
 };

@@ -59,16 +59,33 @@
 /* Match the original thin 32-point silhouettes inside a consistent 24px slot. */
 .transfer-action-glyph{width:24px;height:24px;margin-right:-2px;stroke-width:1.5;color:#dedede}
 
-/* Keep only the bank strip and its shallow gray edge above the scrolling content. */
-.reference-operation.has-operation-boundary { padding-top: 0; }
-/* Keep the pinned artwork and moving content on separate paint layers. */
-#app.detail #screen:has(.has-operation-boundary) { backface-visibility: visible; }
+/* Only the content scrolls. The header is a sibling in the same page. */
+#app.detail:has(.operation-content-scroll) #screen {
+ min-height: 0;
+ padding-bottom: 0;
+ overflow: clip;
+ backface-visibility: visible;
+}
+.reference-operation.has-operation-boundary {
+ height: var(--app-height, 100dvh);
+ min-height: 0;
+ padding-top: 0;
+ overflow: clip;
+}
+.operation-content-scroll {
+ position: absolute;
+ inset: 0;
+ overflow: hidden auto;
+ overscroll-behavior: none;
+ touch-action: pan-y;
+}
+.operation-content { position: relative; isolation: isolate; min-height: 100%; }
+.side-page-snapshot.detail:has(.operation-content-scroll) { top: 0 !important; }
 .operation-boundary-slot {
- position: sticky;
- top: 0;
+ position: absolute;
+ inset: 0 0 auto;
  z-index: 6;
  pointer-events: none;
- transform: translateZ(0);
 }
 #app.detail .operation-boundary-toolbar,
 .side-page-snapshot.detail .operation-boundary-toolbar {

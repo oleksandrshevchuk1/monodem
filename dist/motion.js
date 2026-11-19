@@ -225,6 +225,8 @@ function freezePageSurface() {
  copy.style.paddingBottom = getComputedStyle(source).paddingBottom;
  surface.className = 'side-page-snapshot ' + app.className;
  surface.classList.remove('paired-side-motion');
+ const scroll = source.querySelector('.operation-content-scroll')?.scrollTop;
+ if (scroll) copy.querySelector('.operation-content').style.transform = 'translateY(' + (-scroll) + 'px)';
  const selector = source.querySelector('.card-selector');
  const frozenSelector = copy.querySelector('.card-selector');
  if (selector && frozenSelector) {
