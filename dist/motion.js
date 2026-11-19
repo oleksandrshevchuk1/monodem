@@ -146,7 +146,9 @@ render();
 // Only the recorded transitions own motion; switching bottom tabs is immediate.
 let sideEntrance=null,sideSnapshot=null,sideHomeSnapshot=null,sideSwipeLayer=null,pendingSideSnapshot=null,sideReturnClickUntil=0;
 function suppressSideReturnClick(){sideReturnClickUntil=performance.now()+450}
-document.addEventListener('pointerdown',()=>{sideReturnClickUntil=0},{capture:true,passive:true});
+document.addEventListener('pointerdown',event=>{
+  if (!sideEntrance?.isRouteExit && !event.sourceCapabilities?.firesTouchEvents) sideReturnClickUntil=0;
+ },{capture:true,passive:true});
 document.addEventListener('click',event=>{if(event.detail&&performance.now()<sideReturnClickUntil){event.preventDefault();event.stopImmediatePropagation()}},true);
 const sidePages = new Set(['limits','abroad','detail']), paintWithOperations = paint;
 const slidingTransferPages = new Set(['detail', 'transfer', 'transferAmount', 'transferArchive']);
@@ -175,6 +177,8 @@ function animateSideSurfaces(app, preview, from, to, duration) {
  const owner = {};
  pairedSideMotion = owner;
  const width = app.clientWidth;
+ const enteringDetail = from === width && to === 0 && !!app.querySelector('.operation-boundary-slot');
+ if (enteringDetail && !pageScrollY()) app.classList.add('operation-entry-frame');
  let frame, lastTime, elapsed = 0, settled = false, resolve;
  const finished = new Promise(done => { resolve = done; });
  placeSideSurfaces(app, preview, from, width);
@@ -196,9 +200,7 @@ function animateSideSurfaces(app, preview, from, to, duration) {
   if (progress === 1) stop();
   else frame = requestAnimationFrame(advance);
  };
- // Let WebKit prepare the complete header before it crosses the clipping edge.
- const preparesHeader = from === width && to === 0 && app.querySelector('.operation-boundary-slot');
- frame = preparesHeader
+ frame = enteringDetail
   ? requestAnimationFrame(() => { frame = requestAnimationFrame(advance); })
   : requestAnimationFrame(advance);
  return {
@@ -209,7 +211,7 @@ function animateSideSurfaces(app, preview, from, to, duration) {
    if (pairedSideMotion !== owner) return;
    pairedSideMotion = null;
    app.style.transform = '';
-   app.classList.remove('paired-side-motion');
+   app.classList.remove('paired-side-motion','operation-entry-frame');
   }
  };
 }
@@ -295,6 +297,10 @@ paint = function(direction) {
 
  const app = $('#app');
  const fromSide = [...sidePages].find(page => app.classList.contains(page));
+ if (direction === 'back' && sideEntrance?.adoptBackDestination) {
+  sideEntrance.adoptBackDestination();
+  return;
+ }
  if (direction === 'back' && fromSide && slidingTransferPages.has(fromSide)) {
   const source = sideSourceForPage(route.page);
   if (source) {
@@ -363,7 +369,7 @@ paint = function(direction) {
  finishSideEntrance();
  render();
 };
-const navigateBeforeSideViewport=navigate;navigate=function(page,id){if(sidePages.has(page)&&page!==route.page)pendingSideSnapshot=freezePageSurface();try{return navigateBeforeSideViewport(page,id)}finally{pendingSideSnapshot=null}};
+const navigateBeforeSideViewport=navigate;navigate=function(page,id){if(page==='detail' && route.page===page && route.id===id)return; if(sidePages.has(page)&&page!==route.page)pendingSideSnapshot=freezePageSurface();try{return navigateBeforeSideViewport(page,id)}finally{pendingSideSnapshot=null}};
 
 function sideSourceForPage(page) {
  if (sideSnapshot?.classList.contains(page)) return sideSnapshot;
@@ -396,7 +402,7 @@ function resetSideSwipe() {
 
 function startLiveSideExit(source, commit) {
  const app = $('#app');
- const page = route;
+ let page = route;
  const width = app.clientWidth;
  const x = sidePageX(app);
  const preview = sideSwipeLayer?.sourceSurface === source ? sideSwipeLayer : makeSideReturnLayer(source);
@@ -409,12 +415,17 @@ function startLiveSideExit(source, commit) {
  const exit = animateSideSurfaces(app, preview, x, width, Math.max(210, 350 * (1 - x / width)));
  exit.isRouteExit = true;
  trackSideMotion(exit, null, preview);
+ exit.adoptBackDestination = () => {
+  page = route;
+  commit = render;
+ };
  const cleanup = exit.cleanup;
  exit.cleanup = () => {
   // Commit navigation in the same frame that removes the outgoing page.
   if (sideEntrance === exit && route === page) {
    sideEntrance = null;
    delete document.documentElement.dataset.routeMotion;
+   if (performance.now() < sideReturnClickUntil) suppressSideReturnClick();
    commit();
   }
   cleanup();
@@ -442,7 +453,7 @@ function bindSideReturn() {
  const begin = (clientX, clientY, target) => {
   const left = app.getBoundingClientRect().left - sidePageX(app);
   if (clientX < left || clientX - left > 36 || target.closest('input,textarea,select')) return;
-  if (sideEntrance?.isRouteExit || $('#modal').open) return;
+  if (sideEntrance || $('#modal').open) return;
   start = {x: clientX, y: clientY};
  };
  const move = (clientX, clientY) => {
@@ -453,7 +464,7 @@ function bindSideReturn() {
    return false;
   }
   if (!sideSwipeLayer) {
-   if (dx <= 8 || dx <= Math.abs(dy) * 1.3) return false;
+   if (dx <= 10 || dx <= Math.abs(dy) * 1.65) return false;
    const destination = route.page === 'detail' ? returnRoute.page : 'home';
    const source = slidingTransferPages.has(route.page) ? sideSourceForPage(destination) : sideSnapshot;
    if (!source) return false;

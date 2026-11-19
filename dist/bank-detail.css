@@ -79,6 +79,8 @@
  overscroll-behavior: none;
  touch-action: pan-y;
 }
+/* Give the full page one paint surface while it enters. Restore native scrolling at rest. */
+#app.operation-entry-frame .operation-content-scroll { overflow: clip; }
 .operation-content { position: relative; isolation: isolate; min-height: 100%; }
 .side-page-snapshot.detail:has(.operation-content-scroll) { top: 0 !important; }
 .operation-boundary-slot {
@@ -86,7 +88,6 @@
  inset: 0 0 auto;
  z-index: 6;
  height: var(--operation-toolbar-height);
- contain: paint;
  pointer-events: none;
 }
 #app.detail .operation-boundary-toolbar,
