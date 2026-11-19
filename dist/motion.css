@@ -62,3 +62,6 @@
 
 /* The snapshot carries the tab bar while the closing page covers it. */
 body:has(.side-return-underlay) #nav,body:has(.all-cards-backdrop):has(.all-cards-exit) #nav{visibility:hidden}
+
+.pwa-scroll:has(#app:is(.detail,.transfer,.transferAmount,.transferArchive)){touch-action:pan-y;overscroll-behavior-x:none}
+.side-return-preview{will-change:transform}

@@ -144,7 +144,7 @@ const receiptBeforeSharing=receiptPage;receiptPage=function(){return receiptBefo
 const beforeMotionRender=render;render=function(){accountPreviewCache.clear();if(swipeLayers){cardSlideAnimation?.cancel();cleanupSwipe()}beforeMotionRender()};
 render();
 // Only the recorded transitions own motion; switching bottom tabs is immediate.
-let sideEntrance=null,sideSnapshot=null,sideDrag=0,pendingSideSnapshot=null,sideReturnClickUntil=0;
+let sideEntrance=null,sideSnapshot=null,sideHomeSnapshot=null,sideSwipeLayer=null,pendingSideSnapshot=null,sideReturnClickUntil=0;
 function suppressSideReturnClick(){sideReturnClickUntil=performance.now()+450}
 document.addEventListener('pointerdown',()=>{sideReturnClickUntil=0},{capture:true,passive:true});
 document.addEventListener('click',event=>{if(event.detail&&performance.now()<sideReturnClickUntil){event.preventDefault();event.stopImmediatePropagation()}},true);
@@ -215,6 +215,7 @@ paint = function(direction) {
  pageAnimation?.cancel();
  if (skipPageMotion || shouldReduceMotion()) {
   skipPageMotion = false;
+  resetSideSwipe();
   finishSideEntrance();
   render();
   return;
@@ -222,14 +223,21 @@ paint = function(direction) {
 
  const app = $('#app');
  const fromSide = [...sidePages].find(page => app.classList.contains(page));
+ if (direction === 'back' && fromSide && slidingTransferPages.has(fromSide)) {
+  const source = sideSourceForPage(route.page);
+  if (source) {
+   startLiveSideExit(source, render);
+   return;
+  }
+ }
  if (direction === 'back' && fromSide) {
   const rect = app.getBoundingClientRect();
   const dx = new DOMMatrixReadOnly(getComputedStyle(app).transform).m41;
   const snapshot = freezePageSurface();
+  resetSideSwipe();
   finishSideEntrance();
   const frozen = snapshot.querySelector('.transition-screen');
   frozen.replaceChildren(...$('#screen').childNodes);
-  sideDrag = 0;
   snapshot.style.left = (rect.x - dx) + 'px';
   snapshot.style.top = -pageScrollY() + 'px';
   snapshot.style.zIndex = 45;
@@ -258,11 +266,13 @@ paint = function(direction) {
   return;
  }
 
+ resetSideSwipe();
  if (route.page === 'history') return paintWithOperations(direction);
  if (sidePages.has(route.page)) {
   finishSideEntrance();
   sideSnapshot?.remove();
   sideSnapshot = pendingSideSnapshot || freezePageSurface();
+  if (sideSnapshot.classList.contains('home')) sideHomeSnapshot = sideSnapshot;
   const snapshot = sideSnapshot.cloneNode(true);
   snapshot.style.zIndex = 35;
   document.body.append(snapshot);
@@ -285,7 +295,171 @@ paint = function(direction) {
  render();
 };
 const navigateBeforeSideViewport=navigate;navigate=function(page,id){if(sidePages.has(page)&&page!==route.page)pendingSideSnapshot=freezePageSurface();try{return navigateBeforeSideViewport(page,id)}finally{pendingSideSnapshot=null}};
-function bindSideReturn(){const app=$('#app');let start=null,active=false,underlay=null;const begin=(x,y,target,id)=>{if(x-app.getBoundingClientRect().left>36||target.closest('input,textarea,select'))return;if(sideEntrance?.isRouteExit)return;start={x,y,id};active=false;sideDrag=0};const move=(x,y)=>{if(!start)return false;const dx=x-start.x,dy=y-start.y;if(!active&&Math.abs(dy)>8&&Math.abs(dy)>Math.abs(dx)){start=null;return false}if(!active&&dx>8&&dx>Math.abs(dy)*1.3){finishSideEntrance();active=true;underlay=sideSnapshot?.cloneNode(true);if(underlay){underlay.style.zIndex=35;document.body.append(underlay)}app.style.zIndex=41}if(!active)return false;sideDrag=Math.max(0,dx);app.style.transform=`translate3d(${sideDrag}px,0,0)`;return true};const end=cancelled=>{if(!start)return;start=null;if(!active)return;active=false;suppressSideReturnClick();const stop=e=>{e.preventDefault();e.stopPropagation()};document.addEventListener('click',stop,true);setTimeout(()=>document.removeEventListener('click',stop,true),0);if(!cancelled&&sideDrag>app.clientWidth*.23){back();underlay?.remove();return}const dx=sideDrag;sideDrag=0;app.style.transform='';const settle=app.animate([{transform:`translate3d(${dx}px,0,0)`},{transform:'translate3d(0,0,0)'}],{duration:220,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'});sideEntrance=settle;document.documentElement.dataset.routeMotion='active';settle.finished.catch(()=>{}).finally(()=>{underlay?.remove();if(sideEntrance===settle){sideEntrance=null;app.style.zIndex='';delete document.documentElement.dataset.routeMotion}settle.cancel()})};app.onpointerdown=e=>{if(e.pointerType==='mouse')begin(e.clientX,e.clientY,e.target,e.pointerId)};app.onpointermove=e=>{if(e.pointerType==='mouse'&&move(e.clientX,e.clientY))app.setPointerCapture(e.pointerId)};app.onpointerup=e=>{if(e.pointerType==='mouse')end(false)};app.onpointercancel=()=>end(true);app.ontouchstart=e=>{if(e.touches.length===1)begin(e.touches[0].clientX,e.touches[0].clientY,e.target)};app.ontouchmove=e=>{if(e.touches.length===1&&move(e.touches[0].clientX,e.touches[0].clientY))e.preventDefault()};app.ontouchend=()=>end(false);app.ontouchcancel=()=>end(true)}
+
+function sideSourceForPage(page) {
+ if (sideSnapshot?.classList.contains(page)) return sideSnapshot;
+ return page === 'home' ? sideHomeSnapshot : null;
+}
+
+function makeSideReturnLayer(source) {
+ const layer = source?.cloneNode(true);
+ if (!layer) return null;
+ layer.classList.add('side-return-preview');
+ layer.sourceSurface = source;
+ layer.style.zIndex = '35';
+ document.body.append(layer);
+ return layer;
+}
+
+function sidePageX(app) {
+ return new DOMMatrixReadOnly(getComputedStyle(app).transform).m41;
+}
+
+function resetSideSwipe() {
+ if (!sideSwipeLayer) return;
+ sideSwipeLayer.remove();
+ sideSwipeLayer = null;
+ delete document.documentElement.dataset.routeMotion;
+ $('#app').style.zIndex = '';
+ $('#app').style.transform = '';
+}
+
+function startLiveSideExit(source, commit) {
+ const app = $('#app');
+ const page = route;
+ const width = app.clientWidth;
+ const x = sidePageX(app);
+ const preview = sideSwipeLayer?.sourceSurface === source ? sideSwipeLayer : makeSideReturnLayer(source);
+ if (sideSwipeLayer !== preview) sideSwipeLayer?.remove();
+ sideSwipeLayer = null;
+ finishSideEntrance();
+ app.style.transform = '';
+ app.style.zIndex = '41';
+
+ const options = {duration: Math.max(180, 360 * (1 - x / width)), easing: slideEase, fill: 'both'};
+ const exit = app.animate([{transform: translateX(x)}, {transform: translateX(width)}], options);
+ const companion = preview.animate([
+  {transform: translateX(-(width - x) * .25)}, {transform: translateX(0)}
+ ], options);
+ exit.isRouteExit = true;
+ trackSideMotion(exit, null, preview, companion);
+ const cleanup = exit.cleanup;
+ exit.cleanup = () => {
+  // Commit navigation in the same frame that removes the outgoing page.
+  if (sideEntrance === exit && route === page) {
+   sideEntrance = null;
+   delete document.documentElement.dataset.routeMotion;
+   commit();
+  }
+  cleanup();
+ };
+}
+
+const backBeforeLiveSideReturn = back;
+back = function() {
+ if (sideEntrance?.isRouteExit) return;
+ const source = sideSourceForPage(route.page === 'detail' ? returnRoute.page : 'home');
+ if (!slidingTransferPages.has(route.page) || !source || shouldReduceMotion() || $('#modal').open) {
+  return backBeforeLiveSideReturn();
+ }
+ startLiveSideExit(source, () => {
+  skipPageMotion = true;
+  backBeforeLiveSideReturn();
+ });
+};
+actions.back = () => back();
+
+function bindSideReturn() {
+ const app = $('#app');
+ const host = app.parentElement;
+ let touchId = null, start = null, origin = 0, x = 0;
+ const begin = (clientX, clientY, target) => {
+  const left = app.getBoundingClientRect().left - sidePageX(app);
+  if (clientX < left || clientX - left > 36 || target.closest('input,textarea,select')) return;
+  if (sideEntrance?.isRouteExit || $('#modal').open) return;
+  start = {x: clientX, y: clientY};
+ };
+ const move = (clientX, clientY) => {
+  if (!start) return false;
+  const dx = clientX - start.x, dy = clientY - start.y;
+  if (!sideSwipeLayer && Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) {
+   start = null;
+   return false;
+  }
+  if (!sideSwipeLayer) {
+   if (dx <= 8 || dx <= Math.abs(dy) * 1.3) return false;
+   const destination = route.page === 'detail' ? returnRoute.page : 'home';
+   const source = slidingTransferPages.has(route.page) ? sideSourceForPage(destination) : sideSnapshot;
+   if (!source) return false;
+   origin = sidePageX(app);
+   finishSideEntrance();
+   sideSwipeLayer = makeSideReturnLayer(source);
+   app.style.zIndex = '41';
+   document.documentElement.dataset.routeMotion = 'active';
+  }
+  x = Math.min(app.clientWidth, Math.max(0, origin + dx));
+  app.style.transform = translateX(x);
+  if (slidingTransferPages.has(route.page)) sideSwipeLayer.style.transform = translateX(-(app.clientWidth - x) * .25);
+  return true;
+ };
+ const end = cancelled => {
+  touchId = null;
+  start = null;
+  if (!sideSwipeLayer) return;
+  suppressSideReturnClick();
+  if (!cancelled && x > app.clientWidth * .23) {
+   back();
+   if (sideSwipeLayer) resetSideSwipe();
+   return;
+  }
+  const layer = sideSwipeLayer;
+  sideSwipeLayer = null;
+  app.style.transform = '';
+  const options = {duration: 220, easing: slideEase, fill: 'both'};
+  const settle = app.animate([{transform: translateX(x)}, {transform: translateX(0)}], options);
+  const companion = slidingTransferPages.has(route.page) ? layer.animate([
+   {transform: translateX(-(app.clientWidth - x) * .25)},
+   {transform: translateX(-app.clientWidth * .25)}
+  ], options) : null;
+  trackSideMotion(settle, null, layer, companion);
+ };
+
+ // Track the same touch after the translated page moves away from the finger.
+ const touchStart = event => {
+  if (event.touches.length !== 1) return;
+  const touch = event.changedTouches[0];
+  begin(touch.clientX, touch.clientY, event.target);
+  if (start) touchId = touch.identifier;
+ };
+ const touchMove = event => {
+  if (touchId === null) return;
+  const touch = [...event.changedTouches].find(point => point.identifier === touchId);
+  if (touch && move(touch.clientX, touch.clientY) && event.cancelable) event.preventDefault();
+ };
+ const touchEnd = event => {
+  if (touchId !== null && (event.type === 'touchcancel' ||
+      [...event.changedTouches].some(point => point.identifier === touchId))) end(event.type === 'touchcancel');
+ };
+ host.addEventListener('touchstart', touchStart, {passive:true});
+ document.addEventListener('touchmove', touchMove, {passive:false});
+ document.addEventListener('touchend', touchEnd);
+ document.addEventListener('touchcancel', touchEnd);
+ unbindSideReturn = () => {
+  host.removeEventListener('touchstart', touchStart);
+  document.removeEventListener('touchmove', touchMove);
+  document.removeEventListener('touchend', touchEnd);
+  document.removeEventListener('touchcancel', touchEnd);
+ };
+ app.onpointerdown = e => {
+  if (e.pointerType === 'mouse' && e.button === 0) begin(e.clientX, e.clientY, e.target);
+ };
+ app.onpointermove = e => {
+  if (e.pointerType === 'mouse' && move(e.clientX, e.clientY) && app.contains(e.target)) app.setPointerCapture(e.pointerId);
+ };
+ app.onpointerup = e => { if (e.pointerType === 'mouse') end(false); };
+ app.onpointercancel = e => { if (e.pointerType === 'mouse') end(true); };
+}
+let unbindSideReturn = null;
 // Either horizontal direction on the operations panel opens the left-hand history.
 bindOperationsGesture=function(){const panel=$('.operation-panel');if(!panel)return;let start=null,drawer=null,dx=0,dragging=false;panel.addEventListener('pointerdown',e=>{if(e.button!==0||e.clientX-$('#app').getBoundingClientRect().left<=28)return;start={x:e.clientX,y:e.clientY};dx=0});panel.addEventListener('pointermove',e=>{if(!start)return;const x=e.clientX-start.x,y=e.clientY-start.y;if(!dragging&&Math.abs(y)>10&&Math.abs(y)>Math.abs(x)){start=null;return}if(!dragging&&Math.abs(x)>10&&Math.abs(x)>Math.abs(y)*1.3){dragging=true;historyPresentation='drawer';operationsHome=freezeHome();drawer=historyDrawer();drawer.classList.add('soft-operations-layer');panel.setPointerCapture(e.pointerId)}if(!dragging)return;dx=Math.min(drawer.offsetWidth,Math.abs(x));drawer.style.transform=`translate3d(${dx-drawer.offsetWidth}px,0,0)`;$('#app').style.filter=`blur(${dx/drawer.offsetWidth*6}px)`});const end=e=>{if(!start)return;start=null;if(!dragging)return;dragging=false;const node=drawer,w=node.offsetWidth,open=e.type!=='pointercancel'&&dx>w*.23,stop=e=>{e.preventDefault();e.stopPropagation()};document.addEventListener('click',stop,true);setTimeout(()=>document.removeEventListener('click',stop,true),0);if(panel.hasPointerCapture(e.pointerId))panel.releasePointerCapture(e.pointerId);const finish=()=>{node.remove();$('#app').style.filter='';if(open){skipPageMotion=true;navigate('history')}};if(shouldReduceMotion())finish();else node.animate([{transform:`translate3d(${dx-w}px,0,0)`},{transform:`translate3d(${open?0:-w}px,0,0)`}],{duration:320,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'}).finished.catch(()=>{}).finally(finish)};panel.addEventListener('pointerup',end);panel.addEventListener('pointercancel',end)};
 const detailBeforeIncoming=detail;
@@ -293,7 +467,7 @@ detail=function(){const t=currentTx();if(!t||t.amount<=0)return detailBeforeInco
 actions['incoming-reply']=()=>{const t=currentTx();modal('Відповісти',field('Повідомлення','reply','','text','required maxlength="300"'),f=>{t.demoReply=f.get('reply')},'Зберегти')};actions['incoming-reaction']=()=>inform('Реакція','Демонстраційна реакція на поповнення.');actions['incoming-block']=()=>inform('Блокування користувачів','У локальному демо користувачі не підключені до банківської мережі.');
 creditPage=function(){return `<div class="reference-credit"><section>${referenceImage('credit-heart')}<div><h1>На жаль, не можемо надати вам ліміт зараз</h1><p>Але ви можете вплинути на це, розповівши про себе</p><button data-action="credit-demo-information">Надати інформацію</button></div></section></div>`};actions['credit-demo-information']=()=>inform('Надати інформацію','Особисті дані демо-профілю змінюються в окремій адмінці. Реальна кредитна заявка не надсилається.');
 const historyBeforeTools=historyPage;historyPage=function(){return historyBeforeTools().replace(icon('arrow-left'),icon(historyPresentation==='card'?'x':'arrow-left')).replace('<button data-action="history-search"',`<button data-action="history-favorites" aria-label="Обрані операції">${icon('star')}</button><button data-action="history-search"`)};actions['history-favorites']=()=>{const list=$('#tx-list');if(!list)return;const active=list.dataset.favorites==='true';list.dataset.favorites=String(!active);list.innerHTML=grouped(txFor().filter(t=>active||t.favorite))};
-const renderBeforeQuietNavigation=render;render=function(){renderBeforeQuietNavigation();const app=$('#app');if(sidePages.has(route.page)&&!adminMode)bindSideReturn();else{app.onpointerdown=app.onpointermove=app.onpointerup=app.onpointercancel=null;app.ontouchstart=app.ontouchmove=app.ontouchend=app.ontouchcancel=null}};
+const renderBeforeQuietNavigation=render;render=function(){unbindSideReturn?.();renderBeforeQuietNavigation();const app=$('#app');if(sidePages.has(route.page)&&!adminMode)bindSideReturn();else{app.onpointerdown=app.onpointermove=app.onpointerup=app.onpointercancel=null;app.ontouchstart=app.ontouchmove=app.ontouchend=app.ontouchcancel=null}};
 render();
 
 const stableIconMarkup={"arrow-left": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M224 128a8 8 0 0 1-8 8H59.31l58.35 58.34a8 8 0 0 1-11.32 11.32l-72-72a8 8 0 0 1 0-11.32l72-72a8 8 0 0 1 11.32 11.32L59.31 120H216a8 8 0 0 1 8 8\"/></svg>", "arrow-right": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"m221.66 133.66l-72 72a8 8 0 0 1-11.32-11.32L196.69 136H40a8 8 0 0 1 0-16h156.69l-58.35-58.34a8 8 0 0 1 11.32-11.32l72 72a8 8 0 0 1 0 11.32\"/></svg>", "arrow-square-in": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M128 136v64a8 8 0 0 1-16 0v-44.68l-66.34 66.34a8 8 0 0 1-11.32-11.32L100.68 144H56a8 8 0 0 1 0-16h64a8 8 0 0 1 8 8m80-104H80a16 16 0 0 0-16 16v48a8 8 0 0 0 16 0V48h128v128h-48a8 8 0 0 0 0 16h48a16 16 0 0 0 16-16V48a16 16 0 0 0-16-16\"/></svg>", "arrow-square-out": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M224 104a8 8 0 0 1-16 0V59.32l-66.33 66.34a8 8 0 0 1-11.32-11.32L196.68 48H152a8 8 0 0 1 0-16h64a8 8 0 0 1 8 8Zm-40 24a8 8 0 0 0-8 8v72H48V80h72a8 8 0 0 0 0-16H48a16 16 0 0 0-16 16v128a16 16 0 0 0 16 16h128a16 16 0 0 0 16-16v-72a8 8 0 0 0-8-8\"/></svg>", "arrows-clockwise": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M224 48v48a8 8 0 0 1-8 8h-48a8 8 0 0 1 0-16h28.69l-14.63-14.63a79.56 79.56 0 0 0-56.13-23.43h-.45a79.52 79.52 0 0 0-55.89 22.77a8 8 0 0 1-11.18-11.44a96 96 0 0 1 135 .79L208 76.69V48a8 8 0 0 1 16 0m-37.59 135.29a80 80 0 0 1-112.47-.66L59.31 168H88a8 8 0 0 0 0-16H40a8 8 0 0 0-8 8v48a8 8 0 0 0 16 0v-28.69l14.63 14.63A95.43 95.43 0 0 0 130 222.06h.53a95.36 95.36 0 0 0 67.07-27.33a8 8 0 0 0-11.18-11.44Z\"/></svg>", "bag-fill": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M216 64h-40a48 48 0 0 0-96 0H40a16 16 0 0 0-16 16v120a16 16 0 0 0 16 16h176a16 16 0 0 0 16-16V80a16 16 0 0 0-16-16M96 104a8 8 0 0 1-16 0V88a8 8 0 0 1 16 0Zm32-72a32 32 0 0 1 32 32H96a32 32 0 0 1 32-32m48 72a8 8 0 0 1-16 0V88a8 8 0 0 1 16 0Z\"/></svg>", "calendar": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M208 32h-24v-8a8 8 0 0 0-16 0v8H88v-8a8 8 0 0 0-16 0v8H48a16 16 0 0 0-16 16v160a16 16 0 0 0 16 16h160a16 16 0 0 0 16-16V48a16 16 0 0 0-16-16M72 48v8a8 8 0 0 0 16 0v-8h80v8a8 8 0 0 0 16 0v-8h24v32H48V48Zm136 160H48V96h160zm-96-88v64a8 8 0 0 1-16 0v-51.06l-4.42 2.22a8 8 0 0 1-7.16-14.32l16-8A8 8 0 0 1 112 120m59.16 30.45L152 176h16a8 8 0 0 1 0 16h-32a8 8 0 0 1-6.4-12.8l28.78-38.37a8 8 0 1 0-13.31-8.83a8 8 0 1 1-13.85-8A24 24 0 0 1 176 136a23.76 23.76 0 0 1-4.84 14.45\"/></svg>", "car-fill": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M240 104h-10.8l-27.78-62.5A16 16 0 0 0 186.8 32H69.2a16 16 0 0 0-14.62 9.5L26.8 104H16a8 8 0 0 0 0 16h8v80a16 16 0 0 0 16 16h24a16 16 0 0 0 16-16v-8h96v8a16 16 0 0 0 16 16h24a16 16 0 0 0 16-16v-80h8a8 8 0 0 0 0-16M80 152H56a8 8 0 0 1 0-16h24a8 8 0 0 1 0 16m120 0h-24a8 8 0 0 1 0-16h24a8 8 0 0 1 0 16M44.31 104L69.2 48h117.6l24.89 56Z\"/></svg>", "caret-right": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"m181.66 133.66l-80 80a8 8 0 0 1-11.32-11.32L164.69 128L90.34 53.66a8 8 0 0 1 11.32-11.32l80 80a8 8 0 0 1 0 11.32\"/></svg>", "cat-fill": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M222.83 33.54a16 16 0 0 0-18.14 3.15c-.14.14-.26.27-.38.41L187.05 57A111.28 111.28 0 0 0 69 57L51.69 37.1c-.12-.14-.24-.27-.38-.41a16 16 0 0 0-18.14-3.15A16.4 16.4 0 0 0 24 48.46V136c0 49 40.06 89.63 91.56 95.32a4 4 0 0 0 4.44-4v-32l-13.42-13.43a8.22 8.22 0 0 1-.41-11.37a8 8 0 0 1 11.49-.18L128 180.68l10.34-10.35a8 8 0 0 1 11.49.18a8.22 8.22 0 0 1-.41 11.37L136 195.31v32a4 4 0 0 0 4.44 4C191.94 225.62 232 185 232 136V48.46a16.4 16.4 0 0 0-9.17-14.92M84 152a12 12 0 1 1 12-12a12 12 0 0 1-12 12m20-64a8 8 0 1 1-16 0V69a8 8 0 0 1 16 0Zm32 0a8 8 0 1 1-16 0V64a8 8 0 0 1 16 0Zm16 0V69a8 8 0 0 1 16 0v19a8 8 0 1 1-16 0m20 64a12 12 0 1 1 12-12a12 12 0 0 1-12 12\"/></svg>", "chart-bar-fill": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M232 208a8 8 0 0 1-8 8H32a8 8 0 0 1 0-16h8v-64a8 8 0 0 1 8-8h24a8 8 0 0 1 8 8v64h16V88a8 8 0 0 1 8-8h32a8 8 0 0 1 8 8v112h16V40a8 8 0 0 1 8-8h40a8 8 0 0 1 8 8v160h8a8 8 0 0 1 8 8\"/></svg>", "chart-pie-fill": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M128 24a104 104 0 1 0 104 104A104.11 104.11 0 0 0 128 24m0 16a88 88 0 0 1 71.87 37.27L128 118.76Zm0 176a88 88 0 0 1-71.87-37.27l151.76-87.61A88 88 0 0 1 128 216\"/></svg>", "chart-pie": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M128 24a104 104 0 1 0 104 104A104.11 104.11 0 0 0 128 24m71.87 53.27L136 114.14V40.37a88 88 0 0 1 63.87 36.9M120 40.37v83l-71.89 41.5A88 88 0 0 1 120 40.37M128 216a88 88 0 0 1-71.87-37.27l151.76-87.61A88 88 0 0 1 128 216\"/></svg>", "chat-circle-fill": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M232 128a104 104 0 0 1-152.88 91.82l-34.05 11.35a16 16 0 0 1-20.24-20.24l11.35-34.05A104 104 0 1 1 232 128\"/></svg>", "check": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"m229.66 77.66l-128 128a8 8 0 0 1-11.32 0l-56-56a8 8 0 0 1 11.32-11.32L96 188.69L218.34 66.34a8 8 0 0 1 11.32 11.32\"/></svg>", "circles-four-fill": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" width=\"1em\" height=\"1em\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M120 80a40 40 0 1 1-40-40a40 40 0 0 1 40 40m56 40a40 40 0 1 0-40-40a40 40 0 0 0 40 40m-96 16a40 40 0 1 0 40 40a40 40 0 0 0-40-40m96 0a40 40 0 1 0 40 40a40 40 0 0 0-40-40\"/></svg>", "clock": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M128 24a104 104 0 1 0 104 104A104.11 104.11 0 0 0 128 24m0 192a88 88 0 1 1 88-88a88.1 88.1 0 0 1-88 88m64-88a8 8 0 0 1-8 8h-56a8 8 0 0 1-8-8V72a8 8 0 0 1 16 0v48h48a8 8 0 0 1 8 8\"/></svg>", "coffee-fill": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M208 80H32a8 8 0 0 0-8 8v48a96.3 96.3 0 0 0 32.54 72H32a8 8 0 0 0 0 16h176a8 8 0 0 0 0-16h-24.54a96.6 96.6 0 0 0 27-40.09A40 40 0 0 0 248 128v-8a40 40 0 0 0-40-40m24 48a24 24 0 0 1-17.2 23a96 96 0 0 0 1.2-15V97.38A24 24 0 0 1 232 120ZM112 56V24a8 8 0 0 1 16 0v32a8 8 0 0 1-16 0m32 0V24a8 8 0 0 1 16 0v32a8 8 0 0 1-16 0m-64 0V24a8 8 0 0 1 16 0v32a8 8 0 0 1-16 0\"/></svg>", "copy": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M216 32H88a8 8 0 0 0-8 8v40H40a8 8 0 0 0-8 8v128a8 8 0 0 0 8 8h128a8 8 0 0 0 8-8v-40h40a8 8 0 0 0 8-8V40a8 8 0 0 0-8-8m-56 176H48V96h112Zm48-48h-32V88a8 8 0 0 0-8-8H96V48h112Z\"/></svg>", "credit-card-fill": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M224 48H32a16 16 0 0 0-16 16v128a16 16 0 0 0 16 16h192a16 16 0 0 0 16-16V64a16 16 0 0 0-16-16m-88 128h-16a8 8 0 0 1 0-16h16a8 8 0 0 1 0 16m64 0h-32a8 8 0 0 1 0-16h32a8 8 0 0 1 0 16M32 88V64h192v24Z\"/></svg>", "credit-card": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M224 48H32a16 16 0 0 0-16 16v128a16 16 0 0 0 16 16h192a16 16 0 0 0 16-16V64a16 16 0 0 0-16-16m0 16v24H32V64Zm0 128H32v-88h192zm-16-24a8 8 0 0 1-8 8h-32a8 8 0 0 1 0-16h32a8 8 0 0 1 8 8m-64 0a8 8 0 0 1-8 8h-16a8 8 0 0 1 0-16h16a8 8 0 0 1 8 8\"/></svg>", "device-mobile": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M176 16H80a24 24 0 0 0-24 24v176a24 24 0 0 0 24 24h96a24 24 0 0 0 24-24V40a24 24 0 0 0-24-24M72 64h112v128H72Zm8-32h96a8 8 0 0 1 8 8v8H72v-8a8 8 0 0 1 8-8m96 192H80a8 8 0 0 1-8-8v-8h112v8a8 8 0 0 1-8 8\"/></svg>", "download-simple": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M224 144v64a8 8 0 0 1-8 8H40a8 8 0 0 1-8-8v-64a8 8 0 0 1 16 0v56h160v-56a8 8 0 0 1 16 0m-101.66 5.66a8 8 0 0 0 11.32 0l40-40a8 8 0 0 0-11.32-11.32L136 124.69V32a8 8 0 0 0-16 0v92.69L93.66 98.34a8 8 0 0 0-11.32 11.32Z\"/></svg>", "export": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M216 112v96a16 16 0 0 1-16 16H56a16 16 0 0 1-16-16v-96a16 16 0 0 1 16-16h24a8 8 0 0 1 0 16H56v96h144v-96h-24a8 8 0 0 1 0-16h24a16 16 0 0 1 16 16M93.66 69.66L120 43.31V136a8 8 0 0 0 16 0V43.31l26.34 26.35a8 8 0 0 0 11.32-11.32l-40-40a8 8 0 0 0-11.32 0l-40 40a8 8 0 0 0 11.32 11.32\"/></svg>", "file-pdf": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M224 152a8 8 0 0 1-8 8h-24v16h16a8 8 0 0 1 0 16h-16v16a8 8 0 0 1-16 0v-56a8 8 0 0 1 8-8h32a8 8 0 0 1 8 8M92 172a28 28 0 0 1-28 28h-8v8a8 8 0 0 1-16 0v-56a8 8 0 0 1 8-8h16a28 28 0 0 1 28 28m-16 0a12 12 0 0 0-12-12h-8v24h8a12 12 0 0 0 12-12m88 8a36 36 0 0 1-36 36h-16a8 8 0 0 1-8-8v-56a8 8 0 0 1 8-8h16a36 36 0 0 1 36 36m-16 0a20 20 0 0 0-20-20h-8v40h8a20 20 0 0 0 20-20M40 112V40a16 16 0 0 1 16-16h96a8 8 0 0 1 5.66 2.34l56 56A8 8 0 0 1 216 88v24a8 8 0 0 1-16 0V96h-48a8 8 0 0 1-8-8V40H56v72a8 8 0 0 1-16 0m120-32h28.69L160 51.31Z\"/></svg>", "gear": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M128 80a48 48 0 1 0 48 48a48.05 48.05 0 0 0-48-48m0 80a32 32 0 1 1 32-32a32 32 0 0 1-32 32m88-29.84q.06-2.16 0-4.32l14.92-18.64a8 8 0 0 0 1.48-7.06a107.2 107.2 0 0 0-10.88-26.25a8 8 0 0 0-6-3.93l-23.72-2.64q-1.48-1.56-3-3L186 40.54a8 8 0 0 0-3.94-6a107.7 107.7 0 0 0-26.25-10.87a8 8 0 0 0-7.06 1.49L130.16 40h-4.32L107.2 25.11a8 8 0 0 0-7.06-1.48a107.6 107.6 0 0 0-26.25 10.88a8 8 0 0 0-3.93 6l-2.64 23.76q-1.56 1.49-3 3L40.54 70a8 8 0 0 0-6 3.94a107.7 107.7 0 0 0-10.87 26.25a8 8 0 0 0 1.49 7.06L40 125.84v4.32L25.11 148.8a8 8 0 0 0-1.48 7.06a107.2 107.2 0 0 0 10.88 26.25a8 8 0 0 0 6 3.93l23.72 2.64q1.49 1.56 3 3L70 215.46a8 8 0 0 0 3.94 6a107.7 107.7 0 0 0 26.25 10.87a8 8 0 0 0 7.06-1.49L125.84 216q2.16.06 4.32 0l18.64 14.92a8 8 0 0 0 7.06 1.48a107.2 107.2 0 0 0 26.25-10.88a8 8 0 0 0 3.93-6l2.64-23.72q1.56-1.48 3-3l23.78-2.8a8 8 0 0 0 6-3.94a107.7 107.7 0 0 0 10.87-26.25a8 8 0 0 0-1.49-7.06Zm-16.1-6.5a74 74 0 0 1 0 8.68a8 8 0 0 0 1.74 5.48l14.19 17.73a91.6 91.6 0 0 1-6.23 15l-22.6 2.56a8 8 0 0 0-5.1 2.64a74 74 0 0 1-6.14 6.14a8 8 0 0 0-2.64 5.1l-2.51 22.58a91.3 91.3 0 0 1-15 6.23l-17.74-14.19a8 8 0 0 0-5-1.75h-.48a74 74 0 0 1-8.68 0a8 8 0 0 0-5.48 1.74l-17.78 14.2a91.6 91.6 0 0 1-15-6.23L82.89 187a8 8 0 0 0-2.64-5.1a74 74 0 0 1-6.14-6.14a8 8 0 0 0-5.1-2.64l-22.58-2.52a91.3 91.3 0 0 1-6.23-15l14.19-17.74a8 8 0 0 0 1.74-5.48a74 74 0 0 1 0-8.68a8 8 0 0 0-1.74-5.48L40.2 100.45a91.6 91.6 0 0 1 6.23-15L69 82.89a8 8 0 0 0 5.1-2.64a74 74 0 0 1 6.14-6.14A8 8 0 0 0 82.89 69l2.51-22.57a91.3 91.3 0 0 1 15-6.23l17.74 14.19a8 8 0 0 0 5.48 1.74a74 74 0 0 1 8.68 0a8 8 0 0 0 5.48-1.74l17.77-14.19a91.6 91.6 0 0 1 15 6.23L173.11 69a8 8 0 0 0 2.64 5.1a74 74 0 0 1 6.14 6.14a8 8 0 0 0 5.1 2.64l22.58 2.51a91.3 91.3 0 0 1 6.23 15l-14.19 17.74a8 8 0 0 0-1.74 5.53Z\"/></svg>", "gift-fill": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M216 72h-35.08c.39-.33.79-.65 1.17-1A29.53 29.53 0 0 0 192 49.57A32.62 32.62 0 0 0 158.44 16A29.53 29.53 0 0 0 137 25.91a55 55 0 0 0-9 14.48a55 55 0 0 0-9-14.48A29.53 29.53 0 0 0 97.56 16A32.62 32.62 0 0 0 64 49.57A29.53 29.53 0 0 0 73.91 71c.38.33.78.65 1.17 1H40a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16v64a16 16 0 0 0 16 16h60a4 4 0 0 0 4-4v-92H40V88h80v32h16V88h80v32h-80v92a4 4 0 0 0 4 4h60a16 16 0 0 0 16-16v-64a16 16 0 0 0 16-16V88a16 16 0 0 0-16-16M84.51 59a13.7 13.7 0 0 1-4.5-10a16.62 16.62 0 0 1 16.58-17h.49a13.7 13.7 0 0 1 10 4.5c8.39 9.48 11.35 25.2 12.39 34.92C109.71 70.39 94 67.43 84.51 59m87 0c-9.49 8.4-25.24 11.36-35 12.4C137.7 60.89 141 45.5 149 36.51a13.7 13.7 0 0 1 10-4.5h.49A16.62 16.62 0 0 1 176 49.08a13.7 13.7 0 0 1-4.51 9.92Z\"/></svg>", "image": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M216 40H40a16 16 0 0 0-16 16v144a16 16 0 0 0 16 16h176a16 16 0 0 0 16-16V56a16 16 0 0 0-16-16m0 16v102.75l-26.07-26.06a16 16 0 0 0-22.63 0l-20 20l-44-44a16 16 0 0 0-22.62 0L40 149.37V56ZM40 172l52-52l80 80H40Zm176 28h-21.37l-36-36l20-20L216 181.38zm-72-100a12 12 0 1 1 12 12a12 12 0 0 1-12-12\"/></svg>", "link": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M240 88.23a54.43 54.43 0 0 1-16 37L189.25 160a54.27 54.27 0 0 1-38.63 16h-.05A54.63 54.63 0 0 1 96 119.84a8 8 0 0 1 16 .45A38.62 38.62 0 0 0 150.58 160a38.4 38.4 0 0 0 27.31-11.31l34.75-34.75a38.63 38.63 0 0 0-54.63-54.63l-11 11A8 8 0 0 1 135.7 59l11-11a54.65 54.65 0 0 1 77.3 0a54.86 54.86 0 0 1 16 40.23m-131 97.43l-11 11A38.4 38.4 0 0 1 70.6 208a38.63 38.63 0 0 1-27.29-65.94L78 107.31a38.63 38.63 0 0 1 66 28.4a8 8 0 0 0 16 .45A54.86 54.86 0 0 0 144 96a54.65 54.65 0 0 0-77.27 0L32 130.75A54.62 54.62 0 0 0 70.56 224a54.28 54.28 0 0 0 38.64-16l11-11a8 8 0 0 0-11.2-11.34\"/></svg>", "lock-key": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M128 112a28 28 0 0 0-8 54.83V184a8 8 0 0 0 16 0v-17.17a28 28 0 0 0-8-54.83m0 40a12 12 0 1 1 12-12a12 12 0 0 1-12 12m80-72h-32V56a48 48 0 0 0-96 0v24H48a16 16 0 0 0-16 16v112a16 16 0 0 0 16 16h160a16 16 0 0 0 16-16V96a16 16 0 0 0-16-16M96 56a32 32 0 0 1 64 0v24H96Zm112 152H48V96h160z\"/></svg>", "magnifying-glass": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"m229.66 218.34l-50.07-50.06a88.11 88.11 0 1 0-11.31 11.31l50.06 50.07a8 8 0 0 0 11.32-11.32M40 112a72 72 0 1 1 72 72a72.08 72.08 0 0 1-72-72\"/></svg>", "pencil-simple": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"m227.31 73.37l-44.68-44.69a16 16 0 0 0-22.63 0L36.69 152A15.86 15.86 0 0 0 32 163.31V208a16 16 0 0 0 16 16h44.69a15.86 15.86 0 0 0 11.31-4.69L227.31 96a16 16 0 0 0 0-22.63M92.69 208H48v-44.69l88-88L180.69 120ZM192 108.68L147.31 64l24-24L216 84.68Z\"/></svg>", "plus-circle-fill": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M128 24a104 104 0 1 0 104 104A104.13 104.13 0 0 0 128 24m40 112h-32v32a8 8 0 0 1-16 0v-32H88a8 8 0 0 1 0-16h32V88a8 8 0 0 1 16 0v32h32a8 8 0 0 1 0 16\"/></svg>", "plus": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M224 128a8 8 0 0 1-8 8h-80v80a8 8 0 0 1-16 0v-80H40a8 8 0 0 1 0-16h80V40a8 8 0 0 1 16 0v80h80a8 8 0 0 1 8 8\"/></svg>", "push-pin-fill": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"m235.33 104l-53.47 53.65c4.56 12.67 6.45 33.89-13.19 60A15.93 15.93 0 0 1 157 224h-1.13a16 16 0 0 1-11.32-4.69L96.29 171l-42.63 42.66a8 8 0 0 1-11.32-11.32L85 159.71l-48.3-48.3A16 16 0 0 1 38 87.63c25.42-20.51 49.75-16.48 60.4-13.14L152 20.7a16 16 0 0 1 22.63 0l60.69 60.68a16 16 0 0 1 .01 22.62\"/></svg>", "push-pin": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"m235.32 81.37l-60.69-60.68a16 16 0 0 0-22.63 0l-53.63 53.8c-10.66-3.34-35-7.37-60.4 13.14a16 16 0 0 0-1.29 23.78L85 159.71l-42.66 42.63a8 8 0 0 0 11.32 11.32L96.29 171l48.29 48.29A16 16 0 0 0 155.9 224h1.13a15.93 15.93 0 0 0 11.64-6.33c19.64-26.1 17.75-47.32 13.19-60L235.33 104a16 16 0 0 0-.01-22.63M224 92.69l-57.27 57.46a8 8 0 0 0-1.49 9.22c9.46 18.93-1.8 38.59-9.34 48.62L48 100.08c12.08-9.74 23.64-12.31 32.48-12.31A40.1 40.1 0 0 1 96.81 91a8 8 0 0 0 9.25-1.51L163.32 32L224 92.68Z\"/></svg>", "question": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M140 180a12 12 0 1 1-12-12a12 12 0 0 1 12 12M128 72c-22.06 0-40 16.15-40 36v4a8 8 0 0 0 16 0v-4c0-11 10.77-20 24-20s24 9 24 20s-10.77 20-24 20a8 8 0 0 0-8 8v8a8 8 0 0 0 16 0v-.72c18.24-3.35 32-17.9 32-35.28c0-19.85-17.94-36-40-36m104 56A104 104 0 1 1 128 24a104.11 104.11 0 0 1 104 104m-16 0a88 88 0 1 0-88 88a88.1 88.1 0 0 0 88-88\"/></svg>", "receipt-fill": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M216 40H40a16 16 0 0 0-16 16v152a8 8 0 0 0 11.58 7.15L64 200.94l28.42 14.21a8 8 0 0 0 7.16 0L128 200.94l28.42 14.21a8 8 0 0 0 7.16 0L192 200.94l28.42 14.21A8 8 0 0 0 232 208V56a16 16 0 0 0-16-16m-40 104H80a8 8 0 0 1 0-16h96a8 8 0 0 1 0 16m0-32H80a8 8 0 0 1 0-16h96a8 8 0 0 1 0 16\"/></svg>", "receipt": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M72 104a8 8 0 0 1 8-8h96a8 8 0 0 1 0 16H80a8 8 0 0 1-8-8m8 40h96a8 8 0 0 0 0-16H80a8 8 0 0 0 0 16m152-88v152a8 8 0 0 1-11.58 7.15L192 200.94l-28.42 14.21a8 8 0 0 1-7.16 0L128 200.94l-28.42 14.21a8 8 0 0 1-7.16 0L64 200.94l-28.42 14.21A8 8 0 0 1 24 208V56a16 16 0 0 1 16-16h176a16 16 0 0 1 16 16m-16 0H40v139.06l20.42-10.22a8 8 0 0 1 7.16 0L96 199.06l28.42-14.22a8 8 0 0 1 7.16 0L160 199.06l28.42-14.22a8 8 0 0 1 7.16 0L216 195.06Z\"/></svg>", "share-network": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M176 160a39.9 39.9 0 0 0-28.62 12.09l-46.1-29.63a39.8 39.8 0 0 0 0-28.92l46.1-29.63a40 40 0 1 0-8.66-13.45l-46.1 29.63a40 40 0 1 0 0 55.82l46.1 29.63A40 40 0 1 0 176 160m0-128a24 24 0 1 1-24 24a24 24 0 0 1 24-24M64 152a24 24 0 1 1 24-24a24 24 0 0 1-24 24m112 72a24 24 0 1 1 24-24a24 24 0 0 1-24 24\"/></svg>", "shopping-bag-fill": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M216 40H40a16 16 0 0 0-16 16v144a16 16 0 0 0 16 16h176a16 16 0 0 0 16-16V56a16 16 0 0 0-16-16m-88 96a48.05 48.05 0 0 1-48-48a8 8 0 0 1 16 0a32 32 0 0 0 64 0a8 8 0 0 1 16 0a48.05 48.05 0 0 1-48 48\"/></svg>", "stack-fill": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><g fill=\"#eeeeee\"><path d=\"m220 169.09l-92 53.65l-92-53.65a8 8 0 0 0-8 13.82l96 56a8 8 0 0 0 8.06 0l96-56a8 8 0 1 0-8.06-13.82\"/><path d=\"m220 121.09l-92 53.65l-92-53.65a8 8 0 0 0-8 13.82l96 56a8 8 0 0 0 8.06 0l96-56a8 8 0 1 0-8.06-13.82\"/><path d=\"m28 86.91l96 56a8 8 0 0 0 8.06 0l96-56a8 8 0 0 0 0-13.82l-96-56a8 8 0 0 0-8.06 0l-96 56a8 8 0 0 0 0 13.82\"/></g></svg>", "stack": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M230.91 172a8 8 0 0 1-2.91 10.91l-96 56a8 8 0 0 1-8.06 0l-96-56A8 8 0 0 1 36 169.09l92 53.65l92-53.65a8 8 0 0 1 10.91 2.91M220 121.09l-92 53.65l-92-53.65a8 8 0 0 0-8 13.82l96 56a8 8 0 0 0 8.06 0l96-56a8 8 0 1 0-8.06-13.82M24 80a8 8 0 0 1 4-6.91l96-56a8 8 0 0 1 8.06 0l96 56a8 8 0 0 1 0 13.82l-96 56a8 8 0 0 1-8.06 0l-96-56A8 8 0 0 1 24 80m23.88 0L128 126.74L208.12 80L128 33.26Z\"/></svg>", "star-fill": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"m234.29 114.85l-45 38.83L203 211.75a16.4 16.4 0 0 1-24.5 17.82L128 198.49l-50.53 31.08A16.4 16.4 0 0 1 53 211.75l13.76-58.07l-45-38.83A16.46 16.46 0 0 1 31.08 86l59-4.76l22.76-55.08a16.36 16.36 0 0 1 30.27 0l22.75 55.08l59 4.76a16.46 16.46 0 0 1 9.37 28.86Z\"/></svg>", "star": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M239.18 97.26A16.38 16.38 0 0 0 224.92 86l-59-4.76l-22.78-55.09a16.36 16.36 0 0 0-30.27 0L90.11 81.23L31.08 86a16.46 16.46 0 0 0-9.37 28.86l45 38.83L53 211.75a16.38 16.38 0 0 0 24.5 17.82l50.5-31.08l50.53 31.08A16.4 16.4 0 0 0 203 211.75l-13.76-58.07l45-38.83a16.43 16.43 0 0 0 4.94-17.59m-15.34 5.47l-48.7 42a8 8 0 0 0-2.56 7.91l14.88 62.8a.37.37 0 0 1-.17.48c-.18.14-.23.11-.38 0l-54.72-33.65a8 8 0 0 0-8.38 0l-54.72 33.67c-.15.09-.19.12-.38 0a.37.37 0 0 1-.17-.48l14.88-62.8a8 8 0 0 0-2.56-7.91l-48.7-42c-.12-.1-.23-.19-.13-.5s.18-.27.33-.29l63.92-5.16a8 8 0 0 0 6.72-4.94l24.62-59.61c.08-.17.11-.25.35-.25s.27.08.35.25L153 91.86a8 8 0 0 0 6.75 4.92l63.92 5.16c.15 0 .24 0 .33.29s0 .4-.16.5\"/></svg>", "trash": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M216 48h-40v-8a24 24 0 0 0-24-24h-48a24 24 0 0 0-24 24v8H40a8 8 0 0 0 0 16h8v144a16 16 0 0 0 16 16h128a16 16 0 0 0 16-16V64h8a8 8 0 0 0 0-16M96 40a8 8 0 0 1 8-8h48a8 8 0 0 1 8 8v8H96Zm96 168H64V64h128Zm-80-104v64a8 8 0 0 1-16 0v-64a8 8 0 0 1 16 0m48 0v64a8 8 0 0 1-16 0v-64a8 8 0 0 1 16 0\"/></svg>", "upload-simple": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M224 144v64a8 8 0 0 1-8 8H40a8 8 0 0 1-8-8v-64a8 8 0 0 1 16 0v56h160v-56a8 8 0 0 1 16 0M93.66 77.66L120 51.31V144a8 8 0 0 0 16 0V51.31l26.34 26.35a8 8 0 0 0 11.32-11.32l-40-40a8 8 0 0 0-11.32 0l-40 40a8 8 0 0 0 11.32 11.32\"/></svg>", "users": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M117.25 157.92a60 60 0 1 0-66.5 0a95.83 95.83 0 0 0-47.22 37.71a8 8 0 1 0 13.4 8.74a80 80 0 0 1 134.14 0a8 8 0 0 0 13.4-8.74a95.83 95.83 0 0 0-47.22-37.71M40 108a44 44 0 1 1 44 44a44.05 44.05 0 0 1-44-44m210.14 98.7a8 8 0 0 1-11.07-2.33A79.83 79.83 0 0 0 172 168a8 8 0 0 1 0-16a44 44 0 1 0-16.34-84.87a8 8 0 1 1-5.94-14.85a60 60 0 0 1 55.53 105.64a95.83 95.83 0 0 1 47.22 37.71a8 8 0 0 1-2.33 11.07\"/></svg>", "wallet": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M216 64H56a8 8 0 0 1 0-16h136a8 8 0 0 0 0-16H56a24 24 0 0 0-24 24v128a24 24 0 0 0 24 24h160a16 16 0 0 0 16-16V80a16 16 0 0 0-16-16m0 128H56a8 8 0 0 1-8-8V78.63A23.8 23.8 0 0 0 56 80h160Zm-48-60a12 12 0 1 1 12 12a12 12 0 0 1-12-12\"/></svg>", "x": "<svg class=\"icon\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><path fill=\"#eeeeee\" d=\"M205.66 194.34a8 8 0 0 1-11.32 11.32L128 139.31l-66.34 66.35a8 8 0 0 1-11.32-11.32L116.69 128L50.34 61.66a8 8 0 0 1 11.32-11.32L128 116.69l66.34-66.35a8 8 0 0 1 11.32 11.32L139.31 128Z\"/></svg>"};

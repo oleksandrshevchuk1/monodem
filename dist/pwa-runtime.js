@@ -78,7 +78,7 @@ for(const name of ['personal','cardDetails','statement','subscriptions','platinu
 // During an unfinished entrance, an edge touch lands on the scroll host, outside
 // the translated page. Forward only those events so one gesture can reverse it.
 const sideGestureHost=document.querySelector('#pwa-scroll')||document.body;
-for(const type of ['touchstart','touchmove','touchend','touchcancel','pointerdown','pointermove','pointerup','pointercancel']){
+for(const type of ['pointerdown','pointermove','pointerup','pointercancel']){
  sideGestureHost.addEventListener(type,event=>{
   if(!sidePages.has(route.page)||document.querySelector('#modal').open)return;
   const app=document.querySelector('#app');if(app.contains(event.target))return;
