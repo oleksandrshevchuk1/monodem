@@ -4,13 +4,18 @@ if(browserStorageMode){
  const originalSharedLoad=loadSharedState,originalSharedPersist=persist;
  const nativeFetch=window.fetch.bind(window);
  let hostedSyncMode='checking',nextStorageCheck=0,localMigration=null,migrationOffered=false;
+ let lastScrollAt=-Infinity;
+ window.addEventListener('scroll',()=>{lastScrollAt=performance.now()},{capture:true,passive:true});
+ const renderingBusy=()=>performance.now()-lastScrollAt<180||document.querySelector('#modal').open||
+  document.documentElement.dataset.gesture==='active'||document.documentElement.dataset.routeMotion==='active'||
+  document.documentElement.dataset.editing==='true';
  const hostedReadFile=readFile;readFile=async function(file){if(file?.type==='application/pdf'&&file.size>4*1024*1024)throw Error('Для Vercel виберіть PDF розміром до 4 МБ.');return hostedReadFile(file)};
  const browserDatabase=new Promise((resolve,reject)=>{const request=indexedDB.open('mono-hosted-state:'+cabinetUser.id+':'+cabinetWorkspace,1);request.onupgradeneeded=()=>request.result.createObjectStore('records');request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});
  async function browserRecord(mode,update){const database=await browserDatabase;return new Promise((resolve,reject)=>{const transaction=database.transaction('records',mode),store=transaction.objectStore('records'),request=store.get('state');let result;request.onsuccess=()=>{try{result=update?update(request.result):request.result;if(update)store.put(result,'state')}catch(error){reject(error);transaction.abort()}};transaction.oncomplete=()=>resolve(result);transaction.onerror=()=>reject(transaction.error);transaction.onabort=()=>reject(transaction.error||Error('Storage aborted'))})}
  function syncNotice(){if(!adminMode)return;let notice=document.querySelector('#hosted-sync-notice');if(!notice){notice=document.createElement('p');notice.id='hosted-sync-notice';Object.assign(notice.style,{margin:'12px 16px',padding:'12px',fontSize:'14px',color:'#ddd',background:'#292929',borderRadius:'12px'});document.querySelector('#app').prepend(notice)}notice.textContent=hostedSyncMode==='shared'?'Синхронізацію підключено · зміни з’являються на всіх пристроях.':hostedSyncMode==='checking'?'Перевіряємо синхронізацію…':'Дані лише в цьому браузері. Для синхронізації підключіть Upstash Redis у Vercel → Storage та повторно задеплойте проєкт.'}
  const renderBeforeHostedSync=render;render=function(){renderBeforeHostedSync();syncNotice()};
  loadSharedState=async function(force=false){
-  if(sharedLoading||sharedSaving||(!force&&(document.querySelector('#modal').open||document.documentElement.dataset.gesture==='active'||document.documentElement.dataset.routeMotion==='active'||document.documentElement.dataset.editing==='true')))return;
+  if(sharedLoading||sharedSaving||(!force&&renderingBusy()))return;
   sharedLoading=true;
   try{
    let record=null;
@@ -21,10 +26,10 @@ if(browserStorageMode){
     else {if(!response.ok)throw Error(value.error||'Не вдалося синхронізувати дані');hostedSyncMode='shared';record=value}
    }
    if(hostedSyncMode==='local')record=await browserRecord('readonly');
-   if(record&&!record.unchanged&&(force||record.revision!==serverRevision||hostedSyncMode==='shared')){
+   if(record&&!record.unchanged&&(force||record.revision!==serverRevision)){
     if(hostedSyncMode==='shared'&&adminMode&&!migrationOffered&&record.revision===1){const local=await browserRecord('readonly');if(local?.state&&(local.state.name!=='Демо-користувач'||local.state.transactions?.length||local.state.files?.length))localMigration=local}
     const next=await hydrateState(record.state);
-    if(!sharedSaving&&(force||(!document.querySelector('#modal').open&&document.documentElement.dataset.gesture!=='active'&&document.documentElement.dataset.routeMotion!=='active'))){applyLoadedState(next);serverRevision=record.revision;if(!loading)render()}
+    if(!sharedSaving&&(force||!renderingBusy())){applyLoadedState(next);serverRevision=record.revision;if(!loading)render()}
    }
    document.documentElement.dataset.storage=hostedSyncMode==='shared'?'saved':'local';syncNotice();
    if(localMigration&&!migrationOffered){migrationOffered=true;setTimeout(()=>{if(document.querySelector('#modal').open)return;modal('Перенести дані з цієї адмінки?', '<p>Спільне сховище порожнє. Перенести сюди ваші збережені дані, щоб вони з’явились на телефоні?</p>',async()=>{state=await hydrateState(localMigration.state)},'Перенести')},500)}

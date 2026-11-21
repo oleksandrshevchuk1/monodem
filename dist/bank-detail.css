@@ -43,18 +43,16 @@
 /* Frozen surfaces must not restart descendant entrance effects on reparenting. */
 .side-page-snapshot *{animation:none!important;transition:none!important}
 
-/* Full-width hit areas and press feedback; gutters belong inside each row. */
+/* Full-width hit areas with gutters inside each row. */
 .reference-operation-body .detail-menu,.reference-operation-body .incoming-menu{padding-left:0!important;padding-right:0!important;overflow:hidden}
 .reference-operation-body .detail-menu>.menu-row,.reference-operation-body .incoming-menu>.menu-row{padding-left:24px;padding-right:15px;margin-left:0;width:100%;border-radius:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-@media (hover: hover) and (pointer: fine) {
- .reference-operation-body .detail-menu>.menu-row:active,.reference-operation-body .incoming-menu>.menu-row:active{background:#ffffff12;border-radius:0}
-}
+
 .reference-operation-body .detail-menu>.menu-row+.menu-row:before{left:73px}
 .transfer-action-glyph{width:22px;height:22px;flex:none;color:#e1e1e1;shape-rendering:geometricPrecision}
 
-.reference-operation-body .detail-menu>.menu-row.is-pressed,.reference-operation-body .incoming-menu>.menu-row.is-pressed{background:#ffffff12;border-radius:0}
 
-.reference-operation-body .menu-row.is-pressed,.reference-operation-body .menu-row:active{transition:none!important}
+
+
 
 /* Match the original thin 32-point silhouettes inside a consistent 24px slot. */
 .transfer-action-glyph{width:24px;height:24px;margin-right:-2px;stroke-width:1.5;color:#dedede}

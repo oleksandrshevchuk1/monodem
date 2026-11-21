@@ -115,15 +115,6 @@ detail=function(){
  return template.innerHTML;
 };
 
-// Give touch and pointer users the same full-row feedback, cancelling it when they scroll.
-(()=>{let press=null;const clear=()=>{press?.row.classList.remove('is-pressed');press=null};
- document.addEventListener('pointerdown',e=>{clear();const row=e.target.closest?.('.reference-operation-body .menu-row');if(row&&e.isPrimary){press={row,x:e.clientX,y:e.clientY};row.classList.add('is-pressed')}},{capture:true,passive:true});
- document.addEventListener('pointermove',e=>{if(press&&Math.hypot(e.clientX-press.x,e.clientY-press.y)>10)clear()},{passive:true});
- for(const event of ['pointerup','pointercancel'])document.addEventListener(event,clear,true);
- window.addEventListener('scroll',clear,{passive:true,capture:true});
- window.addEventListener('blur',clear);
-})();
-
 // Keep the bank header outside the native content scroller.
 const renderBeforeOperationBoundary = render;
 render = function() {

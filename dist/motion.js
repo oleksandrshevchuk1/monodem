@@ -251,7 +251,7 @@ function freezePageSurface() {
   frozenSelector.classList.add('frozen-card-selector');
   frozenSelector.style.inlineSize = style.inlineSize;
   frozenSelector.style.blockSize = style.blockSize;
-  for (const part of ['.selector-label', '.selector-dots']) {
+  for (const part of ['.selector-label']) {
    const livePart = selector.querySelector(part), frozenPart = frozenSelector.querySelector(part);
    if (!livePart || !frozenPart) continue;
    const pose = getComputedStyle(livePart);

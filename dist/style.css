@@ -19,7 +19,7 @@
 .card-image{object-fit:cover;filter:brightness(.62);width:103.5%;height:104%;top:-2%;left:-1.75%}
 .card-face .card-number{font-size:17px;letter-spacing:2.2px;top:59%;left:8%}
 .card-face .card-stamp{font-size:9px;letter-spacing:1.5px;top:40%}
-.card-face:active{transform:translate(-50%,-50%) perspective(850px) rotateX(54deg) scale(.98);filter:brightness(1.12)}
+
 .all-cards{margin:7px auto 22px;padding:5px 9px;font-size:14px;background:#0b1b3466;line-height:18px}
 .home-actions{margin:0 13px 18px;gap:6px}
 .action-circle{width:55px;height:55px;margin-bottom:10px;background:#020a13}
@@ -39,12 +39,12 @@
 .market-tab{flex-basis:61px;background:#2c2c2ceb}
 #screen{overflow-wrap:break-word;backface-visibility:hidden}
 button{touch-action:manipulation;transition:opacity .16s ease,background-color .16s ease}
-.home-actions button:active .action-circle{transform:scale(.91);background:#101d34}
+
 .action-circle{transition:transform .24s cubic-bezier(.2,.8,.2,1),background-color .2s ease}
-.transaction:active,.menu-row:active{background:#ffffff08;border-radius:12px}
-.top-icon:active,.avatar:active,.all-cards:active{opacity:.58}
-.tab:active .icon{transform:scale(.87)}
-.primary:active,.secondary:active,.small-button:active{opacity:.75;transform:scale(.986)}
+
+
+
+
 .primary,.secondary,.small-button{transition:transform .2s cubic-bezier(.22,.75,.2,1),opacity .15s ease}
 dialog{border-color:#ffffff0c;box-shadow:0 22px 100px #0009;overscroll-behavior:contain}
 dialog[open]{animation:sheet-in .3s cubic-bezier(.2,.8,.2,1)}

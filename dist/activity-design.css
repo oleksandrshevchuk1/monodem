@@ -262,12 +262,14 @@
   font-weight: 400;
 }
 
-:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).card:not(:has(.expanded-card .is-white)) .expanded-card .bank-card-front {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).card:not(:has(.expanded-card .is-white)) .expanded-card .bank-card-front,
+body > .card-header-mini .bank-card:not(.is-white) .bank-card-front {
   background: linear-gradient(180deg, #282828, #222 32%, #111 100%);
 }
 
 body > .card-header-mini {
   display: block !important;
+  transition: none;
   position: fixed;
   inset: max(46px, env(safe-area-inset-top)) auto auto 50%;
   z-index: 70;
@@ -277,6 +279,8 @@ body > .card-header-mini {
 
 body > .card-header-mini .bank-card {
   transform: none;
+  translate: 0 calc(-5px * (1 - var(--mini-progress, 0)));
+  scale: calc(.9 + .1 * var(--mini-progress, 0));
 }
 
 body > .card-header-mini.flipped .bank-card {
@@ -579,7 +583,7 @@ body:has(:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operatio
 }
 
 #app.history,
-#app.history #screen {
+body:not(.has-glass-history) #app.history #screen {
   background-color: #121212;
 }
 
@@ -888,4 +892,24 @@ body:has(:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operatio
 
 :is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).history .card-operations .bank-transfer-icon {
   background: linear-gradient(140deg, #4541aa, #6863ca);
+}
+
+:root {
+  text-size-adjust: 100%;
+}
+
+.card-slide .new-card-face {
+  background: linear-gradient(180deg, #30466a, #3d5885 68%, #496699);
+  box-shadow: 0 6px 0 #2a4168, 0 29px 28px #0b173969;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.card-slide .new-card-face::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(132deg, #d8e4ff19, transparent 43%, #c6dcff10 78%, #d7e5ff23);
 }

@@ -22,9 +22,10 @@ bindCardCollapse=function(){
  const update=()=>{
   frame=0;
   if(route.page!=='card'||!card.isConnected)return;
-  const progress=Math.max(0,Math.min(1,(110-card.getBoundingClientRect().bottom)/40));
+  const progress=Math.max(0,Math.min(1,(172-card.getBoundingClientRect().bottom)/74));
   if(progress!==previous){
    mini.style.opacity=String(progress);
+   mini.style.setProperty('--mini-progress',String(progress));
    mini.style.pointerEvents=progress>.5?'auto':'none';
    mini.inert=progress<=.5;
    previous=progress;
