@@ -80,14 +80,14 @@ moveHomeSwipe=function(distance,rubber=true){
  moveAccountSwipe(distance,rubber);
  const layer=swipeLayers;
  if(!layer.pages)return;
- const translation=`translate3d(${cardPixel(layer.dx)}px,0,0)`;
- for(const element of layer.movingContent)element.style.transform=translation;
+ const translation=`${cardPixel(layer.dx)}px`;
+ for(const element of layer.movingContent)element.style.translate=translation;
  for(const {node,index} of layer.pages)node.style.transform=`translate3d(${cardPixel((index-layer.index)*layer.width+layer.dx)}px,0,0)`;
 };
 cleanupSwipe=function(){
  if(swipeLayers){
   swipeLayers.pages?.forEach(page=>page.node.remove());
-  swipeLayers.movingContent?.forEach(element=>element.style.transform='');
+  swipeLayers.movingContent?.forEach(element=>element.style.removeProperty('translate'));
  }
  cleanupAccountSwipe();
 };
@@ -171,16 +171,27 @@ tabBar.addEventListener('click', event => {
   const selected = tabBar.querySelector('.tab.active,.market-mini-tabs .selected');
   const glyph = selected?.querySelector('.reference-control-glyph,.icon');
   if (!glyph) return;
-  const pose = tabFeedback?.effect.target === glyph ? getComputedStyle(glyph).transform : 'scale(.92)';
+  const pose = tabFeedback?.playState === 'running' && tabFeedback.effect.target === glyph
+   ? getComputedStyle(glyph).scale : '.84';
   tabFeedback?.cancel();
   tabFeedback = glyph.animate(
-   [{transform: pose}, {transform: 'none'}],
+   [{scale: pose}, {scale: '1'}],
    {duration: 160, easing: slideEase}
   );
  });
 });
 const slideEase = 'cubic-bezier(.32,.72,0,1)';
 const translateX = x => `translate3d(${x}px,0,0)`;
+
+const navigateBeforeTabReselect = actions.nav;
+actions.nav = button => {
+ const page = button.dataset.page;
+ if (button.closest('#nav') && mainTabs.includes(page) && route.page === page) {
+  pageScrollTo(0, 0);
+  return;
+ }
+ return navigateBeforeTabReselect(button);
+};
 
 // Keep the initial pose on screen while the browser prepares the new page's layers.
 function playAfterFirstPaint(...motions) {
@@ -239,10 +250,7 @@ function animateSideSurfaces(app, preview, from, to, duration) {
  return motion;
 }
 
-let limitReveals = [];
 function finishSideEntrance() {
- for (const reveal of limitReveals) reveal.cancel();
- limitReveals = [];
  const previous = sideEntrance;
  if (!previous) return;
  sideEntrance = null;
@@ -342,12 +350,7 @@ paint = function(direction) {
   resetSideSwipe();
   finishSideEntrance();
   render();
-  // Switch tab content with the bottom navigation held in place.
-  pageAnimation = $('#screen').animate(
-   [{opacity: .72, transform: translateX(Math.sign(toTab - fromTab) * 8)},
-    {opacity: 1, transform: translateX(0)}],
-   {duration: 200, easing: slideEase}
-  );
+  // The bar supplies the feedback. Keep the newly selected content fully opaque.
   return;
  }
  if (direction === 'back' && sideEntrance?.adoptBackDestination) {
@@ -418,38 +421,18 @@ paint = function(direction) {
   const entrance = parallax
    ? animateSideSurfaces(app, snapshot, width, 0, options.duration)
    : app.animate(poses, options);
-  if (route.page === 'limits') {
-   const header = app.querySelector('.reference-page > h1');
-   const content = app.querySelectorAll('.reference-limit-group, .reference-legal');
-   const fade = (element, delay) => element.animate(
-    [{opacity: 0}, {opacity: 1}],
-    {delay, duration: 220, easing: slideEase, fill: 'backwards'}
-   );
-   const reveals = [fade(header, 100), ...Array.from(content, element => fade(element, 175))];
-   playAfterFirstPaint(entrance, ...reveals);
-   // Cancel unfinished fades before moving the limits screen into an exit snapshot.
-   limitReveals = reveals;
-   Promise.allSettled(reveals.map(reveal => reveal.finished)).then(() => {
-    if (limitReveals === reveals) limitReveals = [];
-   });
-  }
+  if (route.page === 'limits') playAfterFirstPaint(entrance);
   trackSideMotion(entrance, snapshot);
   return;
  }
  finishSideEntrance();
  render();
  if (route.page === 'card') return;
- if (route.page === 'home') {
-  if (direction === 'back') pageAnimation = $('#screen').animate(
-   [{opacity: .82}, {opacity: 1}],
-   {duration: 160, easing: slideEase}
-  );
-  return;
- }
- const offset = direction === 'back' ? -12 : 12;
+ if (route.page === 'home' && direction !== 'back') return;
+ const offset = direction === 'back' ? -8 : 8;
  pageAnimation = $('#screen').animate(
-  [{opacity: .65, transform: translateX(offset)}, {opacity: 1, transform: translateX(0)}],
-  {duration: pageMotionDuration, easing: slideEase}
+  [{transform: translateX(offset)}, {transform: translateX(0)}],
+  {duration: 200, easing: slideEase}
  );
 };
 const navigateBeforeSideViewport=navigate;navigate=function(page,id){if(page==='detail' && route.page===page && route.id===id)return; if(sidePages.has(page)&&page!==route.page)pendingSideSnapshot=freezePageSurface();try{return navigateBeforeSideViewport(page,id)}finally{pendingSideSnapshot=null}};

@@ -894,7 +894,14 @@ body:not(.has-glass-history) #app.history #screen {
 }
 
 :root {
+  -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+}
+
+/* Account swaps can change statement length. Keep the viewport on the same row. */
+html:has(#app.home),
+.pwa-scroll:has(#app.home) {
+  overflow-anchor: none;
 }
 
 .card-slide .new-card-face {
@@ -931,28 +938,44 @@ body:not(.has-glass-history) #app.history #screen {
   opacity: .72;
 }
 
-#nav .tab .reference-control-glyph {
-  transition: transform 160ms var(--ease-out);
-}
-
-#nav .tab:active .reference-control-glyph {
-  transform: scale(.92);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  #nav .tab .reference-control-glyph {
-    transition: none;
-  }
-  #nav .tab:active .reference-control-glyph {
-    transform: none;
-  }
-}
-
-/* The add-card marker uses the same muted ink and footprint as the dots. */
-.selector-dots .indicator-plus {
-  opacity: .38;
+/* Keep the stroke visible at the same size when the marker becomes selected. */
+.selector-dots i.indicator-plus {
+  flex-basis: 9px;
+  height: 9px;
   background:
-    linear-gradient(currentColor, currentColor) center / 7px 1px no-repeat,
-    linear-gradient(currentColor, currentColor) center / 1px 7px no-repeat;
+    linear-gradient(currentColor, currentColor) center / 9px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) center / 2px 9px no-repeat;
   border-radius: 0;
+}
+
+.selector-dots .indicator-plus.selected {
+  opacity: 1;
+}
+
+.new-card-selected > .card-selector .selector-dots { opacity: 1; }
+.new-card-selected > .card-selector .selector-label { opacity: 0; }
+
+/* A press changes the surface without moving the label, glyph, or row. */
+:is(#app, #modal) :is(
+  button[data-action]:is(
+    .service-row, .menu-row, .transaction, .compact-card, .payment-settings,
+    .stats-source, .new-card-cta, .increase-limit, .useful-small-grid > *,
+    .useful-wide-grid > *, .settings-group > *, .summary-metrics > *
+  ),
+  .other-limits summary
+) {
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 150ms var(--ease-out);
+}
+
+:is(#app, #modal) :is(
+  button[data-action]:is(
+    .service-row, .menu-row, .transaction, .compact-card, .payment-settings,
+    .stats-source, .new-card-cta, .increase-limit, .useful-small-grid > *,
+    .useful-wide-grid > *, .settings-group > *, .summary-metrics > *
+  ),
+  .other-limits summary
+):active {
+  background-color: #ffffff24;
+  transition-duration: 55ms;
 }
