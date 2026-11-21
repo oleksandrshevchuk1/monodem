@@ -14,7 +14,10 @@ actions['download-character']=async()=>{const response=await fetch('assets/profi
 const basicHome=home;
 const cardWhite=c=>c.color?c.color==='white':c.id==='white';
 function selector(){
- return `<button class="card-selector" data-action="nav" data-page="cards" aria-label="Усі картки"><span class="selector-label" aria-hidden="true"><svg class="icon" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><path d="m2 5 7.1-3.3a2.3 2.3 0 0 1 3.1 1.1l.6 1.2H7.3A4.3 4.3 0 0 0 3 8.3v2.8L.9 7.8A2 2 0 0 1 2 5Z"/><path fill-rule="evenodd" d="M7.1 5.4h7a2.7 2.7 0 0 1 2.7 2.7v5.1a2.7 2.7 0 0 1-2.7 2.7h-7a2.7 2.7 0 0 1-2.7-2.7V8.1a2.7 2.7 0 0 1 2.7-2.7Zm-.4 3.2c0 .4.3.7.7.7h6.3a.7.7 0 1 0 0-1.4H7.4a.7.7 0 0 0-.7.7Z"/></svg>Усі картки</span></button>`;
+ const cards=allCards();
+ const selected=newCardSelected?cards.length:cards.findIndex(card=>card.id===activeCard().id);
+ const markers=Array.from({length:cards.length+1},(_,i)=>`<${i===cards.length?'b':'i'} class="${i===selected?'selected':''}">${i===cards.length?'+':''}</${i===cards.length?'b':'i'}>`).join('');
+ return `<button class="card-selector" data-action="nav" data-page="cards" aria-label="Усі картки"><span class="selector-label" aria-hidden="true"><svg class="icon" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><path d="m2 5 7.1-3.3a2.3 2.3 0 0 1 3.1 1.1l.6 1.2H7.3A4.3 4.3 0 0 0 3 8.3v2.8L.9 7.8A2 2 0 0 1 2 5Z"/><path fill-rule="evenodd" d="M7.1 5.4h7a2.7 2.7 0 0 1 2.7 2.7v5.1a2.7 2.7 0 0 1-2.7 2.7h-7a2.7 2.7 0 0 1-2.7-2.7V8.1a2.7 2.7 0 0 1 2.7-2.7Zm-.4 3.2c0 .4.3.7.7.7h6.3a.7.7 0 1 0 0-1.4H7.4a.7.7 0 0 0-.7.7Z"/></svg>Усі картки</span><span class="selector-dots" aria-hidden="true">${markers}</span></button>`;
 }
 function cardSlides(){return `<div class="card-stage card-carousel" id="card-swipe"><div class="card-track">${allCards().map(c=>`<div class="card-slide"><button class="card-face" data-action="show-card" data-id="${c.id}" aria-label="Відкрити ${esc(c.account)}">${cardArtwork(c)}</button></div>`).join('')}<div class="card-slide"><button class="card-face new-card-face" data-action="open-card" aria-label="Відкрити нову картку"><span>${icon('plus-circle-fill')}</span></button></div></div></div>`}
 function homeActions(){return `<div class="home-actions"><button data-action="transfer"><span class="action-circle">${referenceControlGlyph('transfer')}</span>Переказати<br>на картку</button><button data-action="iban"><span class="action-circle">${referenceControlGlyph('iban')}</span>Платіж<br>за IBAN</button><button data-action="nav" data-page="payments"><span class="action-circle">${referenceControlGlyph('payments')}</span>Інші<br>платежі</button></div>`}
@@ -25,7 +28,7 @@ let homeFooter=()=>{
 let homeOperationRows=()=>rows(txFor().slice(0,6));
 function homeAccountContent(preview=false){
  const tools=newCardSelected
-  ? `<div class="home-actions new-card-actions"><button class="new-card-cta" data-action="open-card">Відкрити картку</button></div><section class="operation-panel new-card-empty"><h2>Коли відкриєте нову картку,<br>тут буде її виписка <span aria-hidden="true">🏄</span></h2></section>`
+  ? `<div class="home-actions new-card-actions"><button class="new-card-cta" data-action="open-card">Відкрити картку</button></div><section class="operation-panel new-card-empty"><h2>Коли відкриєте нову картку,<br>тут буде її виписка <img class="new-card-sticker" src="assets/reference/new-card-surfer.png" alt=""></h2></section>`
   : homeActions()+`<section class="operation-panel"><div class="section-title"><h2>Операції</h2><button class="pill" data-action="nav" data-page="history">Усі ${icon('caret-right')}</button></div>${homeOperationRows()}</section>`;
  return `<div class="home-content ${newCardSelected?'new-card-selected':''}">${newCardSelected?`<div class="open-card-intro"><h2>Відкрити картку</h2><p>Ви можете відкрити додаткові картки<br>в гривні, доларах та євро</p></div>`:`<button class="home-balance" data-action="topup" aria-label="Поповнити картку"><svg class="icon balance-plus-glyph" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15.5" fill="currentColor" opacity=".16"/><circle cx="16" cy="16" r="15.5" fill="none" stroke="currentColor" opacity=".18"/><circle cx="16" cy="16" r="8" fill="currentColor" opacity=".68"/><path d="M16 12.75v6.5m-3.25-3.25h6.5" fill="none" stroke="#263454" stroke-width="2" stroke-linecap="round"/></svg><strong>${displayMoney(balance())} ₴</strong></button>`}${preview?'<div class="card-stage card-carousel"></div><div class="card-selector"></div>':cardSlides()+selector()}${tools}${preview?'':homeFooter()}</div>`;
 }
@@ -137,7 +140,13 @@ render=function(){if(!adminMode&&['capital','statcategory','statbreakdown','open
 let swipeLayers=null;
 function prepareSwipe(){if(swipeLayers)return swipeLayers;const app=$('#app'),track=$('.card-track'),cards=allCards(),index=newCardSelected?cards.length:Math.max(0,cards.findIndex(c=>c.id===state.activeCard)),background=document.createElement('div');background.className='swipe-gradient';app.prepend(background);
  swipeLayers={track,cards,width:app.clientWidth,index,background,dx:0,theme:null};document.documentElement.dataset.gesture='active';app.classList.add('card-gesture-active');return swipeLayers}
-function moveHomeSwipe(distance,rubber=true){const l=prepareSwipe(),edge=(l.index===0&&distance>0)||(l.index===l.cards.length&&distance<0),dx=edge&&rubber?distance*.2:distance;l.dx=dx;l.track.style.transform=`translate3d(${-l.index*l.width*.88+dx*.88}px,0,0)`;const next=l.index+(dx<0?1:-1);if(l.theme!==next){const c=l.cards[next];l.background.style.background=next===l.cards.length?'var(--home-new-gradient)':c&&cardWhite(c)?'var(--home-white-gradient)':'var(--home-black-gradient)';l.theme=next}l.background.style.opacity=Math.min(1,Math.abs(dx)/l.width)}
+function moveHomeSwipe(distance,rubber=true){const l=prepareSwipe(),edge=(l.index===0&&distance>0)||(l.index===l.cards.length&&distance<0),dx=edge&&rubber?distance*.2:distance;l.dx=dx;l.track.style.transform=`translate3d(${-l.index*l.width*.88+dx*.88}px,0,0)`;const selector=$('.card-selector');
+ const marker=selector?.querySelector('.selector-dots')?.children[Math.max(0,Math.min(l.cards.length,Math.round(l.index-dx/l.width)))];
+ if(marker&&!marker.classList.contains('selected')){
+  marker.parentElement.querySelector('.selected')?.classList.remove('selected');
+  marker.classList.add('selected');
+ }
+ const next=l.index+(dx<0?1:-1);if(l.theme!==next){const c=l.cards[next];l.background.style.background=next===l.cards.length?'var(--home-new-gradient)':c&&cardWhite(c)?'var(--home-white-gradient)':'var(--home-black-gradient)';l.theme=next}l.background.style.opacity=Math.min(1,Math.abs(dx)/l.width)}
 function cleanupSwipe(){if(!swipeLayers)return;swipeLayers.background.remove();$('#app').classList.remove('card-gesture-active');delete document.documentElement.dataset.gesture;swipeLayers=null}
 function refreshSelectedCard(){
  const app=$('#app');
@@ -153,8 +162,21 @@ function finishCardSelection(index){
  const pane=$('.home-content');
  const preview=swipeLayers?.pages?.find(page=>page.index===index)?.node.firstElementChild;
  if(route.page==='home'&&preview){
-  for(const slot of [homeAccountIntro,'.home-actions','.operation-panel']){
-   pane.querySelector(slot).replaceWith(preview.querySelector(slot));
+  const oldBalance=pane.querySelector('.home-balance');
+  const nextBalance=preview.querySelector('.home-balance');
+  if(oldBalance&&nextBalance){
+   const amount=oldBalance.querySelector('strong');
+   const nextAmount=nextBalance.querySelector('strong');
+   amount.textContent=nextAmount.textContent;
+   amount.style.fontSize=nextAmount.style.fontSize;
+   const panel=pane.querySelector('.operation-panel');
+   const nextRows=[...preview.querySelector('.operation-panel').children].slice(1);
+   for(const row of [...panel.children].slice(1))row.remove();
+   panel.append(...nextRows);
+  }else{
+   for(const slot of [homeAccountIntro,'.home-actions','.operation-panel']){
+    pane.querySelector(slot).replaceWith(preview.querySelector(slot));
+   }
   }
   pane.classList.toggle('new-card-selected',newCardSelected);
   cleanupSwipe();
@@ -207,10 +229,10 @@ function captureBankSurface(preserveArtwork=false){
  return surface;
 }
 
-function fitMonetaryLabels(){
+function fitMonetaryLabels(root=$('#screen')){
  const sizes=[['.home-balance strong',46,26],['.stats-summary>strong',46,24],['.capital-total>strong',38,22],['.compact-card>strong',21,12]];
  for(const [selector,max,min] of sizes){
-  for(const el of $('#screen').querySelectorAll(selector)){
+  for(const el of root.querySelectorAll(selector)){
    if(el.dataset.numberMotion==='1')continue;
    el.style.fontSize=max+'px';
    const available=el.clientWidth;
@@ -221,7 +243,7 @@ function fitMonetaryLabels(){
 function animateSummaryValue(el,from,to,kind){if(from===to||shouldReduceMotion())return;const available=el.clientWidth,style=getComputedStyle(el),canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');ctx.font=style.font;const label=n=>(kind==='expense'?'−':'')+displayMoney(n)+' ₴',width=Math.max(ctx.measureText(label(from)).width,ctx.measureText(label(to)).width);el.style.fontSize=Math.max(24,Math.min(parseFloat(style.fontSize),parseFloat(style.fontSize)*available/width))+'px';el.dataset.numberMotion='1';const start=performance.now();const step=now=>{if(!el.isConnected)return;const t=Math.min(1,(now-start)/240),n=from+(to-from)*(1-Math.pow(1-t,3));el.textContent=label(n);if(t<1)requestAnimationFrame(step);else{el.textContent=label(to);delete el.dataset.numberMotion}};requestAnimationFrame(step)}
 const beforeAmountRender=render;
 render=function(){const previous=route.page==='analytics'?new Map([...document.querySelectorAll('.stats-summary')].map(x=>[x.dataset.kind,Number(x.dataset.total)])):null;beforeAmountRender();fitMonetaryLabels();if(previous?.size)requestAnimationFrame(()=>{if(route.page==='analytics')document.querySelectorAll('.stats-summary').forEach(x=>{if(previous.has(x.dataset.kind))animateSummaryValue(x.querySelector(':scope>strong'),previous.get(x.dataset.kind),Number(x.dataset.total),x.dataset.kind)})});};
-document.fonts.ready.then(fitMonetaryLabels);
+document.fonts.ready.then(()=>fitMonetaryLabels());
 
 render();
 

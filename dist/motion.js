@@ -60,13 +60,17 @@ prepareSwipe=function(){
   if(index<0||index>allCards().length)continue;
   const content=(accountPreviewCache.get(index)||buildAccountPreview(index)).cloneNode(true);
   const preview=document.createElement('div');
-  preview.className='account-swipe-preview';
+  preview.className='account-swipe-preview demo-transition-surface home';
   preview.inert=true;
   preview.append(content);
   preview.style.transform=`translate3d(${(index-layer.index)*layer.width}px,0,0)`;
   layer.pages.push({node:preview,index});
  }
  pane.append(...layer.pages.map(page=>page.node));
+ for(const {node} of layer.pages){
+  prepareVisibleGlyphs(node);
+  fitMonetaryLabels(node);
+ }
  const top=pane.querySelector(homeAccountIntro).getBoundingClientRect().top;
  const offsets=layer.pages.map(({node})=>top-node.querySelector(homeAccountIntro).getBoundingClientRect().top);
  layer.pages.forEach(({node},index)=>node.style.top=offsets[index]+'px');
@@ -251,7 +255,7 @@ function freezePageSurface() {
   frozenSelector.classList.add('frozen-card-selector');
   frozenSelector.style.inlineSize = style.inlineSize;
   frozenSelector.style.blockSize = style.blockSize;
-  for (const part of ['.selector-label']) {
+  for (const part of ['.selector-label', '.selector-dots']) {
    const livePart = selector.querySelector(part), frozenPart = frozenSelector.querySelector(part);
    if (!livePart || !frozenPart) continue;
    const pose = getComputedStyle(livePart);
