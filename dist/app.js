@@ -50,12 +50,14 @@ const field=(label,name,value='',type='text',extra='')=>`<label for="f-${name}">
 const button=(action,label,ico,sub='',data='')=>`<button type="button" class="menu-row" data-action="${action}" ${data}>${icon(ico)}<span>${label}${sub?`<small>${sub}</small>`:''}</span>${icon('caret-right').replace('class="icon"','class="icon chevron"')}</button>`;
 const toolbar=(title,right='')=>`<div class="toolbar"><button class="back" data-action="back" aria-label="Назад">${icon('arrow-left')}</button><h1>${title}</h1>${right}</div>`;
 const empty=(title,desc,ico='receipt')=>`<div class="empty">${icon(ico)}<b>${title}</b>${desc}</div>`;
+const pageMotionDuration=320;
 function paint(direction='forward'){
  render();
  const screen=$('#screen');
- if(!screen.animate||shouldReduceMotion()||['home','card'].includes(route.page))return;
- screen.getAnimations?.().forEach(a=>a.cancel());
- screen.animate([{opacity:.7},{opacity:1}],{duration:160,easing:'ease-out'});
+ if(!screen.animate||shouldReduceMotion()||route.page==='card')return;
+ screen.getAnimations?.().forEach(animation=>animation.cancel());
+ screen.animate([{opacity:0},{opacity:1}],{duration:pageMotionDuration,easing:getComputedStyle(screen).getPropertyValue('--ease-out').trim()||'ease-out'});
+
 }
 
 history.scrollRestoration='manual';

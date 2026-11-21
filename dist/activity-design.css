@@ -902,17 +902,18 @@ body:not(.has-glass-history) #app.history #screen {
 .card-slide .new-card-face {
   background: linear-gradient(180deg, #30466a, #3d5885 68%, #496699);
   box-shadow: 0 6px 0 #2a4168, 0 29px 28px #0b173969;
-  overflow: hidden;
-  isolation: isolate;
+  overflow: visible;
 }
 
-.card-slide .new-card-face::before {
+.card-slide .new-card-face::after {
   content: "";
   position: absolute;
-  inset: 0;
-  z-index: -1;
+  inset: auto 6% -2px;
+  height: 2px;
+  border-radius: 50%;
   pointer-events: none;
-  background: linear-gradient(132deg, #d8e4ff19, transparent 43%, #c6dcff10 78%, #d7e5ff23);
+  background: linear-gradient(90deg, transparent 21%, #fff0 27%, #fff9 47%, #fffc 52%, #fff0 72%);
+  opacity: .45;
 }
 
 /* Keep the amount baseline fixed when the fitted font size changes. */
@@ -930,4 +931,21 @@ body:not(.has-glass-history) #app.history #screen {
 
 #app.home :is(.home-top button, .home-actions button):active {
   opacity: .72;
+}
+
+#nav .tab .reference-control-glyph {
+  transition: transform 160ms var(--ease-out);
+}
+
+#nav .tab:active .reference-control-glyph {
+  transform: scale(.92);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #nav .tab .reference-control-glyph {
+    transition: none;
+  }
+  #nav .tab:active .reference-control-glyph {
+    transform: none;
+  }
 }

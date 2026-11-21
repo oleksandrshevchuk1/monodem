@@ -165,7 +165,7 @@ function cardIndicatorMarkers(index){
  return Array.from({length:last-first+1},(_,offset)=>{
   const position=first+offset;
   const current=position===index?' class="selected"':'';
-  return `<i${current}></i>`;
+  return position===total?`<b${current}>+</b>`:`<i${current}></i>`;
  }).join('');
 }
 function updateCardIndicator(indicator,index){
@@ -208,20 +208,28 @@ function finishCardSelection(index){
  carouselIndex=index;
  if(!newCardSelected)state.activeCard=cards[index].id;
  const pane=$('.home-content');
- const preview=swipeLayers?.pages?.find(page=>page.index===index)?.node.firstElementChild;
- if(route.page==='home'&&preview){
-  for(const slot of [homeAccountIntro,'.home-actions','.operation-panel']){
-   pane.querySelector(slot).replaceWith(preview.querySelector(slot));
+ if(route.page==='home'&&pane){
+  const preview=accountPreviewCache.get(index)||buildAccountPreview(index);
+  const balance=pane.querySelector('.home-balance strong');
+  const nextBalance=preview.querySelector('.home-balance strong');
+  if(balance&&nextBalance){
+   balance.textContent=nextBalance.textContent;
+   const panel=pane.querySelector('.operation-panel');
+   const nextPanel=preview.querySelector('.operation-panel');
+   panel.replaceChildren(panel.firstElementChild,...[...nextPanel.children].slice(1));
+  }else{
+   for(const slot of [homeAccountIntro,'.home-actions','.operation-panel']){
+    pane.querySelector(slot).replaceWith(preview.querySelector(slot));
+   }
   }
+  accountPreviewCache.delete(index);
   pane.classList.toggle('new-card-selected',newCardSelected);
-  cleanupSwipe();
-  setCarouselPosition(index);
   refreshSelectedCard();
-  scheduleAccountPreviews();
- }else{
+  setCarouselPosition(index);
+  fitMonetaryLabels();
   cleanupSwipe();
-  if(route.page==='home')render();
- }
+  scheduleAccountPreviews();
+ }else cleanupSwipe();
 }
 
 function physicalSettle(read,write,target,velocity,complete){let frame,cancelled=false;const from=read(),omega=2*Math.PI/.4,offset=from-target,start=performance.now();const tick=now=>{if(cancelled)return;const t=(now-start)/1000,term=velocity+omega*offset,decay=Math.exp(-omega*t),position=target+(offset+term*t)*decay,speed=(velocity-omega*term*t)*decay;write(position);if(t<1.2&&(Math.abs(position-target)>.05||Math.abs(speed)>.5))frame=requestAnimationFrame(tick);else{write(target);complete()}};frame=requestAnimationFrame(tick);return {cancel(){cancelled=true;cancelAnimationFrame(frame)},finish(){cancelled=true;cancelAnimationFrame(frame);write(target)}}}

@@ -47,49 +47,8 @@ expandTransition=function(from,to,opening){
   requestAnimationFrame(()=>{if(softCardSession!==session)return;to.style.opacity='';node.remove();softCardSession=null;delete document.documentElement.dataset.gesture;restoreOperationsNav()});
  }).catch(()=>{})
 };
-// The full account page follows the finger; header and navigation keep their anchors.
+// Prepare the destination offscreen. Only the card strip follows the gesture.
 const accountPreviewCache=new Map();let previewIdleTask=0;
-const prepareAccountSwipe=prepareSwipe,moveAccountSwipe=moveHomeSwipe,cleanupAccountSwipe=cleanupSwipe;
-prepareSwipe=function(){
- const layer=prepareAccountSwipe();
- if(layer.pages)return layer;
- const pane=$('.home-content');
- layer.movingContent=[...pane.children].filter(el=>el.matches(homeAccountIntro+',.home-actions,.operation-panel'));
- layer.pages=[];
- for(const index of [layer.index-1,layer.index+1]){
-  if(index<0||index>allCards().length)continue;
-  const content=accountPreviewCache.get(index)||buildAccountPreview(index);
-  accountPreviewCache.delete(index);
-  const preview=document.createElement('div');
-  preview.className='account-swipe-preview';
-  preview.inert=true;
-  preview.append(content);
-  preview.style.transform=`translate3d(${(index-layer.index)*layer.width}px,0,0)`;
-  layer.pages.push({node:preview,index});
- }
- pane.append(...layer.pages.map(page=>page.node));
- for(const {node} of layer.pages){
-  fitMonetaryLabels(node);
- }
- const top=pane.querySelector(homeAccountIntro).getBoundingClientRect().top;
- const offsets=layer.pages.map(({node})=>top-node.querySelector(homeAccountIntro).getBoundingClientRect().top);
- layer.pages.forEach(({node},index)=>node.style.top=offsets[index]+'px');
- return layer;
-};
-moveHomeSwipe=function(distance,rubber=true){
- moveAccountSwipe(distance,rubber);
- const layer=swipeLayers;
- const translation=`translate3d(${cardPixel(layer.dx)}px,0,0)`;
- for(const element of layer.movingContent)element.style.transform=translation;
- for(const {node,index} of layer.pages)node.style.transform=`translate3d(${cardPixel((index-layer.index)*layer.width+layer.dx)}px,0,0)`;
-};
-cleanupSwipe=function(){
- if(swipeLayers){
-  swipeLayers.pages?.forEach(page=>page.node.remove());
-  swipeLayers.movingContent?.forEach(element=>element.style.transform='');
- }
- cleanupAccountSwipe();
-};
 // Operations rise over the frozen home surface and dissolve back into it on pull-down.
 let operationsHome=null,operationsScene=null,operationsEntrance=null,operationsNavMotion=null,historyTouchCleanup=null;
 function freezeHome(){const snapshot=captureBankSurface(true),source=$('#screen'),copy=snapshot.firstElementChild;copy.removeAttribute('id');copy.classList.add('transition-screen');copy.style.paddingBottom=getComputedStyle(source).paddingBottom;copy.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));snapshot.firstElementChild.replaceWith(copy);snapshot.querySelectorAll('.transition-nav').forEach(el=>el.remove());snapshot.classList.remove('bank-surface-transition');snapshot.classList.add('operations-home-underlay');snapshot.style.height=Math.max(innerHeight,$('#app').offsetHeight)+'px';return snapshot}
@@ -156,7 +115,6 @@ document.addEventListener('pointerdown',event=>{
 document.addEventListener('click',event=>{if(event.detail&&performance.now()<sideReturnClickUntil){event.preventDefault();event.stopImmediatePropagation()}},true);
 const sidePages = new Set(['limits','abroad','detail']), paintWithOperations = paint;
 const slidingTransferPages = new Set(['detail', 'transfer', 'transferAmount', 'transferArchive']);
-const pageMotionDuration = 320;
 const slideEase = 'cubic-bezier(.32,.72,0,1)';
 const translateX = x => `translate3d(${x}px,0,0)`;
 
