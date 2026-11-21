@@ -151,7 +151,7 @@ render();
 let sideEntrance=null,sideSnapshot=null,sideHomeSnapshot=null,sideSwipeLayer=null,pendingSideSnapshot=null,sideReturnClickUntil=0;
 function suppressSideReturnClick(){sideReturnClickUntil=performance.now()+450}
 document.addEventListener('pointerdown',event=>{
-  if (!sideEntrance?.isRouteExit && !event.sourceCapabilities?.firesTouchEvents) sideReturnClickUntil=0;
+  sideReturnClickUntil=0;
  },{capture:true,passive:true});
 document.addEventListener('click',event=>{if(event.detail&&performance.now()<sideReturnClickUntil){event.preventDefault();event.stopImmediatePropagation()}},true);
 const sidePages = new Set(['limits','abroad','detail']), paintWithOperations = paint;
@@ -264,6 +264,11 @@ function freezePageSurface() {
    const pose = getComputedStyle(livePart);
    frozenPart.style.opacity = pose.opacity;
    frozenPart.style.filter = pose.filter;
+   if (part === '.selector-dots') {
+    Array.from(livePart.children).forEach((marker, index) => {
+     frozenPart.children[index].style.opacity = getComputedStyle(marker).opacity;
+    });
+   }
   }
  }
  const nav = surface.querySelector('.transition-nav');
@@ -598,9 +603,10 @@ function buildAccountPreview(index){
  try{
   newCardSelected=index===cards.length;
   if(!newCardSelected)state.activeCard=cards[index].id;
-  const template=document.createElement('template');
-  template.innerHTML=homeAccountContent(true);
-  const content=template.content.firstElementChild;
+  // Keep the preview in the live document's realm so image decoding starts offscreen.
+  const staging=document.createElement('div');
+  staging.innerHTML=homeAccountContent(true);
+  const content=staging.firstElementChild;
   prepareVisibleGlyphs(content);
   for(const image of content.querySelectorAll('img')){
    if(image.complete)continue;

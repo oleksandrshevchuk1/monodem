@@ -15,7 +15,7 @@ const basicHome=home;
 const cardWhite=c=>c.color?c.color==='white':c.id==='white';
 function selector(){
  const index=newCardSelected?allCards().length:allCards().findIndex(card=>card.id===activeCard().id);
- return `<button class="card-selector" data-action="nav" data-page="cards" aria-label="Усі картки"><span class="selector-label" aria-hidden="true"><svg class="icon" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><path d="m2 5 7.1-3.3a2.3 2.3 0 0 1 3.1 1.1l.6 1.2H7.3A4.3 4.3 0 0 0 3 8.3v2.8L.9 7.8A2 2 0 0 1 2 5Z"/><path fill-rule="evenodd" d="M7.1 5.4h7a2.7 2.7 0 0 1 2.7 2.7v5.1a2.7 2.7 0 0 1-2.7 2.7h-7a2.7 2.7 0 0 1-2.7-2.7V8.1a2.7 2.7 0 0 1 2.7-2.7Zm-.4 3.2c0 .4.3.7.7.7h6.3a.7.7 0 1 0 0-1.4H7.4a.7.7 0 0 0-.7.7Z"/></svg>Усі картки</span><span class="selector-dots" aria-hidden="true">${cardIndicatorMarkers(index)}</span></button>`;
+ return `<button class="card-selector" data-action="nav" data-page="cards" aria-label="Усі картки"><span class="selector-label" aria-hidden="true"><svg class="icon" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><path d="m2 5 7.1-3.3a2.3 2.3 0 0 1 3.1 1.1l.6 1.2H7.3A4.3 4.3 0 0 0 3 8.3v2.8L.9 7.8A2 2 0 0 1 2 5Z"/><path fill-rule="evenodd" d="M7.1 5.4h7a2.7 2.7 0 0 1 2.7 2.7v5.1a2.7 2.7 0 0 1-2.7 2.7h-7a2.7 2.7 0 0 1-2.7-2.7V8.1a2.7 2.7 0 0 1 2.7-2.7Zm-.4 3.2c0 .4.3.7.7.7h6.3a.7.7 0 1 0 0-1.4H7.4a.7.7 0 0 0-.7.7Z"/></svg>Усі картки</span><span class="selector-dots" aria-hidden="true" data-index="${index}">${cardIndicatorMarkers(index)}</span></button>`;
 }
 function cardSlides(){return `<div class="card-stage card-carousel" id="card-swipe"><div class="card-track">${allCards().map(c=>`<div class="card-slide"><button class="card-face" data-action="show-card" data-id="${c.id}" aria-label="Відкрити ${esc(c.account)}">${cardArtwork(c)}</button></div>`).join('')}<div class="card-slide"><button class="card-face new-card-face" data-action="open-card" aria-label="Відкрити нову картку"><span>${icon('plus-circle-fill')}</span></button></div></div></div>`}
 function homeActions(){return `<div class="home-actions"><button data-action="transfer"><span class="action-circle">${referenceControlGlyph('transfer')}</span>Переказати<br>на картку</button><button data-action="iban"><span class="action-circle">${referenceControlGlyph('iban')}</span>Платіж<br>за IBAN</button><button data-action="nav" data-page="payments"><span class="action-circle">${referenceControlGlyph('payments')}</span>Інші<br>платежі</button></div>`}
@@ -46,7 +46,7 @@ function cardPixel(value){
 }
 function setCarouselPosition(index){
  const track=$('.card-track');
- if(track)track.style.transform=`translate3d(${cardPixel(-index*track.offsetWidth*.88)}px,0,0)`;
+ if(track)track.style.transform=`translate3d(${cardPixel(-index*track.firstElementChild.getBoundingClientRect().width)}px,0,0)`;
 }
 let slideCardTo;
 const homeAccountIntro='.home-balance,.open-card-intro';
@@ -154,31 +154,47 @@ function restoreCardSelector(button){
  cardSelectorTimer=setTimeout(()=>button.classList.remove('show-card-indicator'),shouldReduceMotion()?0:1600);
 }
 function prepareSwipe(){if(swipeLayers)return swipeLayers;const app=$('#app'),track=$('.card-track'),cards=allCards(),index=newCardSelected?cards.length:Math.max(0,cards.findIndex(c=>c.id===state.activeCard)),background=document.createElement('div');background.className='swipe-gradient';app.prepend(background);
- swipeLayers={track,cards,indicator:$('.card-selector .selector-dots'),width:app.clientWidth,trackWidth:track.offsetWidth,index,background,dx:0,theme:null};document.documentElement.dataset.gesture='active';app.classList.add('card-gesture-active');showCardIndicator(swipeLayers.indicator?.parentElement);return swipeLayers}
+ swipeLayers={track,cards,indicator:$('.card-selector .selector-dots'),width:track.getBoundingClientRect().width,slideWidth:track.firstElementChild.getBoundingClientRect().width,index,background,dx:0,theme:null};document.documentElement.dataset.gesture='active';app.classList.add('card-gesture-active');showCardIndicator(swipeLayers.indicator?.parentElement);return swipeLayers}
+function firstCardIndicator(index){
+ return Math.max(0,Math.min(index-2,allCards().length-4));
+}
 function cardIndicatorMarkers(index){
  const total=allCards().length;
- const first=Math.max(0,Math.min(index-2,total-4));
+ const first=firstCardIndicator(index);
  const last=Math.min(total,first+4);
  return Array.from({length:last-first+1},(_,offset)=>{
   const position=first+offset;
   const current=position===index?' class="selected"':'';
-  return position===total?`<b${current}>+</b>`:`<i${current}></i>`;
+  return `<i${current}></i>`;
  }).join('');
 }
 function updateCardIndicator(indicator,index){
  if(!indicator||indicator.dataset.index===String(index))return;
- const total=allCards().length;
- const first=Math.max(0,Math.min(index-2,total-4));
- if(indicator.dataset.first===String(first)){
-  indicator.querySelector('.selected')?.classList.remove('selected');
-  indicator.children[index-first]?.classList.add('selected');
- }else{
-  indicator.innerHTML=cardIndicatorMarkers(index);
-  indicator.dataset.first=first;
+ const next=indicator.children[index-firstCardIndicator(index)];
+ const current=indicator.querySelector('.selected');
+ if(next!==current){
+  current?.classList.remove('selected');
+  next?.classList.add('selected');
  }
  indicator.dataset.index=index;
 }
-function moveHomeSwipe(distance,rubber=true){const l=prepareSwipe(),edge=(l.index===0&&distance>0)||(l.index===l.cards.length&&distance<0),dx=rubber?Math.max(-l.width,Math.min(l.width,edge?distance*.2:distance)):distance;l.dx=dx;updateCardIndicator(l.indicator,Math.max(0,Math.min(l.cards.length,Math.round(l.index-dx/l.width))));l.track.style.transform=`translate3d(${cardPixel((-l.index+dx/l.width)*l.trackWidth*.88)}px,0,0)`;const next=l.index+(dx<0?1:-1);if(l.theme!==next){const c=l.cards[next];l.background.style.background=next===l.cards.length?'var(--home-new-gradient)':c&&cardWhite(c)?'var(--home-white-gradient)':'var(--home-black-gradient)';l.theme=next}l.background.style.opacity=Math.min(1,Math.abs(dx)/l.width)}
+function moveHomeSwipe(distance,rubber=true){
+ const layer=prepareSwipe();
+ const {index,width,cards,track,slideWidth,indicator,background}=layer;
+ const edge=(index===0&&distance>0)||(index===cards.length&&distance<0);
+ const dx=rubber?Math.max(-width,Math.min(width,edge?distance*.2:distance)):distance;
+ const position=index-dx/width;
+ layer.dx=dx;
+ updateCardIndicator(indicator,Math.max(0,Math.min(cards.length,Math.round(position))));
+ track.style.transform=`translate3d(${cardPixel(-position*slideWidth)}px,0,0)`;
+ if(edge||dx===0){background.style.opacity='0';return}
+ const next=index+(dx<0?1:-1);
+ if(layer.theme!==next){
+  background.style.background=next===cards.length?'var(--home-new-gradient)':cardWhite(cards[next])?'var(--home-white-gradient)':'var(--home-black-gradient)';
+  layer.theme=next;
+ }
+ background.style.opacity=Math.min(1,Math.abs(dx)/width);
+}
 function cleanupSwipe(){if(!swipeLayers)return;updateCardIndicator(swipeLayers.indicator,carouselIndex);restoreCardSelector(swipeLayers.indicator?.parentElement);swipeLayers.background.remove();$('#app').classList.remove('card-gesture-active');delete document.documentElement.dataset.gesture;swipeLayers=null}
 function refreshSelectedCard(){
  const app=$('#app');

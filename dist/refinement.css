@@ -36,29 +36,28 @@ body{font-family:-apple-system,BlinkMacSystemFont,DemoInter,'Helvetica Neue',Ari
   line-height: 16px;
   white-space: nowrap;
   pointer-events: none;
-  transition: opacity 280ms var(--ease-out);
+  transition: opacity 220ms var(--ease-out);
 }
 .selector-label .icon { width: 15px; height: 15px; opacity: .75; }
-.selector-dots { opacity: 0; }
+.selector-dots { gap: 10px; color: #fff; opacity: 0; }
 .show-card-indicator .selector-label { opacity: 0; }
 .show-card-indicator .selector-dots { opacity: 1; }
 .selector-dots i {
-  flex: 0 0 5px;
-  height: 5px;
+  flex: 0 0 7px;
+  height: 7px;
   border-radius: 50%;
   background: currentColor;
   opacity: .38;
   transition: opacity 150ms var(--ease-out);
 }
-.selector-dots b { font-size: 15px; line-height: 16px; opacity: .6; transition: opacity 150ms var(--ease-out); }
-.selector-dots .selected { color: #fff; opacity: 1; }
+.selector-dots .selected { opacity: 1; }
 
 
 .card-selector.skip-motion :is(.selector-label, .selector-dots, .selector-dots > *) { transition: none; }
 .card-selector.skip-motion :is(.selector-label, .selector-dots) { will-change: auto; }
 @media (prefers-reduced-motion: reduce) {
-  .card-selector :is(.selector-label, .selector-dots, .selector-dots > *) { transition: none; }
-  .card-selector :is(.selector-label, .selector-dots) { will-change: auto; }
+  html:not([data-motion="full"]) .card-selector :is(.selector-label, .selector-dots, .selector-dots > *) { transition: none; }
+  html:not([data-motion="full"]) .card-selector :is(.selector-label, .selector-dots) { will-change: auto; }
 }
 .card-gesture-active .home-content{overflow-anchor:none}
 .home-content > :is(.home-balance,.open-card-intro){

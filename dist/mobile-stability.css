@@ -37,7 +37,7 @@ button,a,[role=button]{-webkit-tap-highlight-color:transparent;-webkit-touch-cal
 
 /* Stable full-screen canvas; keyboard resizing is confined to amount entry. */
 .installed-scroll .pwa-scroll{inset:0;height:100%;bottom:0}
-.installed-scroll #app{min-height:100dvh}
+
 .installed-scroll #nav{top:auto;bottom:max(12px,var(--safe-bottom))}
 :root{--safe-header:max(44px,var(--safe-top))}
 .amount-entry-header{padding-top:var(--safe-header);flex:none}
@@ -141,7 +141,7 @@ body.document-open .receipt-fit,body.document-open .receipt-document-stage{flex:
 .reference-balance,.reference-balance strong{font-weight:400}
 
 /* Keep the recipient header anchored while only the space above the keyboard contracts. */
-#app.transferAmount{position:fixed;inset:0 0 auto;width:100%;height:var(--visible-height,100dvh);min-height:0!important;transition:height 220ms var(--ease-out);overflow:hidden;overscroll-behavior:none}
+#app.transferAmount{position:fixed;inset:0 0 auto;width:100%;height:var(--visible-height,100dvh);min-height:0!important;overflow:hidden;overscroll-behavior:none}
 #app.transferAmount #screen{height:100%;min-height:0!important;overflow:hidden}
 .amount-entry-page{overflow:hidden;overscroll-behavior:none}
 .amount-entry-footer{transition:padding-bottom 220ms var(--ease-out)}

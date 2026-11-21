@@ -29,17 +29,17 @@ const renderBeforeMobileStability=render;render=function(){renderBeforeMobileSta
 let restingViewportHeight=innerHeight;
 function updateInstalledViewport(){
  const root=document.documentElement,viewport=window.visualViewport;
- root.style.setProperty('--visible-height',(viewport?.height||innerHeight)+'px');
+ root.style.setProperty('--visible-height',cardPixel(viewport?.height||innerHeight)+'px');
  const editing=document.activeElement?.matches('input,textarea,[contenteditable=true]');
  if(!editing)restingViewportHeight=innerHeight;else restingViewportHeight=Math.max(restingViewportHeight,innerHeight);
  const keyboard=!!editing&&restingViewportHeight-(viewport?.height||innerHeight)>120;
  root.classList.toggle('keyboard-open',keyboard);
- root.style.setProperty('--app-height',(keyboard?restingViewportHeight:innerHeight)+'px');
+ root.style.setProperty('--app-height',cardPixel(keyboard?restingViewportHeight:innerHeight)+'px');
  if(route.page==='transferAmount'&&!document.querySelector('#modal')?.open){
   const host=document.querySelector('.pwa-scroll');if(host?.scrollTop)host.scrollTop=0;if(window.scrollY)window.scrollTo(0,0);
  }
  const nav=document.querySelector('#nav'),height=nav.getBoundingClientRect().height;
- if(height>0)root.style.setProperty('--nav-height',height+'px');
+ if(height>0)root.style.setProperty('--nav-height',cardPixel(height)+'px');
 }
 window.addEventListener('resize',updateInstalledViewport,{passive:true});window.visualViewport?.addEventListener('resize',updateInstalledViewport,{passive:true});window.addEventListener('pageshow',()=>requestAnimationFrame(updateInstalledViewport));document.addEventListener('DOMContentLoaded',()=>requestAnimationFrame(updateInstalledViewport));
 // Show only the ready entry screen (or ready admin), never a transient loading row.
@@ -70,7 +70,23 @@ const bankBadgeBeforeReadyImages=bankBadge;bankBadge=function(person){return ban
 const bankPresetBeforeDecodedArtwork=bankPreset;bankPreset=function(person){const bank=bankPresetBeforeDecodedArtwork(person);return embeddedAssetImages[bank.logo]?{...bank,logo:embeddedAssetImages[bank.logo]}:bank};
 
 // A bounded ease-out avoids waiting for a spring's invisible settling tail.
-function settleCardStrip(read,write,target,complete){const start=performance.now(),from=read();let frame=0,stopped=false;const tick=now=>{if(stopped)return;const p=Math.min(1,(now-start)/pageMotionDuration);write(from+(target-from)*(1-Math.pow(1-p,3)));if(p<1)frame=requestAnimationFrame(tick);else complete()};frame=requestAnimationFrame(tick);return {cancel(){stopped=true;cancelAnimationFrame(frame)},finish(){if(stopped)return;stopped=true;cancelAnimationFrame(frame);write(target);complete()}}}
+function settleCardStrip(read,write,target,complete){
+ const from=read();
+ let start,frame,stopped=false;
+ const tick=now=>{
+  if(stopped)return;
+  start??=now;
+  const progress=Math.min(1,(now-start)/pageMotionDuration);
+  write(from+(target-from)*(1-Math.pow(1-progress,3)));
+  if(progress<1)frame=requestAnimationFrame(tick);
+  else {stopped=true;complete()}
+ };
+ frame=requestAnimationFrame(tick);
+ return {
+  cancel(){stopped=true;cancelAnimationFrame(frame)},
+  finish(){if(stopped)return;this.cancel();write(target);complete()}
+ };
+}
 
 
 function readyTransactionRow(tx,description=null){const incoming=tx.amount>0,bank=bankPreset(tx),portrait=monoPortrait(tx);let className='transaction-icon',art='';if(portrait){className+=' recipient-photo';art=`<img src="${esc(portrait)}" alt="" decoding="sync">`}else if(bank.id==='sense'){className+=' sense-bank-icon';art=`<img src="${bank.logo}" alt="Sense Bank" decoding="sync">`}else if(incoming&&bank.id!=='mono'&&bank.logo){className+=' incoming-bank-icon';art=`<img src="${bank.logo}" alt="${esc(bank.name)}" decoding="sync">`}else if(incoming){className+=' income';art=tx.logo?`<img class="merchant-logo" src="${esc(embeddedAssetImages[tx.logo]||tx.logo)}" alt="" decoding="sync">`:referenceImage('incoming-symbol')}else if(['mono','other'].includes(operationBank(tx))||tx.bankId||tx.bankName){className+=' bank-transfer-icon';art=transferSymbol()+bankBadge(tx)}else{const coffee=tx.category==='Кафе та ресторани';className+=coffee?' coffee':' shop';art=tx.logo?`<img class="merchant-logo" src="${esc(embeddedAssetImages[tx.logo]||tx.logo)}" alt="" decoding="sync">`:icon(tx.icon||(coffee?'coffee-fill':'credit-card-fill'))}return `<button class="transaction" data-action="tx" data-id="${esc(tx.id)}"><span class="${className}">${art}</span><span class="tx-content"><strong>${esc(tx.title)}</strong>${description!==null?`<small>${esc(description)}</small>`:route.page!=='home'?`<small>${esc(tx.note||tx.category||'Переказ')}</small>`:''}</span><span class="tx-amount ${incoming?'green':''}">${incoming?'':'−'}${displayMoney(Math.abs(tx.amount))} ₴</span></button>`}

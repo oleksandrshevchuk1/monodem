@@ -6,9 +6,7 @@ if(browserStorageMode){
  let hostedSyncMode='checking',nextStorageCheck=0,localMigration=null,migrationOffered=false;
  let lastScrollAt=-Infinity;
  window.addEventListener('scroll',()=>{lastScrollAt=performance.now()},{capture:true,passive:true});
- const renderingBusy=()=>performance.now()-lastScrollAt<180||document.querySelector('#modal').open||
-  document.documentElement.dataset.gesture==='active'||document.documentElement.dataset.routeMotion==='active'||
-  document.documentElement.dataset.editing==='true';
+ const renderingBusy=()=>performance.now()-lastScrollAt<180||sharedRenderBusy();
  const hostedReadFile=readFile;readFile=async function(file){if(file?.type==='application/pdf'&&file.size>4*1024*1024)throw Error('Для Vercel виберіть PDF розміром до 4 МБ.');return hostedReadFile(file)};
  const browserDatabase=new Promise((resolve,reject)=>{const request=indexedDB.open('mono-hosted-state:'+cabinetUser.id+':'+cabinetWorkspace,1);request.onupgradeneeded=()=>request.result.createObjectStore('records');request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});
  async function browserRecord(mode,update){const database=await browserDatabase;return new Promise((resolve,reject)=>{const transaction=database.transaction('records',mode),store=transaction.objectStore('records'),request=store.get('state');let result;request.onsuccess=()=>{try{result=update?update(request.result):request.result;if(update)store.put(result,'state')}catch(error){reject(error);transaction.abort()}};transaction.oncomplete=()=>resolve(result);transaction.onerror=()=>reject(transaction.error);transaction.onabort=()=>reject(transaction.error||Error('Storage aborted'))})}

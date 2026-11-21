@@ -40,7 +40,7 @@ function cardsViewportSnapshot() {
  const snapshot = freezePageSurface();
  const top = parseFloat(snapshot.style.top);
  snapshot.style.top = '0px';
- snapshot.style.height = (window.visualViewport?.height || innerHeight) + 'px';
+ snapshot.style.height = ($('#pwa-scroll')?.clientHeight || innerHeight) + 'px';
  snapshot.firstElementChild.style.marginTop = top + 'px';
  const nav = snapshot.querySelector('.transition-nav');
  if (nav) nav.style.top = (parseFloat(nav.style.top) + top) + 'px';

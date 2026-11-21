@@ -59,7 +59,7 @@ function finishDialogExit(){const exit=dialogExit;if(!exit)return;dialogExit=nul
 animatedDialog.close=function(value){
  if(!this.open||dialogExit)return;
  if(!['sheet','profile'].includes(this.dataset.kind)||shouldReduceMotion()){nativeDialogClose(value);return}
- const pose=getComputedStyle(this),fromTransform=pose.transform,fromOpacity=pose.opacity;this.getAnimations().forEach(animation=>animation.cancel());this.dataset.closing='true';
+ const pose=getComputedStyle(this),fromTransform=pose.transform,fromOpacity=pose.opacity;this.getAnimations().filter(animation=>animation.effect?.target===this).forEach(animation=>animation.cancel());this.dataset.closing='true';
  const motion=this.animate([{transform:fromTransform,opacity:fromOpacity},{transform:'translateY(100%)',opacity:0}],{duration:180,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});
  const exit={motion,value};dialogExit=exit;const settle=()=>{if(dialogExit===exit)finishDialogExit()};motion.finished.then(settle,settle);
 };
