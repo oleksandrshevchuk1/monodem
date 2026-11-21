@@ -23,17 +23,17 @@ let homeFooter=()=>{
  return html.slice(html.indexOf('<div class="useful page">'));
 };
 let homeOperationRows=()=>rows(txFor().slice(0,6));
-function homeAccountContent(preview=false){
+function homeAccountContent(slotsOnly=false){
  const tools=newCardSelected
-  ? `<div class="home-actions new-card-actions"><button class="new-card-cta" data-action="open-card">Відкрити картку</button></div><section class="operation-panel new-card-empty"><h2>Коли відкриєте нову картку,<br>тут буде її виписка <span aria-hidden="true">🏄</span></h2></section>`
+  ? `<div class="home-actions new-card-actions"><button class="new-card-cta" data-action="open-card">Відкрити картку</button></div><section class="operation-panel new-card-empty"><h2>Коли відкриєте нову картку,<br>тут буде її виписка <span class="new-card-sticker" aria-hidden="true">🏄‍♂️</span></h2></section>`
   : homeActions()+`<section class="operation-panel"><div class="section-title"><h2>Операції</h2><button class="pill" data-action="nav" data-page="history">Усі ${icon('caret-right')}</button></div>${homeOperationRows()}</section>`;
- return `<div class="home-content ${newCardSelected?'new-card-selected':''}">${newCardSelected?`<div class="open-card-intro"><h2>Відкрити картку</h2><p>Ви можете відкрити додаткові картки<br>в гривні, доларах та євро</p></div>`:`<button class="home-balance" data-action="topup" aria-label="Поповнити картку"><svg class="icon balance-plus-glyph" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15.5" fill="currentColor" opacity=".16"/><circle cx="16" cy="16" r="15.5" fill="none" stroke="currentColor" opacity=".18"/><circle cx="16" cy="16" r="8" fill="currentColor" opacity=".68"/><path d="M16 12.75v6.5m-3.25-3.25h6.5" fill="none" stroke="#263454" stroke-width="2" stroke-linecap="round"/></svg><strong>${displayMoney(balance())} ₴</strong></button>`}${preview?'<div class="card-stage card-carousel"></div><div class="card-selector"></div>':cardSlides()+selector()}${tools}${preview?'':homeFooter()}</div>`;
+ return `<div class="home-content ${newCardSelected?'new-card-selected':''}">${newCardSelected?`<div class="open-card-intro"><h2>Відкрити картку</h2><p>Ви можете відкрити додаткові картки<br>в гривні, доларах та євро</p></div>`:`<button class="home-balance" data-action="topup" aria-label="Поповнити картку"><svg class="icon balance-plus-glyph" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15.5" fill="currentColor" opacity=".16"/><circle cx="16" cy="16" r="15.5" fill="none" stroke="currentColor" opacity=".18"/><circle cx="16" cy="16" r="8" fill="currentColor" opacity=".68"/><path d="M16 12.75v6.5m-3.25-3.25h6.5" fill="none" stroke="#263454" stroke-width="2" stroke-linecap="round"/></svg><strong>${displayMoney(balance())} ₴</strong></button>`}${slotsOnly?'':cardSlides()+selector()}${tools}${slotsOnly?'':homeFooter()}</div>`;
 }
 home=function(){
  const header=basicHome(true).replace('data-action="nav" data-page="more" aria-label="Профіль"','data-action="profile-sheet" aria-label="Профіль"');
  return header+`<div class="refresh-indicator" aria-hidden="true">${icon('arrows-clockwise')}</div>`+homeAccountContent();
 };
-cardsPage=function(){return `<div class="cards-overview"><div class="toolbar"><button class="back" data-action="back" aria-label="Закрити">${icon('x')}</button></div><h1>Усі картки</h1><div class="compact-cards">${allCards().map(c=>`<button class="compact-card" data-action="select-card" data-id="${c.id}"><span class="compact-number">** ${esc(c.card.slice(-4))}</span><span class="compact-art">${cardArtwork(c)}</span><span class="compact-name">${esc(c.account)}</span><strong>${displayMoney(cardBalance(c))} ₴</strong></button>`).join('')}</div><button class="open-card-floating" data-action="open-card"><svg class="icon open-card-plus" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="14" fill="currentColor"/><path d="M14 8v12m-6-6h12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>Відкрити картку</button></div>`};
+cardsPage=function(){return `<div class="cards-overview"><div class="toolbar"><button class="back" data-action="back" aria-label="Закрити">${icon('x')}</button></div><h1>Усі картки</h1><div class="compact-cards">${allCards().map(c=>`<button class="compact-card" ${!newCardSelected&&c.id===activeCard().id?'aria-current="true"':''} data-action="select-card" data-id="${c.id}"><span class="compact-number">** ${esc(c.card.slice(-4))}</span><span class="compact-art">${cardArtwork(c)}</span><span class="compact-name">${esc(c.account)}</span><strong>${displayMoney(cardBalance(c))} ₴</strong></button>`).join('')}</div><button class="open-card-floating" data-action="open-card"><svg class="icon open-card-plus" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="14" fill="currentColor"/><path d="M14 8v12m-6-6h12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>Відкрити картку</button></div>`};
 const previousCardPage=cardPage;
 cardPage=function(){return previousCardPage().replace(icon('wallet'),'<img class="icon" src="assets/reference/wallet.png" alt="">')};
 
@@ -45,6 +45,7 @@ const homeAccountIntro='.home-balance,.open-card-intro';
 actions['select-card']=button=>{
  const card=allCards().find(item=>item.id===button.dataset.id);
  if(!card)return;
+ if(route.page==='home'){slideCardTo(allCards().findIndex(item=>item.id===card.id));return}
  newCardSelected=false;
  state.activeCard=card.id;
  navigate('home');
@@ -151,18 +152,28 @@ function finishCardSelection(index){
  carouselIndex=index;
  if(!newCardSelected)state.activeCard=cards[index].id;
  const pane=$('.home-content');
- const preview=swipeLayers?.pages?.find(page=>page.index===index)?.node.firstElementChild;
- if(route.page==='home'&&preview){
-  for(const slot of [homeAccountIntro,'.home-actions','.operation-panel']){
-   pane.querySelector(slot).replaceWith(preview.querySelector(slot));
-  }
-  pane.classList.toggle('new-card-selected',newCardSelected);
-  cleanupSwipe();
-  refreshSelectedCard();
+ cleanupSwipe();
+ if(route.page!=='home'||!pane)return;
+
+ const next=document.createElement('template');
+ next.innerHTML=homeAccountContent(true);
+ const balanceLabel=pane.querySelector('.home-balance strong');
+ const nextBalance=next.content.querySelector('.home-balance strong');
+ if(balanceLabel&&nextBalance){
+  balanceLabel.textContent=nextBalance.textContent;
+  const panel=pane.querySelector('.operation-panel');
+  const nextPanel=next.content.querySelector('.operation-panel');
+  while(panel.children.length>1)panel.lastElementChild.remove();
+  panel.append(...[...nextPanel.children].slice(1));
  }else{
-  cleanupSwipe();
-  if(route.page==='home')render();
+  for(const slot of [homeAccountIntro,'.home-actions','.operation-panel']){
+   pane.querySelector(slot).replaceWith(next.content.querySelector(slot));
+  }
  }
+ pane.classList.toggle('new-card-selected',newCardSelected);
+ setCarouselPosition(index);
+ prepareVisibleGlyphs();
+ refreshSelectedCard();
 }
 
 function physicalSettle(read,write,target,velocity,complete){let frame,cancelled=false;const from=read(),omega=2*Math.PI/.4,offset=from-target,start=performance.now();const tick=now=>{if(cancelled)return;const t=(now-start)/1000,term=velocity+omega*offset,decay=Math.exp(-omega*t),position=target+(offset+term*t)*decay,speed=(velocity-omega*term*t)*decay;write(position);if(t<1.2&&(Math.abs(position-target)>.05||Math.abs(speed)>.5))frame=requestAnimationFrame(tick);else{write(target);complete()}};frame=requestAnimationFrame(tick);return {cancel(){cancelled=true;cancelAnimationFrame(frame)},finish(){cancelled=true;cancelAnimationFrame(frame);write(target)}}}

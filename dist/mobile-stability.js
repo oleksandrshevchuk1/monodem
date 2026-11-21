@@ -9,7 +9,6 @@ function prepareVisibleGlyphs(){document.querySelectorAll('#app img[src],#nav im
 // Preserve the complete account-page swipe from the recorded interaction.
 function remainingLimitColor(ratio){const value=Math.max(0,Math.min(1,ratio)),hue=value<.5?value*60:30+(value-.5)*180;return `hsl(${hue} 83% 53%)`}
 limitRow=function(title,value,max,image){const amount=text=>Number(String(text).replace(/\s/g,'')),ratio=Math.max(0,Math.min(1,amount(value)/Math.max(1,amount(max))));return `<div class="reference-limit-row">${referenceImage(image)}<div><span>${title}</span><p><strong>Залишилось ${value} ₴</strong> / ${max} ₴</p><div class="reference-limit-track" role="progressbar" aria-valuemin="0" aria-valuemax="${amount(max)}" aria-valuenow="${amount(value)}"><i data-limit-ratio="${ratio}" style="transform:scaleX(${ratio});background:${remainingLimitColor(ratio)}"></i></div></div></div>`};
-function animateLimitIndicators(){document.querySelectorAll('[data-limit-ratio]').forEach(fill=>{const ratio=Number(fill.dataset.limitRatio),color=remainingLimitColor(ratio);fill.style.background=color;fill.style.boxShadow='none';if(!shouldReduceMotion())fill.animate([{transform:'scaleX(1)',backgroundColor:color},{transform:`scaleX(${ratio})`,backgroundColor:color}],{duration:300,easing:'cubic-bezier(.23,1,.32,1)'})});updateDailyPaymentLimit()}
 function updateDailyPaymentLimit(){
  const panel=document.querySelector('.payment-settings.internet-limit');
  if(!panel)return;
@@ -25,8 +24,8 @@ function updateDailyPaymentLimit(){
   ?'Інтернет-оплати вимкнені'
   :`Залишилося ${format(remaining)} з ${format(maximum)}`;
 }
-const flipBeforeLimitColors=actions['flip-card'];actions['flip-card']=()=>{flipBeforeLimitColors();animateLimitIndicators()};
-const renderBeforeMobileStability=render;render=function(){renderBeforeMobileStability();prepareVisibleGlyphs();animateLimitIndicators()};
+const flipBeforeLimitColors=actions['flip-card'];actions['flip-card']=()=>{flipBeforeLimitColors();updateDailyPaymentLimit()};
+const renderBeforeMobileStability=render;render=function(){renderBeforeMobileStability();prepareVisibleGlyphs();updateDailyPaymentLimit()};
 let restingViewportHeight=innerHeight;
 function updateInstalledViewport(){
  const root=document.documentElement,viewport=window.visualViewport;

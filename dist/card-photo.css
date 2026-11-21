@@ -87,6 +87,7 @@
  z-index:1;
 }
 .card-face .card-glint{opacity:.45}
+:is(.expanded-card,.precise-card-surface) .card-glint{opacity:.55}
 .card-face .bank-card-front,.expanded-card .bank-card-front,.precise-card-surface .bank-card-front{box-shadow:none!important}
 /* Keep the physical rim and its shadow in the same composited plane. */
 .precise-card-surface,.travelling-card-plane,.travelling-card-body{overflow:visible;backface-visibility:visible;-webkit-backface-visibility:visible}

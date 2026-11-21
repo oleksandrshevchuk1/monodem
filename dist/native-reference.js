@@ -60,7 +60,7 @@ paint = function(direction) {
 
  const previous = allCardsScene;
  const reduced = shouldReduceMotion();
- const options = {duration: reduced ? 140 : 380, easing: slideEase, fill: 'both'};
+ const options = {duration: reduced ? 0 : 280, easing: slideEase, fill: 'both'};
  const backdrop = previous?.backdrop || (isOverview ? cardsViewportSnapshot() : null);
  const source = isOverview ? previous?.exit?.firstElementChild : screen;
  const initialPose = source ? cardsPose(source) : cardsHiddenPose(reduced);
