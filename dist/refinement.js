@@ -212,14 +212,28 @@ function finishCardSelection(index){
   const preview=accountPreviewCache.get(index)||buildAccountPreview(index);
   const balance=pane.querySelector('.home-balance strong');
   const nextBalance=preview.querySelector('.home-balance strong');
+  const changedContent=[];
   if(balance&&nextBalance){
-   balance.textContent=nextBalance.textContent;
+   if(balance.textContent!==nextBalance.textContent){
+    balance.textContent=nextBalance.textContent;
+    changedContent.push(balance);
+   }
    const panel=pane.querySelector('.operation-panel');
    const nextPanel=preview.querySelector('.operation-panel');
-   panel.replaceChildren(panel.firstElementChild,...[...nextPanel.children].slice(1));
+   const rows=[...nextPanel.children].slice(1);
+   panel.replaceChildren(panel.firstElementChild,...rows);
+   changedContent.push(...rows);
   }else{
    for(const slot of [homeAccountIntro,'.home-actions','.operation-panel']){
-    pane.querySelector(slot).replaceWith(preview.querySelector(slot));
+    const next=preview.querySelector(slot);
+    pane.querySelector(slot).replaceWith(next);
+    changedContent.push(next);
+   }
+  }
+  if(!shouldReduceMotion()){
+   for(const element of changedContent){
+    element.getAnimations().forEach(animation=>animation.cancel());
+    element.animate([{opacity:.45},{opacity:1}],{duration:180,easing:slideEase});
    }
   }
   accountPreviewCache.delete(index);

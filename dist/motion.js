@@ -106,7 +106,7 @@ const detailBeforeAvatar=detail;detail=function(){const t=currentTx();let html=d
 const receiptBeforeSharing=receiptPage;receiptPage=function(){return receiptBeforeSharing().replace('data-action="print">Зберегти квитанцію макета','data-action="share-receipt">Поділитися квитанцією')};
 const beforeMotionRender=render;render=function(){accountPreviewCache.clear();if(swipeLayers){cardSlideAnimation?.cancel();cleanupSwipe()}beforeMotionRender()};
 render();
-// Only the recorded transitions own motion; switching bottom tabs is immediate.
+// Coordinate page entrances, exits and interrupted gestures.
 let sideEntrance=null,sideSnapshot=null,sideHomeSnapshot=null,sideSwipeLayer=null,pendingSideSnapshot=null,sideReturnClickUntil=0;
 function suppressSideReturnClick(){sideReturnClickUntil=performance.now()+450}
 document.addEventListener('pointerdown',event=>{
@@ -114,7 +114,9 @@ document.addEventListener('pointerdown',event=>{
  },{capture:true,passive:true});
 document.addEventListener('click',event=>{if(event.detail&&performance.now()<sideReturnClickUntil){event.preventDefault();event.stopImmediatePropagation()}},true);
 const sidePages = new Set(['limits','abroad','detail']), paintWithOperations = paint;
-const slidingTransferPages = new Set(['detail', 'transfer', 'transferAmount', 'transferArchive']);
+const quickPaymentPages = new Set(['transfer', 'transferAmount', 'transferArchive', 'iban', 'payments']);
+const slidingTransferPages = new Set(['detail', ...quickPaymentPages]);
+const mainTabs = ['home', 'credit', 'jars', 'more', 'market'];
 const slideEase = 'cubic-bezier(.32,.72,0,1)';
 const translateX = x => `translate3d(${x}px,0,0)`;
 
@@ -278,6 +280,20 @@ paint = function(direction) {
 
  const app = $('#app');
  const fromSide = [...sidePages].find(page => app.classList.contains(page));
+ const fromTab = mainTabs.findIndex(page => app.classList.contains(page));
+ const toTab = mainTabs.indexOf(route.page);
+ if (!adminMode && fromTab >= 0 && toTab >= 0 && fromTab !== toTab) {
+  resetSideSwipe();
+  finishSideEntrance();
+  render();
+  // Switch tab content with the bottom navigation held in place.
+  pageAnimation = $('#screen').animate(
+   [{opacity: .72, transform: translateX(Math.sign(toTab - fromTab) * 8)},
+    {opacity: 1, transform: translateX(0)}],
+   {duration: 200, easing: slideEase}
+  );
+  return;
+ }
  if (direction === 'back' && sideEntrance?.adoptBackDestination) {
   sideEntrance.adoptBackDestination();
   return;
@@ -340,7 +356,8 @@ paint = function(direction) {
 
   const width = app.clientWidth;
   const parallax = slidingTransferPages.has(route.page);
-  const options = {duration: pageMotionDuration, easing: slideEase, fill: 'both'};
+  const duration = quickPaymentPages.has(route.page) ? 270 : pageMotionDuration;
+  const options = {duration, easing: slideEase, fill: 'both'};
   const poses = [{transform: translateX(width)}, {transform: translateX(0)}];
   const entrance = parallax
    ? animateSideSurfaces(app, snapshot, width, 0, options.duration)
@@ -415,7 +432,8 @@ function startLiveSideExit(source, commit) {
  app.style.transform = '';
  app.style.zIndex = '41';
 
- const exit = animateSideSurfaces(app, preview, x, width, Math.max(210, 350 * (1 - x / width)));
+ const duration = quickPaymentPages.has(page.page) ? 270 : 350;
+ const exit = animateSideSurfaces(app, preview, x, width, Math.max(160, duration * (1 - x / width)));
  exit.isRouteExit = true;
  trackSideMotion(exit, null, preview);
  exit.adoptBackDestination = () => {
