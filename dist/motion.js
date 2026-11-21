@@ -47,8 +47,50 @@ expandTransition=function(from,to,opening){
   requestAnimationFrame(()=>{if(softCardSession!==session)return;to.style.opacity='';node.remove();softCardSession=null;delete document.documentElement.dataset.gesture;restoreOperationsNav()});
  }).catch(()=>{})
 };
-// Prepare the destination offscreen. Only the card strip follows the gesture.
+// The card and its account content follow the same gesture.
 const accountPreviewCache=new Map();let previewIdleTask=0;
+const prepareAccountSwipe=prepareSwipe,moveAccountSwipe=moveHomeSwipe,cleanupAccountSwipe=cleanupSwipe;
+prepareSwipe=function(){
+ const layer=prepareAccountSwipe();
+ if(layer.pages||shouldReduceMotion())return layer;
+ const pane=$('.home-content');
+ layer.movingContent=[...pane.children].filter(el=>el.matches(homeAccountIntro+',.home-actions,.operation-panel'));
+ layer.pages=[];
+ for(const index of [layer.index-1,layer.index+1]){
+  if(index<0||index>allCards().length)continue;
+  const content=accountPreviewCache.get(index)||buildAccountPreview(index);
+  accountPreviewCache.delete(index);
+  const preview=document.createElement('div');
+  preview.className='account-swipe-preview';
+  preview.inert=true;
+  preview.append(content);
+  preview.style.transform=`translate3d(${(index-layer.index)*layer.width}px,0,0)`;
+  layer.pages.push({node:preview,index});
+ }
+ pane.append(...layer.pages.map(page=>page.node));
+ for(const {node} of layer.pages){
+  fitMonetaryLabels(node);
+ }
+ const top=pane.querySelector(homeAccountIntro).getBoundingClientRect().top;
+ const offsets=layer.pages.map(({node})=>top-node.querySelector(homeAccountIntro).getBoundingClientRect().top);
+ layer.pages.forEach(({node},index)=>node.style.top=offsets[index]+'px');
+ return layer;
+};
+moveHomeSwipe=function(distance,rubber=true){
+ moveAccountSwipe(distance,rubber);
+ const layer=swipeLayers;
+ if(!layer.pages)return;
+ const translation=`translate3d(${cardPixel(layer.dx)}px,0,0)`;
+ for(const element of layer.movingContent)element.style.transform=translation;
+ for(const {node,index} of layer.pages)node.style.transform=`translate3d(${cardPixel((index-layer.index)*layer.width+layer.dx)}px,0,0)`;
+};
+cleanupSwipe=function(){
+ if(swipeLayers){
+  swipeLayers.pages?.forEach(page=>page.node.remove());
+  swipeLayers.movingContent?.forEach(element=>element.style.transform='');
+ }
+ cleanupAccountSwipe();
+};
 // Operations rise over the frozen home surface and dissolve back into it on pull-down.
 let operationsHome=null,operationsScene=null,operationsEntrance=null,operationsNavMotion=null,historyTouchCleanup=null;
 function freezeHome(){const snapshot=captureBankSurface(true),source=$('#screen'),copy=snapshot.firstElementChild;copy.removeAttribute('id');copy.classList.add('transition-screen');copy.style.paddingBottom=getComputedStyle(source).paddingBottom;copy.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));snapshot.firstElementChild.replaceWith(copy);snapshot.querySelectorAll('.transition-nav').forEach(el=>el.remove());snapshot.classList.remove('bank-surface-transition');snapshot.classList.add('operations-home-underlay');snapshot.style.height=Math.max(innerHeight,$('#app').offsetHeight)+'px';return snapshot}
@@ -117,6 +159,26 @@ const sidePages = new Set(['limits','abroad','detail']), paintWithOperations = p
 const quickPaymentPages = new Set(['transfer', 'transferAmount', 'transferArchive', 'iban', 'payments']);
 const slidingTransferPages = new Set(['detail', ...quickPaymentPages]);
 const mainTabs = ['home', 'credit', 'jars', 'more', 'market'];
+let tabFeedback;
+const tabBar = $('#nav');
+tabBar.addEventListener('click', event => {
+ const tab = event.target.closest('button[data-page],button[data-section]');
+ if (!tab || !event.detail || shouldReduceMotion()) return;
+ const page = tab.dataset.page || (tab.dataset.section === 'bank' ? 'home' : 'market');
+ // Market can replace the bar while the delegated navigation click is handled.
+ requestAnimationFrame(() => {
+  if (route.page !== page) return;
+  const selected = tabBar.querySelector('.tab.active,.market-mini-tabs .selected');
+  const glyph = selected?.querySelector('.reference-control-glyph,.icon');
+  if (!glyph) return;
+  const pose = tabFeedback?.effect.target === glyph ? getComputedStyle(glyph).transform : 'scale(.92)';
+  tabFeedback?.cancel();
+  tabFeedback = glyph.animate(
+   [{transform: pose}, {transform: 'none'}],
+   {duration: 160, easing: slideEase}
+  );
+ });
+});
 const slideEase = 'cubic-bezier(.32,.72,0,1)';
 const translateX = x => `translate3d(${x}px,0,0)`;
 
@@ -134,53 +196,47 @@ function playAfterFirstPaint(...motions) {
 // Both surfaces use the same position in every frame, including the swipe handoff.
 function placeSideSurfaces(app, preview, x, width) {
  app.style.transform = translateX(x);
- const offset = -(width - x) * .25;
+ preview.style.transform = translateX(sideUnderlayOffset(x, width));
+}
+
+function sideUnderlayOffset(x, width) {
  const scale = window.devicePixelRatio || 1;
- // Keep the home artwork on the same device-pixel rows throughout parallax.
- preview.style.transform = translateX(Math.round(offset * scale) / scale);
+ return Math.round((x - width) * .25 * scale) / scale;
 }
 
 let pairedSideMotion = null;
 function animateSideSurfaces(app, preview, from, to, duration) {
- const owner = {};
- pairedSideMotion = owner;
  const width = app.clientWidth;
  const enteringDetail = from === width && to === 0 && !!app.querySelector('.operation-boundary-slot');
  if (enteringDetail && !pageScrollY()) app.classList.add('operation-entry-frame');
- let frame, started, settled = false, resolve;
- const finished = new Promise(done => { resolve = done; });
  placeSideSurfaces(app, preview, from, width);
  app.classList.add('paired-side-motion');
-
- const stop = () => {
-  if (settled) return;
-  settled = true;
-  cancelAnimationFrame(frame);
-  resolve();
- };
- const advance = time => {
-  started ??= time;
-  const progress = Math.min(1, (time - started) / duration);
-  // Ease gently from the first visible pixels, then slow near the destination.
-  const eased = progress * progress * (3 - 2 * progress);
-  placeSideSurfaces(app, preview, from + (to - from) * eased, width);
-  if (progress === 1) stop();
-  else frame = requestAnimationFrame(advance);
- };
- frame = enteringDetail
-  ? requestAnimationFrame(() => { frame = requestAnimationFrame(advance); })
-  : requestAnimationFrame(advance);
- return {
-  finished,
-  finish() { if (!settled) { placeSideSurfaces(app, preview, to, width); stop(); } },
+ // This curve preserves the previous smoothstep trajectory on the compositor.
+ const timing = {duration, easing: 'cubic-bezier(.333333,0,.666667,1)', fill: 'both'};
+ const foreground = app.animate([{transform: translateX(from)}, {transform: translateX(to)}], timing);
+ const background = preview.animate([
+  {transform: translateX(sideUnderlayOffset(from, width))},
+  {transform: translateX(sideUnderlayOffset(to, width))}
+ ], timing);
+ if (enteringDetail) playAfterFirstPaint(foreground, background);
+ const motion = {
+  finished: foreground.finished,
+  finish() {
+   foreground.finish();
+   background.finish();
+  },
   cancel() {
-   stop();
-   if (pairedSideMotion !== owner) return;
+   foreground.cancel();
+   background.cancel();
+   if (pairedSideMotion !== motion) return;
    pairedSideMotion = null;
    app.style.transform = '';
+   preview.style.transform = '';
    app.classList.remove('paired-side-motion','operation-entry-frame');
   }
  };
+ pairedSideMotion = motion;
+ return motion;
 }
 
 let limitReveals = [];
@@ -382,7 +438,14 @@ paint = function(direction) {
  }
  finishSideEntrance();
  render();
- if (route.page === 'home' || route.page === 'card') return;
+ if (route.page === 'card') return;
+ if (route.page === 'home') {
+  if (direction === 'back') pageAnimation = $('#screen').animate(
+   [{opacity: .82}, {opacity: 1}],
+   {duration: 160, easing: slideEase}
+  );
+  return;
+ }
  const offset = direction === 'back' ? -12 : 12;
  pageAnimation = $('#screen').animate(
   [{opacity: .65, transform: translateX(offset)}, {opacity: 1, transform: translateX(0)}],

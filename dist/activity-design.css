@@ -948,18 +948,11 @@ body:not(.has-glass-history) #app.history #screen {
   }
 }
 
-.selector-dots b {
-  color: #a5b0c8;
-  font-size: 15px;
-  line-height: 1;
-  transition: color 150ms var(--ease-out);
-}
-
-.card-slide .new-card-face > span {
-  transition: opacity 150ms var(--ease-out);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .card-selector:hover .selector-dots b { color: #fff; }
-  .card-slide .new-card-face:hover > span { opacity: 1; }
+/* The add-card marker uses the same muted ink and footprint as the dots. */
+.selector-dots .indicator-plus {
+  opacity: .38;
+  background:
+    linear-gradient(currentColor, currentColor) center / 7px 1px no-repeat,
+    linear-gradient(currentColor, currentColor) center / 1px 7px no-repeat;
+  border-radius: 0;
 }

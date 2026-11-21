@@ -165,11 +165,16 @@ function cardIndicatorMarkers(index){
  return Array.from({length:last-first+1},(_,offset)=>{
   const position=first+offset;
   const current=position===index?' class="selected"':'';
-  return position===total?`<b${current}>+</b>`:`<i${current}></i>`;
+  return position===total?`<i class="indicator-plus${position===index?' selected':''}"></i>`:`<i${current}></i>`;
  }).join('');
 }
 function updateCardIndicator(indicator,index){
  if(!indicator||indicator.dataset.index===String(index))return;
+ if(firstCardIndicator(Number(indicator.dataset.index))!==firstCardIndicator(index)){
+  indicator.innerHTML=cardIndicatorMarkers(index);
+  indicator.dataset.index=index;
+  return;
+ }
  const next=indicator.children[index-firstCardIndicator(index)];
  const current=indicator.querySelector('.selected');
  if(next!==current){
@@ -209,38 +214,16 @@ function finishCardSelection(index){
  if(!newCardSelected)state.activeCard=cards[index].id;
  const pane=$('.home-content');
  if(route.page==='home'&&pane){
-  const preview=accountPreviewCache.get(index)||buildAccountPreview(index);
-  const balance=pane.querySelector('.home-balance strong');
-  const nextBalance=preview.querySelector('.home-balance strong');
-  const changedContent=[];
-  if(balance&&nextBalance){
-   if(balance.textContent!==nextBalance.textContent){
-    balance.textContent=nextBalance.textContent;
-    changedContent.push(balance);
-   }
-   const panel=pane.querySelector('.operation-panel');
-   const nextPanel=preview.querySelector('.operation-panel');
-   const rows=[...nextPanel.children].slice(1);
-   panel.replaceChildren(panel.firstElementChild,...rows);
-   changedContent.push(...rows);
-  }else{
-   for(const slot of [homeAccountIntro,'.home-actions','.operation-panel']){
-    const next=preview.querySelector(slot);
-    pane.querySelector(slot).replaceWith(next);
-    changedContent.push(next);
-   }
-  }
-  if(!shouldReduceMotion()){
-   for(const element of changedContent){
-    element.getAnimations().forEach(animation=>animation.cancel());
-    element.animate([{opacity:.45},{opacity:1}],{duration:180,easing:slideEase});
-   }
+  const animatedPreview=swipeLayers?.pages?.find(page=>page.index===index)?.node.firstElementChild;
+  const preview=animatedPreview||accountPreviewCache.get(index)||buildAccountPreview(index);
+  for(const slot of [homeAccountIntro,'.home-actions','.operation-panel']){
+   pane.querySelector(slot).replaceWith(preview.querySelector(slot));
   }
   accountPreviewCache.delete(index);
   pane.classList.toggle('new-card-selected',newCardSelected);
   refreshSelectedCard();
   setCarouselPosition(index);
-  fitMonetaryLabels();
+  if(!animatedPreview)fitMonetaryLabels(pane);
   cleanupSwipe();
   scheduleAccountPreviews();
  }else cleanupSwipe();
