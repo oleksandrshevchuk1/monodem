@@ -27,7 +27,7 @@ function homeAccountContent(slotsOnly=false){
  const tools=newCardSelected
   ? `<div class="home-actions new-card-actions"><button class="new-card-cta" data-action="open-card">Відкрити картку</button></div><section class="operation-panel new-card-empty"><h2>Коли відкриєте нову картку,<br>тут буде її виписка <span class="new-card-sticker" aria-hidden="true">🏄‍♂️</span></h2></section>`
   : homeActions()+`<section class="operation-panel"><div class="section-title"><h2>Операції</h2><button class="pill" data-action="nav" data-page="history">Усі ${icon('caret-right')}</button></div>${homeOperationRows()}</section>`;
- return `<div class="home-content ${newCardSelected?'new-card-selected':''}">${newCardSelected?`<div class="open-card-intro"><h2>Відкрити картку</h2><p>Ви можете відкрити додаткові картки<br>в гривні, доларах та євро</p></div>`:`<button class="home-balance" data-action="topup" aria-label="Поповнити картку"><svg class="icon balance-plus-glyph" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15.5" fill="currentColor" opacity=".16"/><circle cx="16" cy="16" r="15.5" fill="none" stroke="currentColor" opacity=".18"/><circle cx="16" cy="16" r="8" fill="currentColor" opacity=".68"/><path d="M16 12.75v6.5m-3.25-3.25h6.5" fill="none" stroke="#263454" stroke-width="2" stroke-linecap="round"/></svg><strong>${displayMoney(balance())} ₴</strong></button>`}${slotsOnly?'':cardSlides()+selector()}${tools}${slotsOnly?'':homeFooter()}</div>`;
+ return `<div class="home-content ${newCardSelected?'new-card-selected':''}">${newCardSelected?`<div class="open-card-intro"><h2>Відкрити картку</h2><p>Ви можете відкрити додаткові картки<br>в гривні, доларах та євро</p></div>`:`<button class="home-balance" data-action="topup" aria-label="Поповнити картку"><svg class="icon balance-plus-glyph" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15.5" fill="currentColor" opacity=".16"/><circle cx="16" cy="16" r="15.5" fill="none" stroke="currentColor" opacity=".18"/><circle cx="16" cy="16" r="8" fill="currentColor" opacity=".68"/><path d="M16 12.75v6.5m-3.25-3.25h6.5" fill="none" stroke="#263454" stroke-width="2" stroke-linecap="round"/></svg><strong>${displayMoney(balance())} ₴</strong></button>`}${slotsOnly?'<div class="card-stage card-carousel"></div><div class="card-selector"></div>':cardSlides()+selector()}${tools}${slotsOnly?'':homeFooter()}</div>`;
 }
 home=function(){
  const header=basicHome(true).replace('data-action="nav" data-page="more" aria-label="Профіль"','data-action="profile-sheet" aria-label="Профіль"');
@@ -144,7 +144,7 @@ function refreshSelectedCard(){
  const app=$('#app');
  app.classList.toggle('white-active',!newCardSelected&&cardWhite(activeCard()));
  app.classList.toggle('new-card-theme',newCardSelected);
- fitMonetaryLabels();
+
 }
 function finishCardSelection(index){
  const cards=allCards();
@@ -152,28 +152,20 @@ function finishCardSelection(index){
  carouselIndex=index;
  if(!newCardSelected)state.activeCard=cards[index].id;
  const pane=$('.home-content');
- cleanupSwipe();
- if(route.page!=='home'||!pane)return;
-
- const next=document.createElement('template');
- next.innerHTML=homeAccountContent(true);
- const balanceLabel=pane.querySelector('.home-balance strong');
- const nextBalance=next.content.querySelector('.home-balance strong');
- if(balanceLabel&&nextBalance){
-  balanceLabel.textContent=nextBalance.textContent;
-  const panel=pane.querySelector('.operation-panel');
-  const nextPanel=next.content.querySelector('.operation-panel');
-  while(panel.children.length>1)panel.lastElementChild.remove();
-  panel.append(...[...nextPanel.children].slice(1));
- }else{
+ const preview=swipeLayers?.pages?.find(page=>page.index===index)?.node.firstElementChild;
+ if(route.page==='home'&&preview){
   for(const slot of [homeAccountIntro,'.home-actions','.operation-panel']){
-   pane.querySelector(slot).replaceWith(next.content.querySelector(slot));
+   pane.querySelector(slot).replaceWith(preview.querySelector(slot));
   }
+  pane.classList.toggle('new-card-selected',newCardSelected);
+  cleanupSwipe();
+  setCarouselPosition(index);
+  refreshSelectedCard();
+  scheduleAccountPreviews();
+ }else{
+  cleanupSwipe();
+  if(route.page==='home')render();
  }
- pane.classList.toggle('new-card-selected',newCardSelected);
- setCarouselPosition(index);
- prepareVisibleGlyphs();
- refreshSelectedCard();
 }
 
 function physicalSettle(read,write,target,velocity,complete){let frame,cancelled=false;const from=read(),omega=2*Math.PI/.4,offset=from-target,start=performance.now();const tick=now=>{if(cancelled)return;const t=(now-start)/1000,term=velocity+omega*offset,decay=Math.exp(-omega*t),position=target+(offset+term*t)*decay,speed=(velocity-omega*term*t)*decay;write(position);if(t<1.2&&(Math.abs(position-target)>.05||Math.abs(speed)>.5))frame=requestAnimationFrame(tick);else{write(target);complete()}};frame=requestAnimationFrame(tick);return {cancel(){cancelled=true;cancelAnimationFrame(frame)},finish(){cancelled=true;cancelAnimationFrame(frame);write(target)}}}
@@ -218,10 +210,10 @@ function captureBankSurface(preserveArtwork=false){
  return surface;
 }
 
-function fitMonetaryLabels(){
+function fitMonetaryLabels(root=$('#screen')){
  const sizes=[['.home-balance strong',46,26],['.stats-summary>strong',46,24],['.capital-total>strong',38,22],['.compact-card>strong',21,12]];
  for(const [selector,max,min] of sizes){
-  for(const el of $('#screen').querySelectorAll(selector)){
+  for(const el of root.querySelectorAll(selector)){
    if(el.dataset.numberMotion==='1')continue;
    el.style.fontSize=max+'px';
    const available=el.clientWidth;
@@ -232,7 +224,7 @@ function fitMonetaryLabels(){
 function animateSummaryValue(el,from,to,kind){if(from===to||shouldReduceMotion())return;const available=el.clientWidth,style=getComputedStyle(el),canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');ctx.font=style.font;const label=n=>(kind==='expense'?'−':'')+displayMoney(n)+' ₴',width=Math.max(ctx.measureText(label(from)).width,ctx.measureText(label(to)).width);el.style.fontSize=Math.max(24,Math.min(parseFloat(style.fontSize),parseFloat(style.fontSize)*available/width))+'px';el.dataset.numberMotion='1';const start=performance.now();const step=now=>{if(!el.isConnected)return;const t=Math.min(1,(now-start)/240),n=from+(to-from)*(1-Math.pow(1-t,3));el.textContent=label(n);if(t<1)requestAnimationFrame(step);else{el.textContent=label(to);delete el.dataset.numberMotion}};requestAnimationFrame(step)}
 const beforeAmountRender=render;
 render=function(){const previous=route.page==='analytics'?new Map([...document.querySelectorAll('.stats-summary')].map(x=>[x.dataset.kind,Number(x.dataset.total)])):null;beforeAmountRender();fitMonetaryLabels();if(previous?.size)requestAnimationFrame(()=>{if(route.page==='analytics')document.querySelectorAll('.stats-summary').forEach(x=>{if(previous.has(x.dataset.kind))animateSummaryValue(x.querySelector(':scope>strong'),previous.get(x.dataset.kind),Number(x.dataset.total),x.dataset.kind)})});};
-document.fonts.ready.then(fitMonetaryLabels);
+document.fonts.ready.then(()=>fitMonetaryLabels());
 
 render();
 

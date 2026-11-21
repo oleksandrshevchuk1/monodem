@@ -72,3 +72,18 @@ body:has(.side-return-underlay) #nav,body:has(.all-cards-backdrop):has(.all-card
 
 /* Move the stationary home card and its selector as part of one surface. */
 .side-page-snapshot.home :is(.card-track,.selector-label,.selector-dots){will-change:auto}
+
+.account-swipe-preview {
+ position: absolute;
+ inset: 0 auto auto 0;
+ width: 100%;
+ pointer-events: none;
+ z-index: 2;
+ contain: layout paint;
+ will-change: transform;
+}
+.account-swipe-preview > .home-content { width: 100%; }
+.account-swipe-preview :is(.card-carousel,.card-selector) { visibility: hidden; }
+.card-gesture-active .home-content > :is(.home-balance,.open-card-intro,.home-actions,.operation-panel) {
+ will-change: transform;
+}

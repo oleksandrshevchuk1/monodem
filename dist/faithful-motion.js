@@ -91,7 +91,7 @@ expandTransition=function(from,to,opening){
  const interruptedFront=startAngle>.1&&!returningFromBack&&!reduce;
  const rear=returningFromBack&&!reduce;
  const reduceRear=returningFromBack&&reduce;
- const duration=reduce?100:rear?380:460;
+ const duration=reduce?100:460;
 
  const source=from.geometry,width=geometry.width,height=geometry.height,base={x:geometry.layout.x,y:geometry.layout.y,width,height};
  const origin=geometry.origin,originMatrix=new DOMMatrix().translate(origin[0],origin[1]);
