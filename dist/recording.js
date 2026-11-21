@@ -44,13 +44,68 @@ function addBankAdminPicker(person,collection,id){
 const beforeBankContact=actions['admin-contact'];actions['admin-contact']=b=>{beforeBankContact(b);if(adminMode)addBankAdminPicker(state.contacts.find(c=>c.id===b.dataset.id),'contacts',b.dataset.id)};
 const beforeBankTx=txForm;txForm=function(id){beforeBankTx(id);if(adminMode)addBankAdminPicker(state.transactions.find(t=>t.id===id),'transactions',id)};
 const beforeReferenceRows=rows;
-rows=function(items){const template=document.createElement('template');template.innerHTML=beforeReferenceRows(items);const rowById=new Map([...template.content.querySelectorAll('.transaction')].map(node=>[node.dataset.id,node]));for(const t of items){const row=rowById.get(String(t.id)),avatar=row?.querySelector('.transaction-icon');if(!avatar)continue;const bank=bankPreset(t);if(bank.id==='sense'){avatar.className='transaction-icon sense-bank-icon';avatar.innerHTML=`<img src="${bank.logo}" alt="Sense Bank" draggable="false">`}else if(t.amount>0){if(bank.id!=='mono'&&bank.logo){avatar.className='transaction-icon incoming-bank-icon';avatar.innerHTML=`<img src="${bank.logo}" alt="${esc(bank.name)}" draggable="false">`}else if(!t.logo){avatar.className='transaction-icon income';avatar.innerHTML=referenceImage('incoming-symbol')}}else if(['mono','other'].includes(operationBank(t))||t.bankId||t.bankName){avatar.className='transaction-icon bank-transfer-icon';avatar.innerHTML=transferSymbol()+bankBadge(t)}}return template.innerHTML};
+rows=function(items){const template=document.createElement('template');template.innerHTML=beforeReferenceRows(items);const rowById=new Map([...template.content.querySelectorAll('.transaction')].map(node=>[node.dataset.id,node]));for(const t of items){const row=rowById.get(String(t.id)),avatar=row?.querySelector('.transaction-icon');if(!avatar)continue;const bank=bankPreset(t);if(bank.id==='sense'){avatar.className='transaction-icon sense-bank-icon';avatar.innerHTML=`<img src="${bank.logo}" alt="Sense Bank" draggable="false">`}else if(t.amount>0){if(bank.id!=='mono'&&bank.logo){avatar.className='transaction-icon incoming-bank-icon';avatar.innerHTML=`<img src="${bank.logo}" alt="${esc(bank.name)}" draggable="false">`}else if(!t.logo){avatar.className='transaction-icon income';avatar.innerHTML=topUpSymbol()}}else if(['mono','other'].includes(operationBank(t))||t.bankId||t.bankName){avatar.className='transaction-icon bank-transfer-icon';avatar.innerHTML=transferSymbol()+bankBadge(t)}}return template.innerHTML};
 function operationBalance(t){const id=t.cardId||'main',card=allCards().find(c=>c.id===id)||mainCard();return card.opening+state.transactions.filter(x=>(x.cardId||'main')===id&&compareTransactions(x,t)>=0).reduce((sum,x)=>sum+x.amount,0)}
 function homeToolImage(name,cls){
  return referenceImage(name,cls).replace('<img ','<img loading="eager" decoding="async" ');
 }
 function homeReferenceTools(){return `<div class="reference-home-tools"><div class="home-guide-strip"><button data-action="nav" data-page="limits">${homeToolImage('home-limit')}<span>Ліміти та<br>обмеження</span></button><button data-action="nav" data-page="abroad">${homeToolImage('home-abroad')}<span>Тим, хто за<br>кордоном</span></button></div><section class="home-useful"><h2>Корисне</h2><button class="exchange-rates" data-action="reference-rates"><span>${homeToolImage('currency-us')}<span><small>Долар США</small><strong>45.43 / 45.83</strong></span></span><span>${homeToolImage('currency-eu')}<span><small>Євро</small><strong>50.25 / 50.95</strong></span></span></button><div class="useful-small-grid">${[['Служба<br>підтримки','nav','support'],['Поширені<br>запитання','reference-faq',''],['Сканер<br>QR-коду','reference-qr','']].map(([label,action,page],i)=>`<button data-action="${action}" data-page="${page}">${homeToolImage('useful-'+i)}<span>${label}</span></button>`).join('')}</div><div class="useful-wide-grid"><button data-action="nav" data-page="statement">${homeToolImage('useful-3')}<span>Виписки та довідки</span></button><button data-action="reference-terms">${homeToolImage('useful-4')}<span>Умови та тарифи</span></button></div></section>${homeReferenceMarket()}</div>`}
-function homeReferenceMarket(){const names=['Смартфони та<br>гаджети','Побутова<br>техніка','Електро-<br>живлення','Спорт та<br>тренажери',"Ноутбуки та<br>комп’ютери",'ТВ, Аудіо та<br>Фото','Шини та<br>автотовари','Всі категорії'];return `<section class="home-market"><h2>В маркеті від 10 платежів на все ${homeToolImage('market-owl','inline-sticker')}</h2><div class="home-market-categories">${names.map((name,i)=>`<button data-action="market-category" data-category="${name.replaceAll('<br>',' ')}">${homeToolImage('home-category-'+i)}<span>${name}</span></button>`).join('')}</div><h2>Ви переглядали ${homeToolImage('market-eyes','inline-sticker')}</h2><div class="home-product-track">${[0,1,1].map((i,n)=>`<button class="home-product" data-action="offer" data-title="Смартфон Apple iPhone 18 Pro ${i?'1':'2'} ТВ"><span class="product-photo">${homeToolImage('home-product-'+i)}</span><span class="product-title">Смартфон Apple<br>iPhone 18 Pro ${i?'1':'2'} ТБ</span><span class="product-colors"><i></i><i></i><i></i><i></i></span><strong>${i?'117 999':'157 999'} ₴</strong><span class="product-installment"><span><b>${i?'11 800':'15 800'} ₴</b><br>× 10 платежів</span>${homeToolImage('installment-paw')}</span></button>`).join('')}</div></section>`}
+const marketPreviewColors=['silver','blue','burgundy','black'];
+const marketPreviewLabels=['Сріблястий','Блакитний','Бордовий','Чорний'];
+const viewedMarketProducts=[
+ {storage:'2 ТБ',price:'157 999',installment:'15 800',color:'silver'},
+ {storage:'1 ТБ',price:'117 999',installment:'11 800',color:'silver'},
+ {storage:'1 ТБ',price:'117 999',installment:'11 800',color:'blue'},
+ {storage:'256 ГБ',price:'77 499',installment:'7 750',color:'blue'}
+];
+let marketPreviewOrder=viewedMarketProducts.map((_,index)=>index);
+function marketProductPreview(product,index){
+ const colorOrder=product.color==='blue'?[1,2,0,3]:[0,1,2,3];
+ const title=`Смартфон Apple iPhone 18 Pro ${product.storage}`;
+ const selected=product.selectedColor||product.color;
+ return `<article class="home-product" data-market-preview="${index}">
+  <button class="home-product-offer" data-action="market-preview-offer" data-title="${title}">
+   <span class="product-photo">${homeToolImage('home-product-'+selected)}</span>
+   <span class="product-title">Смартфон Apple<br>iPhone 18 Pro ${product.storage}</span>
+  </button>
+  <div class="product-colors" role="group" aria-label="Колір товару">
+   ${colorOrder.map(i=>{
+    const color=marketPreviewColors[i];
+    const label=marketPreviewLabels[i];
+    return i<2
+     ?`<button data-action="market-preview-color" data-color="${color}" aria-label="${label}" aria-pressed="${color===selected}"></button>`
+     :`<span data-color="${color}" aria-label="${label}"></span>`;
+   }).join('')}
+  </div>
+  <strong>${product.price} ₴</strong>
+  <button class="product-installment" data-action="market-preview-offer" data-title="${title}"><span><b>${product.installment} ₴</b><br>× 10 платежів</span>${homeToolImage('installment-paw')}</button>
+ </article>`;
+}
+function homeReferenceMarket(){
+ const names=['Смартфони та<br>гаджети','Побутова<br>техніка','Електро-<br>живлення','Одяг та взуття',"Ноутбуки та<br>комп’ютери",'ТВ, Аудіо та<br>Фото','Шини та<br>автотовари','Всі категорії'];
+ return `<section class="home-market">
+  <h2>В маркеті від 10 платежів на все ${homeToolImage('market-owl','inline-sticker')}</h2>
+  <div class="home-market-categories">${names.map((name,i)=>`<button data-action="market-category" data-category="${name.replaceAll('<br>',' ')}"><span class="market-category-tile" style="--market-tile-x:${i%4/3*100}%;--market-tile-y:${i<4?0:100}%" aria-hidden="true"></span><span>${name}</span></button>`).join('')}</div>
+  <h2>Ви переглядали ${homeToolImage('market-eyes','inline-sticker')}</h2>
+  <div class="home-product-track">${marketPreviewOrder.map(index=>marketProductPreview(viewedMarketProducts[index],index)).join('')}</div>
+ </section>`;
+}
+actions['market-preview-offer']=button=>{
+ const index=Number(button.closest('[data-market-preview]')?.dataset.marketPreview);
+ if(viewedMarketProducts[index])marketPreviewOrder=[index,...marketPreviewOrder.filter(item=>item!==index)];
+ actions.offer(button);
+};
+actions['market-preview-color']=button=>{
+ const preview=button.closest('[data-market-preview]');
+ const color=button.dataset.color;
+ const product=viewedMarketProducts[Number(preview?.dataset.marketPreview)];
+ if(!product||!['silver','blue'].includes(color))return;
+ product.selectedColor=color;
+ preview.querySelector('.product-photo img').src='assets/reference/home-product-'+color+'.png';
+ preview.querySelectorAll('.product-colors button').forEach(option=>{
+  option.setAttribute('aria-pressed',String(option===button));
+ });
+};
 homeFooter=homeReferenceTools;
 homeOperationRows=()=>rows(txFor().slice(0,3));
 actions['reference-rates']=()=>inform('Курс валют','45.43 / 45.83 USD · 50.25 / 50.95 EUR<br><br>Демонстраційні значення з відео, не поточний курс обміну.');

@@ -34,7 +34,7 @@ const cardsHiddenPose = reduced => ({
  opacity: 0
 });
 const clearCardsBackdrop = {filter: 'blur(0px) brightness(1)'};
-const blurredCardsBackdrop = {filter: 'blur(14px) brightness(.68)'};
+const blurredCardsBackdrop = {filter: 'blur(20px) brightness(.62)'};
 
 function cardsViewportSnapshot() {
  const snapshot = freezePageSurface();

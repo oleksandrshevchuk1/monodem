@@ -61,7 +61,13 @@ function bankForRecipient(number){const card=normalizedCard(number),own=allCards
 
 transfer=function(type='card',prefill={}){if(type!=='card')return legacyTransfer(type,prefill);blocked();recipientDraft=prefill.recipient?{...bankForRecipient(prefill.recipient),...prefill,amount:prefill.amount?Math.abs(Number(prefill.amount)):''}:null;navigate(recipientDraft?'transferAmount':'transfer')};
 
-function transferSymbol(){return `<svg class="icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h19v17M5 9h19v18H5zM9 14l5 4-5 4m5-4H8"/></svg>`}
+function transferSymbol(){
+ return '<svg class="icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.6 8V6.8A1.3 1.3 0 0 1 8.9 5.5h20a1.3 1.3 0 0 1 1.3 1.3v14.3a1 1 0 0 1-1 1h-1.3"/><rect x="2.2" y="10.8" width="23.1" height="16.6" rx="1.1"/><path d="m11.1 14.5 5 4.6-5 4.5"/></svg>';
+}
+function topUpSymbol(cash=false){
+ const mark=cash?'<path d="M18 11h-4a2 2 0 0 0 0 4h4a2 2 0 0 1 0 4h-4m-3-5h10m-10 3h10"/>':'<path d="M16 3v19m-5-5 5 5 5-5"/>';
+ return `<svg class="icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="12" width="25" height="${cash?13:16}" rx="1.1"/>${cash?'<path d="M5 27h22"/>':''}${mark}</svg>`;
+}
 
 function recipientPicture(person){if(person.logo)return `<img src="${esc(person.logo)}" alt="">`;return person.bankType==='mono'?transferSymbol():icon('credit-card')}
 

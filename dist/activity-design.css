@@ -1,0 +1,894 @@
+:root {
+  --home-black-gradient: linear-gradient(#0c0e41, #111d51 97px, #14285b 200px, #102657 317px, #0d244e 400px, #0f1f39 500px, #101624 600px, #121212 733px);
+  --home-white-gradient: linear-gradient(#210d28, #30174e 97px, #372265 200px, #292a63 317px, #1f2654 400px, #1c2244 500px, #171928 600px, #121212 733px);
+  --home-new-gradient: linear-gradient(#161632, #21294d 97px, #28355f 200px, #253559 317px, #1e2c47 400px, #1c273d 500px, #171a23 600px, #121212 733px);
+}
+
+#app.home {
+  background: var(--home-black-gradient);
+}
+
+#app.home.white-active {
+  background: var(--home-white-gradient);
+}
+
+#app.home.new-card-theme {
+  background: var(--home-new-gradient);
+}
+
+#app {
+  --activity-panel: #272727;
+  --activity-edge: #555;
+  --activity-muted: #aaa;
+}
+
+.home-content .new-card-cta,
+.card-settings > .payment-settings {
+  border-radius: 999px;
+}
+
+.home-content .new-card-cta {
+  min-height: 56px;
+  background: #464d5d;
+}
+
+.home-content .operation-panel,
+.home-useful,
+.home-market {
+  background: var(--activity-panel);
+  border-radius: 22px;
+}
+
+.home-market .product-photo {
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.home-market .product-installment {
+  background: linear-gradient(110deg, #3e4856, #50434e);
+  border-radius: 8px;
+}
+
+.cards-overview .compact-card {
+  border-radius: 17px;
+  background: #b8c5e323;
+}
+
+.bank-reference-detail .reference-operation-head,
+.bank-reference-detail .reference-operation-edit,
+.bank-reference-detail .reference-balance {
+  background: var(--activity-panel) !important;
+}
+
+.bank-reference-detail .reference-category > span {
+  background: var(--activity-edge);
+}
+
+.bank-reference-detail .reference-category > button {
+  border-radius: 999px;
+  background: #4034ad;
+}
+
+.bank-reference-detail[data-direction=income] .reference-category > button {
+  background: #020202;
+}
+
+.bank-reference-detail .reference-balance {
+  border-radius: 22px;
+  min-height: 68px;
+}
+
+.bank-reference-detail .reference-balance .bank-balance-glyph {
+  width: 24px;
+  height: 24px;
+  background: #4034ad !important;
+  color: white;
+  border-radius: 50%;
+}
+
+.bank-reference-detail[data-direction=income] .reference-balance .bank-balance-glyph {
+  background: #000 !important;
+}
+
+.transfer-spending {
+  --plot-height: 82px;
+  margin: 0;
+}
+
+.transfer-spending figcaption {
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 4vw, 16px);
+  margin-bottom: 16px;
+  color: #aaa;
+  text-align: center;
+  font-size: 12px;
+}
+
+.transfer-spending figcaption::before,
+.transfer-spending figcaption::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--activity-edge);
+}
+
+.transfer-spending figcaption span {
+  padding: 4px 12px;
+  border: 1px solid var(--activity-edge);
+  border-radius: 999px;
+}
+
+.transfer-spending-plot {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  padding: 18px 12px 10px;
+  background: var(--activity-panel);
+  border-radius: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.transfer-spending-scale {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: var(--plot-height);
+  font-size: 11px;
+}
+
+.transfer-spending-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  padding-top: var(--plot-height);
+}
+
+.transfer-spending-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: var(--plot-height);
+  border-top: 1px dashed #454545;
+  border-bottom: 1px solid #666;
+  background: repeating-linear-gradient(90deg, #454545 0 2px, transparent 2px 4px) center / 100% 1px no-repeat;
+  pointer-events: none;
+}
+
+.transfer-spending-month {
+  position: relative;
+  text-align: center;
+  color: var(--activity-muted);
+}
+
+.transfer-spending-month small {
+  display: block;
+  padding-top: 8px;
+  font-size: 11px;
+}
+
+.transfer-spending-bar {
+  position: absolute;
+  inset: auto 0 100%;
+  width: min(43%, 16px);
+  height: calc(var(--plot-height) * var(--bar-ratio));
+  margin-inline: auto;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(#a938a2, #4741b8);
+}
+
+.transfer-spending-bar[data-empty] {
+  height: 3px;
+  background: #ddd;
+}
+
+#app.statbreakdown {
+  background: #1a1b2d;
+}
+
+.stats-breakdown .stats-toolbar {
+  gap: 8px;
+}
+
+.stats-breakdown .stats-toolbar h1 {
+  margin: 0;
+  font-size: clamp(12px, 4vw, 16px);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-breakdown .stats-period-label {
+  text-align: center;
+  margin: 0 0 24px;
+}
+
+.stats-breakdown .stats-category {
+  min-height: 72px;
+}
+
+.stats-breakdown .stats-category-icon {
+  border-radius: 50%;
+}
+
+.home-market .home-market-categories {
+  column-gap: 4px;
+  row-gap: 12px;
+  margin-top: 18px;
+  margin-bottom: 18px;
+}
+
+.home-market .home-market-categories button {
+  padding-inline: 0;
+  justify-content: flex-start;
+  font-size: clamp(10px, 2.82vw, 11px);
+  min-height: 90px;
+}
+
+.home-market .home-product {
+  flex-basis: 132px;
+}
+
+.home-market .product-title {
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+#app.card .expanded-card .card-printed-number {
+  display: none !important;
+}
+
+
+#app.card {
+  background: linear-gradient(#060622, #090e2b 97px, #0c1939 200px, #0b214a 317px, #0e2654 400px, #10264f 500px, #132549 600px, #132646 733px) fixed !important;
+}
+
+#app.card:has(.expanded-card .is-white) {
+  background: linear-gradient(#110614, #190c26 97px, #21143f 200px, #242657 317px, #232e64 400px, #28336b 500px, #2a3573 600px, #2e3979 733px) fixed !important;
+}
+
+#app.card .card-settings > .settings-group {
+  border-radius: 22px;
+  background: rgb(255 255 255 / 10%);
+  padding-block: 0;
+  margin-bottom: 16px;
+}
+
+#app.card .card-settings .menu-row {
+  min-height: 72px;
+  font-size: 16px;
+  font-weight: 450;
+}
+
+#app.card .card-settings .menu-row small {
+  font-size: 14px;
+  font-weight: 400;
+}
+
+#app.card:not(:has(.expanded-card .is-white)) .expanded-card .bank-card-front {
+  background: linear-gradient(180deg, #282828, #222 32%, #111 100%);
+}
+
+body > .card-header-mini {
+  display: block !important;
+  position: fixed;
+  inset: max(46px, env(safe-area-inset-top)) auto auto 50%;
+  z-index: 70;
+  width: 56px;
+  height: 40px;
+}
+
+body > .card-header-mini .bank-card {
+  transform: none;
+}
+
+body > .card-header-mini.flipped .bank-card {
+  transform: rotateY(180deg);
+}
+
+body > .card-header-mini::before {
+  content: "";
+  position: absolute;
+  inset: auto auto -13px 50%;
+  width: min(430px, 100vw);
+  height: calc(max(46px, env(safe-area-inset-top)) + 54px);
+  transform: translateX(-50%);
+  background: linear-gradient(#060622, #0a0f2c);
+  pointer-events: none;
+  z-index: -1;
+}
+
+body:has(#app.card .expanded-card .is-white) > .card-header-mini::before {
+  background: linear-gradient(#100513, #190c26);
+}
+
+#app.home .card-selector {
+  width: 100px;
+  min-width: 100px;
+  height: 24px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+#app.home .card-selector::before {
+  border-radius: 999px;
+  background: #07142966;
+}
+
+#app.home .selector-label {
+  gap: 5px;
+}
+
+#app.home .selector-label .icon {
+  width: 14px;
+  height: 14px;
+  opacity: 1;
+}
+
+#app.home .home-content .new-card-cta {
+  font-size: 16px;
+  font-weight: 500;
+  background: #464e5c;
+}
+
+#app.cards .cards-overview {
+  min-height: 100dvh;
+  background: linear-gradient(#171731, #1c2039 97px, #151f38 200px, #141f35 317px, #131e34 400px, #151d2a 500px, #1b1c21 600px, #1a1a1a 820px);
+}
+
+
+#app.cards.overview-visible .cards-overview {
+  background: linear-gradient(#171731ed, #1c2039dc 97px, #151f38de 200px, #141f35e6 317px, #131e34e2 400px, #151d2ad9 500px, #1b1c21da 600px, #1a1a1adf 820px);
+}
+
+#app.cards .open-card-floating {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 27px auto;
+  justify-content: start;
+  gap: 18px;
+  min-height: 56px;
+  min-width: min(232px, calc(100% - 32px));
+  padding: 0 18px;
+  bottom: max(50px, calc(env(safe-area-inset-bottom) + 16px));
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+#app.cards .open-card-floating .open-card-plus {
+  width: 27px;
+  height: 27px;
+  filter: none;
+}
+
+.bank-reference-detail .reference-operation-amount {
+  font-weight: 450;
+  letter-spacing: -1.1px;
+}
+
+.bank-reference-detail .reference-balance {
+  gap: 13px;
+  padding: 13px 16px;
+  font-size: 16px;
+  line-height: 20px;
+}
+
+.bank-reference-detail .reference-balance small {
+  font-size: 14px;
+  line-height: 19px;
+  margin-bottom: 3px;
+}
+
+.bank-reference-detail .reference-balance .bank-balance-glyph {
+  flex: 0 0 24px;
+}
+
+.stats-category-icon.top-up,
+.transaction-icon.income:has(svg) {
+  background: #27282a;
+  color: #fff;
+}
+
+.stats-category-icon.transfer {
+  background: linear-gradient(140deg, #4b42b5, #6d68df);
+}
+
+#app.card .card-settings .menu-row > .icon.settings-glyph {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  background-image: url("assets/reference/card-settings-glyphs.png");
+  background-size: 1200% 100%;
+  background-repeat: no-repeat;
+  background-position: var(--glyph-position) center;
+}
+
+/* Geometry is measured at the references' 390 CSS pixel width. */
+#app.card .card-settings > .payment-settings {
+  min-height: 72px;
+}
+
+#app.home .home-content > .operation-panel {
+  min-height: 272px;
+}
+
+.home-guide-strip {
+  min-height: 64px;
+  border-radius: 24px;
+}
+
+.home-guide-strip > button:first-child {
+  border-radius: 22px 0 0 22px;
+}
+
+.home-guide-strip > button:last-child {
+  border-radius: 0 22px 22px 0;
+}
+
+.home-market .home-market-categories button {
+  min-height: 86px;
+}
+
+.home-market .home-market-categories {
+  margin-bottom: 14px;
+}
+
+#app.cards .compact-cards {
+  margin-top: 0;
+}
+
+#app.cards .compact-card {
+  min-height: 156px;
+  border-radius: 17px;
+}
+
+.bank-reference-detail,
+.bank-reference-detail .reference-operation-body {
+  background: #121212 !important;
+}
+
+.bank-reference-detail .reference-operation-head {
+  padding-bottom: 7px;
+}
+
+.bank-reference-detail .reference-invite {
+  min-height: 116px;
+  padding-block: 12px;
+  gap: 8px;
+}
+
+.bank-reference-detail .reference-operation-edit > button {
+  height: 49px;
+  padding-block: 10px;
+}
+
+.bank-reference-detail .reference-operation-body > .detail-menu,
+.bank-reference-detail .incoming-menu,
+.bank-reference-detail .reference-operation-body > .receipt-link {
+  background: var(--activity-panel) !important;
+}
+
+#app.statbreakdown .stats-breakdown {
+  padding-top: max(48px, calc(env(safe-area-inset-top) + 4px));
+}
+
+#app.statbreakdown .stats-breakdown .stats-toolbar {
+  box-sizing: border-box;
+  height: 24px;
+  min-height: 24px;
+  padding-block: 0;
+  margin-bottom: 2px;
+}
+
+#app.statbreakdown .stats-breakdown .stats-period-label {
+  font-size: 14px;
+  line-height: 20px;
+  margin-bottom: 13px;
+}
+
+#app.statbreakdown .stats-breakdown .stats-tabs {
+  min-height: 39px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+#app.statbreakdown .stats-breakdown .stats-category {
+  height: 72px;
+  padding-block: 10px;
+}
+
+.home-market .home-market-categories {
+  row-gap: 10px;
+  margin-bottom: 14px;
+}
+
+.home-market .home-product-track {
+  margin-top: -10px;
+}
+
+.home-market .home-product-offer .product-photo {
+  display: block;
+  width: 100%;
+  height: 112px;
+}
+
+.home-market .home-product-offer {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+.home-market .product-title {
+  display: block;
+  min-height: 32px;
+  margin-bottom: 4px;
+  line-height: 16px;
+}
+
+.home-market .product-colors {
+  align-items: center;
+  gap: 3px;
+  min-height: 20px;
+  margin-bottom: 3px;
+  padding-block: 0;
+}
+
+.home-market .product-colors > * {
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 20px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.home-market .product-colors > *::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--swatch);
+  box-shadow: inset 0 0 0 1px #0003;
+}
+
+.home-market .product-colors > [aria-pressed="true"]::before {
+  outline: 1px solid #5688ed;
+  outline-offset: 2px;
+}
+
+.home-market [data-color="silver"] { --swatch: #e9edf0; }
+.home-market [data-color="blue"] { --swatch: #a9c2dc; }
+.home-market [data-color="burgundy"] { --swatch: #472933; }
+.home-market [data-color="black"] { --swatch: #222224; }
+
+.home-market .product-installment {
+  width: 100%;
+  min-height: 48px;
+  text-align: left;
+  padding-block: 5px;
+}
+
+#app.home .home-content > .new-card-actions {
+  align-content: start;
+  margin-top: 33px;
+  margin-bottom: 10px;
+}
+
+#app.home .new-card-empty h2 {
+  transform: translateY(-30px);
+}
+
+#app.history,
+#app.history #screen {
+  background-color: #121212;
+}
+
+#app.history .transaction .tx-content strong,
+#app.home .operation-panel .transaction .tx-content strong {
+  font-size: clamp(14px, 4.1vw, 16px);
+  font-weight: 400;
+}
+
+#app.history .transaction .tx-amount,
+#app.home .operation-panel .transaction .tx-amount {
+  font-size: clamp(15px, 4.35vw, 17px);
+  font-weight: 400;
+}
+
+.bank-reference-detail .reference-operation-body > .receipt-link {
+  border-radius: 18px;
+}
+
+.bank-reference-detail .detail-menu > .menu-row {
+  min-height: 56px;
+  font-size: 16px;
+  font-weight: 400;
+}
+
+#app.statbreakdown .stats-category strong,
+#app.statbreakdown .stats-category-amount {
+  font-size: clamp(14px, 4.1vw, 16px);
+  font-weight: 400;
+}
+
+#app.statbreakdown .stats-category small {
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.reference-control-glyph {
+  display: inline-block;
+  flex: none;
+  background-color: currentColor;
+  -webkit-mask: url("assets/reference/home-control-glyphs.png") var(--glyph-position) center / 1200% 100% no-repeat;
+  mask: url("assets/reference/home-control-glyphs.png") var(--glyph-position) center / 1200% 100% no-repeat;
+}
+
+.home-top {
+  padding-inline: 16px;
+}
+
+.home-top .avatar {
+  width: 36px;
+  height: 36px;
+}
+
+.home-top .reference-control-glyph {
+  width: 26px;
+  height: 26px;
+}
+
+.home-actions .action-circle .reference-control-glyph {
+  width: 26px;
+  height: 26px;
+}
+
+#nav .tab .reference-control-glyph {
+  width: 26px;
+  height: 26px;
+  opacity: 1;
+  filter: none;
+}
+
+#app.history .transaction .tx-amount.green {
+  color: #1cac4d;
+}
+
+.home-top > * {
+  translate: 0 5px;
+}
+
+#app.home .home-balance .balance-plus-glyph {
+  width: 32px;
+  height: 32px;
+  color: #a7b1d0;
+  opacity: 1;
+}
+
+#app.home .card-selector {
+  translate: 0 7px;
+}
+
+#nav .tab:not(.active) .reference-control-glyph {
+  color: #adadad;
+}
+
+#nav .tab.active .reference-control-glyph {
+  color: #ff4d57;
+}
+
+.home-useful .exchange-rates,
+.home-useful .useful-small-grid > button,
+.home-useful .useful-wide-grid > button {
+  background: #333;
+  border-radius: 13px;
+}
+
+.home-useful .exchange-rates {
+  min-height: 64px;
+}
+
+.home-useful .exchange-rates img {
+  width: 32px;
+  height: 32px;
+}
+
+.home-useful .exchange-rates small {
+  margin-bottom: 4px;
+}
+
+.home-useful .useful-small-grid > button {
+  min-height: 89px;
+}
+
+.home-useful .useful-wide-grid > button {
+  min-height: 80px;
+}
+
+#app.cards .cards-overview > h1 {
+  margin-bottom: 21px;
+}
+
+#app.cards .compact-card > strong {
+  font-family: inherit;
+  font-size: clamp(15px, 5.4vw, 21px);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+#app.history .card-operations .date-heading {
+  color: #c5c5c5;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+#app.history .card-operations .transaction {
+  min-height: 72px;
+}
+
+#app.history .card-operations .transaction + .transaction {
+  border-top-color: transparent;
+}
+
+#app.history .all-operations-top .stats-mini-card .bank-card-front {
+  background: linear-gradient(#282828, #121212);
+}
+
+#app.history .all-operations-top .stats-mini-card .is-white .bank-card-front {
+  background: linear-gradient(#fdfdfd, #e5e7ed);
+}
+
+.bank-reference-detail[data-direction="expense"] .reference-operation-pattern {
+  background-color: #5f5fd9 !important;
+}
+
+.bank-reference-detail .reference-operation-edit > button + button::before {
+  background: #555;
+}
+
+.bank-reference-detail .reference-invite {
+  background: linear-gradient(var(--activity-panel),var(--activity-panel)) padding-box,
+              linear-gradient(110deg,#8042d2,#df1673) border-box;
+}
+
+#app.statbreakdown .stats-breakdown .stats-category-amount.green {
+  color: #17ac42;
+}
+
+.stats-category-icon.reference-category-art {
+  overflow: hidden;
+  background: transparent;
+}
+
+.stats-category-art {
+  width: 100%;
+  height: 100%;
+  background: url("assets/reference/statistics-category-glyphs.png") var(--category-position) center / 500% 100% no-repeat;
+}
+
+#app.home .section-title h2,
+.home-useful > h2,
+.home-market > h2 {
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.home-market .home-market-categories button {
+  font-weight: 500;
+  line-height: 13px;
+}
+
+.home-market .home-product-offer .product-title {
+  font-weight: 400;
+}
+
+.home-market .product-installment b {
+  font-weight: 650;
+}
+
+#app.cards .compact-card > .compact-name {
+  font-size: 12px;
+  font-weight: 400;
+}
+
+#app.card .card-settings > h2 {
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 22px;
+}
+
+#app.card .card-settings > .payment-settings:not(.internet-limit) > span {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+#app.card .card-settings > .payment-settings:not(.internet-limit) small {
+  font-size: 14px;
+  line-height: 18px;
+}
+
+.bank-reference-detail .reference-operation-amount .operation-minor {
+  font-size: .67em;
+}
+
+.bank-reference-detail .transfer-spending-plot {
+  min-height: 143px;
+  padding-top: 18px;
+  padding-bottom: 9px;
+}
+
+.bank-reference-detail .transfer-spending-month small,
+.bank-reference-detail .transfer-spending-scale {
+  font-size: 12px;
+  font-weight: 400;
+}
+
+#app.home .home-content > .operation-panel:not(.new-card-empty) {
+  padding-bottom: 1px;
+}
+
+.home-guide-strip > button {
+  padding-block: 14px;
+}
+
+.home-useful .exchange-rates {
+  padding-block: 12px;
+}
+
+#app.cards .compact-card {
+  padding-bottom: 24px;
+}
+
+.bank-reference-detail:not(.has-operation-boundary) {
+  padding-top: calc(var(--safe-header) + 55px);
+}
+
+.bank-reference-detail .reference-operation-body > .reference-invite {
+  margin-bottom: -8px !important;
+}
+
+#app.history .card-operations .date-heading {
+  margin-top: 19px;
+}
+
+.home-market .home-market-categories {
+  margin-top: 12px;
+  margin-bottom: 18px;
+}
+
+.home-market .market-category-tile {
+  display: block;
+  flex: none;
+  width: clamp(46px, 14.36vw, 56px);
+  aspect-ratio: 1;
+  border-radius: 13px;
+  background: url("assets/reference/market-category-tiles-hd.webp") var(--market-tile-x) var(--market-tile-y) / 400% 200% no-repeat;
+}
+
+.home-market .home-product-offer .product-title {
+  font-size: 12px;
+  line-height: 16px;
+}
+
+#app.home .new-card-empty h2 {
+  font-weight: 600;
+  transform: translateY(-33px);
+}
+
+#app.history .card-operations .all-operations-top > .stats-mini-card {
+  height: 40px;
+  border-radius: 8px;
+}
+
+#app.history .card-operations .date-heading {
+  margin-bottom: 9px;
+}
+
+#app.history .card-operations .bank-transfer-icon {
+  background: linear-gradient(140deg, #4541aa, #6863ca);
+}

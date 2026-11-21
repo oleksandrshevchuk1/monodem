@@ -28,11 +28,42 @@ const badgeBeforeReferenceDetail=bankBadge;
 bankBadge=function(person){const bank=bankPreset(person),source=bank.id==='privat'?bankDetailArt.privatBadge:bank.id==='otp'?bankDetailArt.otpBadge:null;return source?`<img class="bank-badge bank-mark bank-mark-${bank.id}" src="${source}" alt="${esc(bank.name)}" decoding="sync" draggable="false">`:badgeBeforeReferenceDetail(person)};
 const bankNoteGlyph='<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="3" fill="currentColor"/><path d="M10 8h4m-4 5h3" stroke="#252525" stroke-width="2.5" stroke-linecap="round"/></svg>';
 const bankUploadGlyph='<svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 2h8v5a3 3 0 0 0 3 3h3v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm10 0 4 6h-3a1 1 0 0 1-1-1Z"/><path d="m9 15 3-3 3 3m-3-3v7" fill="none" stroke="#252525" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-const bankWalletGlyph='<svg class="icon bank-balance-glyph" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="14" fill="#000"/><rect x="6" y="7" width="16" height="14" rx="4" fill="white"/><path d="M22 11h-5a3 3 0 0 0 0 6h5" fill="#000"/><circle cx="18" cy="14" r="1.2" fill="white"/></svg>';
+const bankWalletGlyph='<svg class="icon bank-balance-glyph" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8.4 6h8.9c1.5 0 2.7 1.2 2.7 2.7v.7h-2.7a2.6 2.6 0 0 0 0 5.2H20v.8c0 1.5-1.2 2.6-2.7 2.6H8.4A3.4 3.4 0 0 1 5 14.6V9.4A3.4 3.4 0 0 1 8.4 6Zm9.1 4.8H20v2.4h-2.5a1.2 1.2 0 0 1 0-2.4Z"/></svg>';
 const bankQuestionGlyph=transferActionGlyph('support-tx');
 const bankReplyPaymentGlyph='<svg class="icon transfer-action-glyph" viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 30h17a10 10 0 0 0 0-20H8m7-7-7 7 7 7"/></svg>';
 const bankBlockUserGlyph='<svg class="icon transfer-action-glyph" viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="18" cy="18" r="14.5"/><path d="m7.75 28.25 20.5-20.5"/></svg>';
 const detailBeforeBankReferenceScreens=detail;
+
+function transferSpendingChart(transaction) {
+ const [year,month]=transaction.date.split('-').map(Number);
+ const months=Array.from({length:6},(_,index)=>new Date(Date.UTC(year,month-6+index,1)));
+ const buckets=new Map(months.map(date=>[date.toISOString().slice(0,7),0]));
+ const recipient=transaction.recipientCard||transaction.title;
+ for(const entry of state.transactions){
+  const key=entry.date.slice(0,7);
+  if(entry.amount>=0||!buckets.has(key)||(entry.cardId||'main')!==(transaction.cardId||'main')||
+     (entry.recipientCard||entry.title)!==recipient||bankPreset(entry).id!==bankPreset(transaction).id)continue;
+  buckets.set(key,buckets.get(key)+Math.round(-entry.amount*100));
+ }
+ const values=[...buckets.values()];
+ const maximum=Math.max(0,...values);
+ const total=values.reduce((sum,value)=>sum+value,0);
+ const currency=value=>displayMoney(Math.round(value)/100)+' ₴';
+ const labels=new Intl.DateTimeFormat('uk-UA',{month:'short',timeZone:'UTC'});
+ return `<figure class="transfer-spending">
+  <figcaption> <span>Витратили ${currency(total)} за півроку</span></figcaption>
+  <div class="transfer-spending-plot">
+   <div class="transfer-spending-scale" aria-hidden="true"><span>${currency(maximum)}</span><span>${currency(maximum/2)}</span><span>0 ₴</span></div>
+   <div class="transfer-spending-grid">${months.map((date,index)=>{
+    const label=esc(labels.format(date).replace(/\.$/,''));
+    return `<div class="transfer-spending-month" role="img" aria-label="${label}: ${currency(values[index])}">
+     <span class="transfer-spending-bar" ${values[index]===0?'data-empty':''} style="--bar-ratio:${maximum?values[index]/maximum:0}"></span>
+     <small>${label}</small></div>`;
+   }).join('')}</div>
+  </div>
+ </figure>`;
+}
+
 detail=function(){
  const tx=currentTx(),html=detailBeforeBankReferenceScreens();
  if(!tx||!['mono','other'].includes(operationBank(tx)))return html;
@@ -73,6 +104,11 @@ detail=function(){
  const note=screen.querySelector('.reference-operation-edit [data-action=reference-edit-note]');if(note)note.querySelector('.icon')?.replaceWith(document.createRange().createContextualFragment(bankNoteGlyph));
  const upload=screen.querySelector('[data-action=reference-upload]');if(upload)upload.querySelector('.icon')?.replaceWith(document.createRange().createContextualFragment(bankUploadGlyph));
  screen.querySelector('.reference-balance>.icon')?.replaceWith(document.createRange().createContextualFragment(bankWalletGlyph));
+ const chart=screen.querySelector('.chart-panel');
+ if(tx.amount<0&&chart){
+  screen.querySelector('.reference-chart-heading')?.remove();
+  chart.replaceWith(document.createRange().createContextualFragment(transferSpendingChart(tx)));
+ }
  screen.querySelector('.incoming-menu [data-action=support-tx]>.icon')?.replaceWith(document.createRange().createContextualFragment(bankQuestionGlyph));
  if(tx.amount<0)screen.querySelectorAll('.detail-menu>.menu-row>.chevron').forEach(el=>el.remove());
  if(tx.amount<0)for(const [action] of Object.entries(transferActionPaths))screen.querySelector('.detail-menu [data-action="'+action+'"]>.icon')?.replaceWith(document.createRange().createContextualFragment(transferActionGlyph(action)));
