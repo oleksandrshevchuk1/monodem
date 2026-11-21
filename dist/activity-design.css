@@ -4,19 +4,19 @@
   --home-new-gradient: linear-gradient(#161632, #21294d 97px, #28355f 200px, #253559 317px, #1e2c47 400px, #1c273d 500px, #171a23 600px, #121212 733px);
 }
 
-#app.home {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).home {
   background: var(--home-black-gradient);
 }
 
-#app.home.white-active {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).home.white-active {
   background: var(--home-white-gradient);
 }
 
-#app.home.new-card-theme {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).home.new-card-theme {
   background: var(--home-new-gradient);
 }
 
-#app {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer) {
   --activity-panel: #272727;
   --activity-edge: #555;
   --activity-muted: #aaa;
@@ -183,7 +183,7 @@
   background: #ddd;
 }
 
-#app.statbreakdown {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).statbreakdown {
   background: #1a1b2d;
 }
 
@@ -234,38 +234,35 @@
   margin-bottom: 8px;
 }
 
-#app.card .expanded-card .card-printed-number {
-  display: none !important;
-}
 
 
-#app.card {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).card {
   background: linear-gradient(#060622, #090e2b 97px, #0c1939 200px, #0b214a 317px, #0e2654 400px, #10264f 500px, #132549 600px, #132646 733px) fixed !important;
 }
 
-#app.card:has(.expanded-card .is-white) {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).card:has(.expanded-card .is-white) {
   background: linear-gradient(#110614, #190c26 97px, #21143f 200px, #242657 317px, #232e64 400px, #28336b 500px, #2a3573 600px, #2e3979 733px) fixed !important;
 }
 
-#app.card .card-settings > .settings-group {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).card .card-settings > .settings-group {
   border-radius: 22px;
   background: rgb(255 255 255 / 10%);
   padding-block: 0;
   margin-bottom: 16px;
 }
 
-#app.card .card-settings .menu-row {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).card .card-settings .menu-row {
   min-height: 72px;
   font-size: 16px;
   font-weight: 450;
 }
 
-#app.card .card-settings .menu-row small {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).card .card-settings .menu-row small {
   font-size: 14px;
   font-weight: 400;
 }
 
-#app.card:not(:has(.expanded-card .is-white)) .expanded-card .bank-card-front {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).card:not(:has(.expanded-card .is-white)) .expanded-card .bank-card-front {
   background: linear-gradient(180deg, #282828, #222 32%, #111 100%);
 }
 
@@ -298,11 +295,11 @@ body > .card-header-mini::before {
   z-index: -1;
 }
 
-body:has(#app.card .expanded-card .is-white) > .card-header-mini::before {
+body:has(:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).card .expanded-card .is-white) > .card-header-mini::before {
   background: linear-gradient(#100513, #190c26);
 }
 
-#app.home .card-selector {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).home .card-selector {
   width: 100px;
   min-width: 100px;
   height: 24px;
@@ -311,38 +308,38 @@ body:has(#app.card .expanded-card .is-white) > .card-header-mini::before {
   font-weight: 600;
 }
 
-#app.home .card-selector::before {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).home .card-selector::before {
   border-radius: 999px;
   background: #07142966;
 }
 
-#app.home .selector-label {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).home .selector-label {
   gap: 5px;
 }
 
-#app.home .selector-label .icon {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).home .selector-label .icon {
   width: 14px;
   height: 14px;
   opacity: 1;
 }
 
-#app.home .home-content .new-card-cta {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).home .home-content .new-card-cta {
   font-size: 16px;
   font-weight: 500;
   background: #464e5c;
 }
 
-#app.cards .cards-overview {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).cards .cards-overview {
   min-height: 100dvh;
   background: linear-gradient(#171731, #1c2039 97px, #151f38 200px, #141f35 317px, #131e34 400px, #151d2a 500px, #1b1c21 600px, #1a1a1a 820px);
 }
 
 
-#app.cards.overview-visible .cards-overview {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).cards.overview-visible .cards-overview {
   background: linear-gradient(#171731ed, #1c2039dc 97px, #151f38de 200px, #141f35e6 317px, #131e34e2 400px, #151d2ad9 500px, #1b1c21da 600px, #1a1a1adf 820px);
 }
 
-#app.cards .open-card-floating {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).cards .open-card-floating {
   box-sizing: border-box;
   display: grid;
   grid-template-columns: 27px auto;
@@ -358,7 +355,7 @@ body:has(#app.card .expanded-card .is-white) > .card-header-mini::before {
   white-space: nowrap;
 }
 
-#app.cards .open-card-floating .open-card-plus {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).cards .open-card-floating .open-card-plus {
   width: 27px;
   height: 27px;
   filter: none;
@@ -396,7 +393,7 @@ body:has(#app.card .expanded-card .is-white) > .card-header-mini::before {
   background: linear-gradient(140deg, #4b42b5, #6d68df);
 }
 
-#app.card .card-settings .menu-row > .icon.settings-glyph {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).card .card-settings .menu-row > .icon.settings-glyph {
   width: 24px;
   height: 24px;
   flex: 0 0 24px;
@@ -407,11 +404,11 @@ body:has(#app.card .expanded-card .is-white) > .card-header-mini::before {
 }
 
 /* Geometry is measured at the references' 390 CSS pixel width. */
-#app.card .card-settings > .payment-settings {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).card .card-settings > .payment-settings {
   min-height: 72px;
 }
 
-#app.home .home-content > .operation-panel {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).home .home-content > .operation-panel {
   min-height: 272px;
 }
 
@@ -436,11 +433,11 @@ body:has(#app.card .expanded-card .is-white) > .card-header-mini::before {
   margin-bottom: 14px;
 }
 
-#app.cards .compact-cards {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).cards .compact-cards {
   margin-top: 0;
 }
 
-#app.cards .compact-card {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).cards .compact-card {
   min-height: 156px;
   border-radius: 17px;
 }
@@ -471,11 +468,11 @@ body:has(#app.card .expanded-card .is-white) > .card-header-mini::before {
   background: var(--activity-panel) !important;
 }
 
-#app.statbreakdown .stats-breakdown {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).statbreakdown .stats-breakdown {
   padding-top: max(48px, calc(env(safe-area-inset-top) + 4px));
 }
 
-#app.statbreakdown .stats-breakdown .stats-toolbar {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).statbreakdown .stats-breakdown .stats-toolbar {
   box-sizing: border-box;
   height: 24px;
   min-height: 24px;
@@ -483,19 +480,19 @@ body:has(#app.card .expanded-card .is-white) > .card-header-mini::before {
   margin-bottom: 2px;
 }
 
-#app.statbreakdown .stats-breakdown .stats-period-label {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).statbreakdown .stats-breakdown .stats-period-label {
   font-size: 14px;
   line-height: 20px;
   margin-bottom: 13px;
 }
 
-#app.statbreakdown .stats-breakdown .stats-tabs {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).statbreakdown .stats-breakdown .stats-tabs {
   min-height: 39px;
   border-radius: 8px;
   margin-bottom: 15px;
 }
 
-#app.statbreakdown .stats-breakdown .stats-category {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).statbreakdown .stats-breakdown .stats-category {
   height: 72px;
   padding-block: 10px;
 }
@@ -571,13 +568,13 @@ body:has(#app.card .expanded-card .is-white) > .card-header-mini::before {
   padding-block: 5px;
 }
 
-#app.home .home-content > .new-card-actions {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).home .home-content > .new-card-actions {
   align-content: start;
   margin-top: 33px;
   margin-bottom: 10px;
 }
 
-#app.home .new-card-empty h2 {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).home .new-card-empty h2 {
   transform: translateY(-30px);
 }
 
@@ -586,14 +583,14 @@ body:has(#app.card .expanded-card .is-white) > .card-header-mini::before {
   background-color: #121212;
 }
 
-#app.history .transaction .tx-content strong,
-#app.home .operation-panel .transaction .tx-content strong {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).history .transaction .tx-content strong,
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).home .operation-panel .transaction .tx-content strong {
   font-size: clamp(14px, 4.1vw, 16px);
   font-weight: 400;
 }
 
-#app.history .transaction .tx-amount,
-#app.home .operation-panel .transaction .tx-amount {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).history .transaction .tx-amount,
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).home .operation-panel .transaction .tx-amount {
   font-size: clamp(15px, 4.35vw, 17px);
   font-weight: 400;
 }
@@ -608,13 +605,13 @@ body:has(#app.card .expanded-card .is-white) > .card-header-mini::before {
   font-weight: 400;
 }
 
-#app.statbreakdown .stats-category strong,
-#app.statbreakdown .stats-category-amount {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).statbreakdown .stats-category strong,
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).statbreakdown .stats-category-amount {
   font-size: clamp(14px, 4.1vw, 16px);
   font-weight: 400;
 }
 
-#app.statbreakdown .stats-category small {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).statbreakdown .stats-category small {
   font-size: 14px;
   font-weight: 400;
 }
@@ -646,14 +643,14 @@ body:has(#app.card .expanded-card .is-white) > .card-header-mini::before {
   height: 26px;
 }
 
-#nav .tab .reference-control-glyph {
+:is(#nav, .transition-nav) .tab .reference-control-glyph {
   width: 26px;
   height: 26px;
   opacity: 1;
   filter: none;
 }
 
-#app.history .transaction .tx-amount.green {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).history .transaction .tx-amount.green {
   color: #1cac4d;
 }
 
@@ -661,22 +658,22 @@ body:has(#app.card .expanded-card .is-white) > .card-header-mini::before {
   translate: 0 5px;
 }
 
-#app.home .home-balance .balance-plus-glyph {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).home .home-balance .balance-plus-glyph {
   width: 32px;
   height: 32px;
   color: #a7b1d0;
   opacity: 1;
 }
 
-#app.home .card-selector {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).home .card-selector {
   translate: 0 7px;
 }
 
-#nav .tab:not(.active) .reference-control-glyph {
+:is(#nav, .transition-nav) .tab:not(.active) .reference-control-glyph {
   color: #adadad;
 }
 
-#nav .tab.active .reference-control-glyph {
+:is(#nav, .transition-nav) .tab.active .reference-control-glyph {
   color: #ff4d57;
 }
 
@@ -708,36 +705,36 @@ body:has(#app.card .expanded-card .is-white) > .card-header-mini::before {
   min-height: 80px;
 }
 
-#app.cards .cards-overview > h1 {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).cards .cards-overview > h1 {
   margin-bottom: 21px;
 }
 
-#app.cards .compact-card > strong {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).cards .compact-card > strong {
   font-family: inherit;
   font-size: clamp(15px, 5.4vw, 21px);
   font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
 
-#app.history .card-operations .date-heading {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).history .card-operations .date-heading {
   color: #c5c5c5;
   font-size: 14px;
   font-weight: 400;
 }
 
-#app.history .card-operations .transaction {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).history .card-operations .transaction {
   min-height: 72px;
 }
 
-#app.history .card-operations .transaction + .transaction {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).history .card-operations .transaction + .transaction {
   border-top-color: transparent;
 }
 
-#app.history .all-operations-top .stats-mini-card .bank-card-front {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).history .all-operations-top .stats-mini-card .bank-card-front {
   background: linear-gradient(#282828, #121212);
 }
 
-#app.history .all-operations-top .stats-mini-card .is-white .bank-card-front {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).history .all-operations-top .stats-mini-card .is-white .bank-card-front {
   background: linear-gradient(#fdfdfd, #e5e7ed);
 }
 
@@ -754,7 +751,7 @@ body:has(#app.card .expanded-card .is-white) > .card-header-mini::before {
               linear-gradient(110deg,#8042d2,#df1673) border-box;
 }
 
-#app.statbreakdown .stats-breakdown .stats-category-amount.green {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).statbreakdown .stats-breakdown .stats-category-amount.green {
   color: #17ac42;
 }
 
@@ -769,7 +766,7 @@ body:has(#app.card .expanded-card .is-white) > .card-header-mini::before {
   background: url("assets/reference/statistics-category-glyphs.png") var(--category-position) center / 500% 100% no-repeat;
 }
 
-#app.home .section-title h2,
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).home .section-title h2,
 .home-useful > h2,
 .home-market > h2 {
   font-size: 16px;
@@ -790,24 +787,24 @@ body:has(#app.card .expanded-card .is-white) > .card-header-mini::before {
   font-weight: 650;
 }
 
-#app.cards .compact-card > .compact-name {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).cards .compact-card > .compact-name {
   font-size: 12px;
   font-weight: 400;
 }
 
-#app.card .card-settings > h2 {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).card .card-settings > h2 {
   font-size: 18px;
   font-weight: 650;
   line-height: 22px;
 }
 
-#app.card .card-settings > .payment-settings:not(.internet-limit) > span {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).card .card-settings > .payment-settings:not(.internet-limit) > span {
   font-size: 16px;
   font-weight: 500;
   line-height: 20px;
 }
 
-#app.card .card-settings > .payment-settings:not(.internet-limit) small {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).card .card-settings > .payment-settings:not(.internet-limit) small {
   font-size: 14px;
   line-height: 18px;
 }
@@ -828,7 +825,7 @@ body:has(#app.card .expanded-card .is-white) > .card-header-mini::before {
   font-weight: 400;
 }
 
-#app.home .home-content > .operation-panel:not(.new-card-empty) {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).home .home-content > .operation-panel:not(.new-card-empty) {
   padding-bottom: 1px;
 }
 
@@ -840,7 +837,7 @@ body:has(#app.card .expanded-card .is-white) > .card-header-mini::before {
   padding-block: 12px;
 }
 
-#app.cards .compact-card {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).cards .compact-card {
   padding-bottom: 24px;
 }
 
@@ -852,7 +849,7 @@ body:has(#app.card .expanded-card .is-white) > .card-header-mini::before {
   margin-bottom: -8px !important;
 }
 
-#app.history .card-operations .date-heading {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).history .card-operations .date-heading {
   margin-top: 19px;
 }
 
@@ -875,20 +872,20 @@ body:has(#app.card .expanded-card .is-white) > .card-header-mini::before {
   line-height: 16px;
 }
 
-#app.home .new-card-empty h2 {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).home .new-card-empty h2 {
   font-weight: 600;
   transform: translateY(-33px);
 }
 
-#app.history .card-operations .all-operations-top > .stats-mini-card {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).history .card-operations .all-operations-top > .stats-mini-card {
   height: 40px;
   border-radius: 8px;
 }
 
-#app.history .card-operations .date-heading {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).history .card-operations .date-heading {
   margin-bottom: 9px;
 }
 
-#app.history .card-operations .bank-transfer-icon {
+:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).history .card-operations .bank-transfer-icon {
   background: linear-gradient(140deg, #4541aa, #6863ca);
 }

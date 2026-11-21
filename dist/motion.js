@@ -88,7 +88,7 @@ cleanupSwipe=function(){
 };
 // Operations rise over the frozen home surface and dissolve back into it on pull-down.
 let operationsHome=null,operationsScene=null,operationsEntrance=null,operationsNavMotion=null,historyTouchCleanup=null;
-function freezeHome(){const snapshot=captureBankSurface(true),source=$('#screen'),copy=snapshot.firstElementChild;copy.removeAttribute('id');copy.classList.add('transition-screen');copy.style.paddingBottom=getComputedStyle(source).paddingBottom;copy.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));snapshot.firstElementChild.replaceWith(copy);snapshot.querySelectorAll('.transition-nav').forEach(el=>el.remove());snapshot.className='operations-home-underlay home';snapshot.style.height=Math.max(innerHeight,$('#app').offsetHeight)+'px';return snapshot}
+function freezeHome(){const snapshot=captureBankSurface(true),source=$('#screen'),copy=snapshot.firstElementChild;copy.removeAttribute('id');copy.classList.add('transition-screen');copy.style.paddingBottom=getComputedStyle(source).paddingBottom;copy.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));snapshot.firstElementChild.replaceWith(copy);snapshot.querySelectorAll('.transition-nav').forEach(el=>el.remove());snapshot.classList.remove('bank-surface-transition');snapshot.classList.add('operations-home-underlay');snapshot.style.height=Math.max(innerHeight,$('#app').offsetHeight)+'px';return snapshot}
 function operationsNav(from,to,duration){const nav=$('#nav');operationsNavMotion?.cancel();nav.hidden=false;nav.style.zIndex='46';nav.style.opacity=String(to);if(shouldReduceMotion())return;operationsNavMotion=nav.animate([{opacity:from},{opacity:to}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'})}
 function restoreOperationsNav(){operationsNavMotion?.cancel();operationsNavMotion=null;const nav=$('#nav');nav.style.opacity='';nav.style.zIndex='';nav.hidden=route.page==='history'||['card','detail','analytics','limits','abroad'].includes(route.page)}
 function endOperationsEntrance(){const scene=operationsScene;if(scene?.phase!=='opening')return;scene.motion.cancel();if(route.page==='history')$('#screen').append(scene.page);scene.page.style.marginTop='';scene.layer.remove();scene.home?.remove();operationsScene=null;delete document.documentElement.dataset.gesture;restoreOperationsNav()}
@@ -232,7 +232,8 @@ function freezePageSurface() {
  const app = $('#app'), surface = captureBankSurface(true), source = $('#screen');
  const copy = surface.firstElementChild;
  copy.style.paddingBottom = getComputedStyle(source).paddingBottom;
- surface.className = 'side-page-snapshot ' + app.className;
+ surface.classList.remove('bank-surface-transition');
+ surface.classList.add('side-page-snapshot');
  surface.classList.remove('paired-side-motion');
  const scroll = source.querySelector('.operation-content-scroll')?.scrollTop;
  if (scroll) copy.querySelector('.operation-content').style.transform = 'translateY(' + (-scroll) + 'px)';

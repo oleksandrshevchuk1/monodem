@@ -196,11 +196,50 @@ function bindHorizontalGesture(element,{read,write,settle,cancel}){
 }
 bindCardSwipe=function(){const pane=$('.card-carousel');if(!pane)return;carouselIndex=newCardSelected?allCards().length:allCards().findIndex(c=>c.id===activeCard().id);setCarouselPosition(carouselIndex);bindHorizontalGesture(pane,{read:()=>swipeLayers?.dx||0,write:x=>moveHomeSwipe(x),cancel:()=>cardSlideAnimation?.cancel(),settle:(v,cancelled)=>{const l=prepareSwipe(),projected=l.dx+v*.12;slideCardTo(l.index+(!cancelled&&Math.abs(projected)>l.width*.25?(projected<0?1:-1):0))}})};
 
-function captureBankSurface(preserveArtwork=false){const app=$('#app'),rect=app.getBoundingClientRect(),surface=document.createElement('div');surface.className='bank-surface-transition';Object.assign(surface.style,{position:'fixed',left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:app.offsetHeight+'px',background:getComputedStyle(app).background,zIndex:37,pointerEvents:'none',overflow:'hidden'});const source=$('#screen'),screen=source.cloneNode(true);screen.removeAttribute('id');screen.classList.add('transition-screen');screen.style.paddingBottom=getComputedStyle(source).paddingBottom;screen.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));const expanded=screen.querySelector('.expanded-card');if(!preserveArtwork){if(expanded)expanded.style.visibility='hidden';screen.querySelector('.card-face[data-id="'+state.activeCard+'"]')?.remove();}surface.append(screen);if(!$('#nav').hidden){const navigation=$('#nav').cloneNode(true);navigation.removeAttribute('id');navigation.classList.add('transition-nav');surface.append(navigation)}surface.inert=true;return surface}
-function fitMonetaryLabels(){for(const [selector,max,min] of [['.home-balance strong',46,26],['.stats-summary>strong',46,24],['.capital-total>strong',38,22],['.compact-card>strong',21,12],['.tx-amount',18,12]]){document.querySelectorAll(selector).forEach(el=>{if(el.dataset.numberMotion==='1')return;el.style.fontSize=max+'px';const available=el.clientWidth;if(available&&el.scrollWidth>available)el.style.fontSize=Math.max(min,Math.floor(max*available/el.scrollWidth))+'px'})}}
+function captureBankSurface(preserveArtwork=false){
+ const app=$('#app'),rect=app.getBoundingClientRect(),surface=document.createElement('div');
+ surface.className='bank-surface-transition demo-transition-surface '+app.className;
+ Object.assign(surface.style,{position:'fixed',left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:app.offsetHeight+'px',background:getComputedStyle(app).background,zIndex:37,pointerEvents:'none',overflow:'hidden'});
+ const source=$('#screen'),screen=source.cloneNode(true),style=getComputedStyle(source);
+ screen.removeAttribute('id');
+ screen.classList.add('transition-screen');
+ for(const property of ['display','paddingTop','paddingRight','paddingBottom','paddingLeft','minHeight','boxSizing']){
+  screen.style[property]=style[property];
+ }
+ screen.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));
+ if(!preserveArtwork){
+  const expanded=screen.querySelector('.expanded-card');
+  if(expanded)expanded.style.visibility='hidden';
+  const selected=screen.querySelector('.card-face[data-id="'+state.activeCard+'"]');
+  if(selected)selected.style.visibility='hidden';
+ }
+ surface.append(screen);
+ const nav=$('#nav');
+ if(!nav.hidden){
+  const navigation=nav.cloneNode(true);
+  navigation.removeAttribute('id');
+  navigation.classList.add('transition-nav');
+  surface.append(navigation);
+ }
+ surface.inert=true;
+ return surface;
+}
+
+function fitMonetaryLabels(){
+ const sizes=[['.home-balance strong',46,26],['.stats-summary>strong',46,24],['.capital-total>strong',38,22],['.compact-card>strong',21,12]];
+ for(const [selector,max,min] of sizes){
+  for(const el of $('#screen').querySelectorAll(selector)){
+   if(el.dataset.numberMotion==='1')continue;
+   el.style.fontSize=max+'px';
+   const available=el.clientWidth;
+   if(available&&el.scrollWidth>available)el.style.fontSize=Math.max(min,Math.floor(max*available/el.scrollWidth))+'px';
+  }
+ }
+}
 function animateSummaryValue(el,from,to,kind){if(from===to||shouldReduceMotion())return;const available=el.clientWidth,style=getComputedStyle(el),canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');ctx.font=style.font;const label=n=>(kind==='expense'?'−':'')+displayMoney(n)+' ₴',width=Math.max(ctx.measureText(label(from)).width,ctx.measureText(label(to)).width);el.style.fontSize=Math.max(24,Math.min(parseFloat(style.fontSize),parseFloat(style.fontSize)*available/width))+'px';el.dataset.numberMotion='1';const start=performance.now();const step=now=>{if(!el.isConnected)return;const t=Math.min(1,(now-start)/240),n=from+(to-from)*(1-Math.pow(1-t,3));el.textContent=label(n);if(t<1)requestAnimationFrame(step);else{el.textContent=label(to);delete el.dataset.numberMotion}};requestAnimationFrame(step)}
 const beforeAmountRender=render;
-render=function(){const previous=route.page==='analytics'?new Map([...document.querySelectorAll('.stats-summary')].map(x=>[x.dataset.kind,Number(x.dataset.total)])):null;beforeAmountRender();requestAnimationFrame(()=>{fitMonetaryLabels();if(previous?.size)document.querySelectorAll('.stats-summary').forEach(x=>{if(previous.has(x.dataset.kind))animateSummaryValue(x.querySelector(':scope>strong'),previous.get(x.dataset.kind),Number(x.dataset.total),x.dataset.kind)})});document.fonts.ready.then(fitMonetaryLabels)};
+render=function(){const previous=route.page==='analytics'?new Map([...document.querySelectorAll('.stats-summary')].map(x=>[x.dataset.kind,Number(x.dataset.total)])):null;beforeAmountRender();fitMonetaryLabels();if(previous?.size)requestAnimationFrame(()=>{if(route.page==='analytics')document.querySelectorAll('.stats-summary').forEach(x=>{if(previous.has(x.dataset.kind))animateSummaryValue(x.querySelector(':scope>strong'),previous.get(x.dataset.kind),Number(x.dataset.total),x.dataset.kind)})});};
+document.fonts.ready.then(fitMonetaryLabels);
 
 render();
 

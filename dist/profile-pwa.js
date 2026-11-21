@@ -7,7 +7,45 @@ actions['edit-personal-all']=()=>modal('Особисті дані',field('Як �
 actions['edit-personal-avatar']=()=>modal('Фото профілю',`${state.avatar?`<img class="profile-editor-avatar" src="${esc(state.avatar)}" alt="Поточне фото">`:''}<label for="profile-avatar-upload">Виберіть нове фото</label><input id="profile-avatar-upload" name="avatar" type="file" accept="image/jpeg,image/png,image/webp">${state.avatar?'<label class="profile-remove-avatar"><input type="checkbox" name="removeAvatar"> Прибрати поточне фото</label>':''}`,async f=>{const file=f.get('avatar');if(file?.size){const value=await imageData(file);if(!value)throw Error('Виберіть JPG, PNG або WebP');const image=new Image();image.src=value;await image.decode();state.avatar=value}else if(f.get('removeAvatar'))state.avatar=null;else throw Error('Виберіть нове фото')});
 // The large card scrolls out naturally. Only a separate header thumbnail remains.
 let naturalCardScrollCleanup=null;
-bindCardCollapse=function(){naturalCardScrollCleanup?.();const card=$('.expanded-card'),toolbar=$('.card-close');if(!card||!toolbar)return;card.style.transform='';const mini=document.createElement('button');mini.type='button';mini.className='card-header-mini';mini.dataset.action='card-scroll-top';mini.setAttribute('aria-label','Повернутися до картки');mini.innerHTML=cardArtwork(activeCard());document.body.append(mini);const update=()=>{if(route.page!=='card'||!card.isConnected){window.removeEventListener('scroll',update,true);return}card.style.transform='';const rect=card.getBoundingClientRect(),p=Math.max(0,Math.min(1,(110-rect.bottom)/40));mini.style.opacity=String(p);mini.style.pointerEvents=p>.5?'auto':'none';mini.inert=p===0;mini.classList.toggle('flipped',card.classList.contains('flipped'))};window.addEventListener('scroll',update,{passive:true,capture:true});window.addEventListener('resize',update,{passive:true});naturalCardScrollCleanup=()=>{window.removeEventListener('scroll',update,true);window.removeEventListener('resize',update);mini.remove();naturalCardScrollCleanup=null};update()};
+bindCardCollapse=function(){
+ naturalCardScrollCleanup?.();
+ const card=$('.expanded-card');
+ if(!card)return;
+ const mini=document.createElement('button');
+ mini.type='button';
+ mini.className='card-header-mini';
+ mini.dataset.action='card-scroll-top';
+ mini.setAttribute('aria-label','Повернутися до картки');
+ mini.innerHTML=cardArtwork(activeCard());
+ document.body.append(mini);
+ let frame=0,previous=-1;
+ const update=()=>{
+  frame=0;
+  if(route.page!=='card'||!card.isConnected)return;
+  const progress=Math.max(0,Math.min(1,(110-card.getBoundingClientRect().bottom)/40));
+  if(progress!==previous){
+   mini.style.opacity=String(progress);
+   mini.style.pointerEvents=progress>.5?'auto':'none';
+   mini.inert=progress<=.5;
+   previous=progress;
+  }
+  mini.classList.toggle('flipped',card.classList.contains('flipped'));
+ };
+ const queueUpdate=()=>{if(!frame)frame=requestAnimationFrame(update)};
+ const observer=new MutationObserver(queueUpdate);
+ observer.observe(card,{attributes:true,attributeFilter:['class']});
+ window.addEventListener('scroll',queueUpdate,{passive:true,capture:true});
+ window.addEventListener('resize',queueUpdate,{passive:true});
+ naturalCardScrollCleanup=()=>{
+  observer.disconnect();
+  cancelAnimationFrame(frame);
+  window.removeEventListener('scroll',queueUpdate,true);
+  window.removeEventListener('resize',queueUpdate);
+  mini.remove();
+  naturalCardScrollCleanup=null;
+ };
+ update();
+};
 actions['card-scroll-top']=()=>pageScrollTo({top:0,behavior:shouldReduceMotion()?'instant':'smooth'});
 function cleanHistoryStack(){return '<span class="history-stack clean-history-stack" aria-hidden="true"><i class="stack-rear"></i><i class="stack-middle"></i><i class="stack-front"><b></b><em></em></i></span>'}
 const historyBeforeCleanStack=historyPage;historyPage=function(){const template=document.createElement('template');template.innerHTML=historyBeforeCleanStack();const image=template.content.querySelector('.history-stack');if(image)image.outerHTML=cleanHistoryStack();return template.innerHTML};
@@ -20,4 +58,4 @@ function clearReceiptIntro(){if(!receiptIntro)return;receiptIntro.observer?.disc
 function showReceiptIntro(){if(adminMode||!['file','receipt'].includes(route.page)){clearReceiptIntro();receiptIntroKey=null;return}const key=route.page+'/'+route.id;if(receiptIntroKey===key)return;clearReceiptIntro();const screen=$('#screen'),stage=$('.receipt-fit')||$('.receipt-document-stage')||$('.receipt-page'),footer=$('.receipt-share-footer');if(!stage)return;receiptIntroKey=key;const loader=document.createElement('div');loader.className='mono-receipt-intro';loader.setAttribute('role','status');loader.setAttribute('aria-label','Відкриваємо квитанцію');loader.innerHTML='<span>m</span>';loader.style.top=($('.toolbar')?.offsetHeight||64)+'px';loader.style.bottom=(footer?.offsetHeight||100)+'px';screen.append(loader);const session={key,loader,start:performance.now(),observer:null,timer:null,checking:false};receiptIntro=session;const reveal=()=>{if(receiptIntro!==session||session.checking)return;const images=[...stage.querySelectorAll('img')];if(route.page==='file'&&!images.length&&stage.getAttribute('aria-busy')==='true')return;session.checking=true;Promise.all(images.map(img=>img.decode().catch(()=>{}))).then(()=>{if(receiptIntro!==session)return;session.timer=setTimeout(()=>{if(receiptIntro!==session)return;if(shouldReduceMotion()){clearReceiptIntro();return}loader.animate([{opacity:1},{opacity:0}],{duration:120,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'}).finished.then(()=>{if(receiptIntro===session)clearReceiptIntro()}).catch(()=>{if(receiptIntro===session)clearReceiptIntro()})},Math.max(0,180-(performance.now()-session.start)))})};session.observer=new MutationObserver(reveal);session.observer.observe(stage,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-busy']});reveal()}
 const renderBeforeProfileAndPWA=render;render=function(){renderBeforeProfileAndPWA();if(route.page!=='card')naturalCardScrollCleanup?.();showReceiptIntro()};
 render();
-const measureBeforeHeaderThumbnail=measureCardPose;measureCardPose=function(el){if(el?.classList.contains('expanded-card')){const mini=$('.card-header-mini'),rect=el.getBoundingClientRect();if(mini&&rect.bottom<=110&&Number(getComputedStyle(mini).opacity)>.5){const pose=measureBeforeHeaderThumbnail(mini),painted=mini.querySelector('.bank-card').getBoundingClientRect();pose.rect=painted;pose.center={x:painted.x+painted.width/2,y:painted.y+painted.height/2};pose.sourceAngle=35;pose.flipped=mini.classList.contains('flipped');return pose}}return measureBeforeHeaderThumbnail(el)};
+const measureBeforeHeaderThumbnail=measureCardPose;measureCardPose=function(el){if(el?.classList.contains('expanded-card')){const mini=$('.card-header-mini'),rect=el.getBoundingClientRect();if(mini&&rect.bottom<=110&&Number(getComputedStyle(mini).opacity)>.5){const pose=measureBeforeHeaderThumbnail(mini),painted=mini.querySelector('.bank-card').getBoundingClientRect();pose.rect=painted;pose.center={x:painted.x+painted.width/2,y:painted.y+painted.height/2};pose.sourceAngle=0;pose.flipped=mini.classList.contains('flipped');return pose}}return measureBeforeHeaderThumbnail(el)};
