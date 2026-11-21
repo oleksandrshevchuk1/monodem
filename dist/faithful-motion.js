@@ -152,6 +152,14 @@ expandTransition=function(from,to,opening){
  plane.style.borderRadius=targetRadius;
  const targetShadow=getComputedStyle(to).boxShadow;
  if(!rear)body.style.boxShadow=targetShadow;
+ const front=art.querySelector('.bank-card-front');
+ const targetFront=to.querySelector('.bank-card-front');
+ const paint=getComputedStyle(targetFront);
+ Object.assign(front.style,{
+  background:paint.background,
+  filter:paint.filter,
+  boxShadow:paint.boxShadow
+ });
  const material=art.querySelector('.card-material'),targetMaterial=to.querySelector('.card-material');
  if(material&&targetMaterial){
   const opacity=getComputedStyle(targetMaterial).opacity;
@@ -162,7 +170,13 @@ expandTransition=function(from,to,opening){
  if(reflection&&targetReflection){
   const targetStyle=getComputedStyle(targetReflection),end={opacity:targetStyle.opacity,transform:targetStyle.transform};
   if(rear)Object.assign(reflection.style,end);
-  else if(reflectionStart)reflection.animate([reflectionStart,end],{duration,easing:landingEase,fill:'both'});
+  else if(reflectionStart){
+   const hidden={...end,opacity:0};
+   const poses=opening
+    ? [reflectionStart,{...hidden,offset:.28},hidden]
+    : [{...reflectionStart,opacity:0},{...hidden,offset:.72},end];
+   reflection.animate(poses,{duration,easing:landingEase,fill:'both'});
+  }
  }
  node.classList.toggle('returning-rear',rear);
  let shadow;

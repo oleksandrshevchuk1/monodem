@@ -40,7 +40,14 @@ cardPage=function(){return previousCardPage().replace(icon('wallet'),'<img class
 
 const previousFlip=actions['flip-card'];
 actions['flip-card']=()=>{previousFlip();$('.outside-card-number')?.classList.toggle('visible',cardFlipped)};
-function setCarouselPosition(index){const track=$('.card-track');if(track)track.style.transform=`translate3d(${-index*88}%,0,0)`}
+function cardPixel(value){
+ const scale=window.devicePixelRatio||1;
+ return Math.round(value*scale)/scale;
+}
+function setCarouselPosition(index){
+ const track=$('.card-track');
+ if(track)track.style.transform=`translate3d(${cardPixel(-index*track.offsetWidth*.88)}px,0,0)`;
+}
 let slideCardTo;
 const homeAccountIntro='.home-balance,.open-card-intro';
 actions['select-card']=button=>{
@@ -136,9 +143,18 @@ function bindRefresh(){}
 const experienceRender=render;
 render=function(){if(!adminMode&&['capital','statcategory','statbreakdown','openCard','service'].includes(route.page)){defaults();$('#app').className=route.page;$('#nav').hidden=true;$('#screen').innerHTML=({capital:capitalPage,statcategory:statsCategoryPage,statbreakdown:statsBreakdownPage,openCard:openCardPage,service:servicePage})[route.page]()}else{experienceRender();if(!adminMode){if(['cards','analytics'].includes(route.page))$('#nav').hidden=true;if(route.page==='home'){bindRefresh();$('#app').classList.toggle('new-card-theme',newCardSelected);$('#app').classList.toggle('white-active',!newCardSelected&&cardWhite(activeCard()))}if(route.page==='analytics')initStats();if(route.page==='card'){let p;$('.expanded-card')?.addEventListener('pointerdown',e=>p={x:e.clientX,y:e.clientY});$('.expanded-card')?.addEventListener('pointerup',e=>{if(p&&Math.abs(e.clientX-p.x)>40&&Math.abs(e.clientY-p.y)<50){actions['flip-card']();e.currentTarget.addEventListener('click',e=>{e.stopPropagation();e.preventDefault()},{once:true,capture:true})}p=null})}}}};
 // The carousel and indicator share the same drag position.
-let swipeLayers=null;
+let swipeLayers=null,cardSelectorTimer;
+function showCardIndicator(button){
+ clearTimeout(cardSelectorTimer);
+ button?.classList.add('show-card-indicator');
+}
+function restoreCardSelector(button){
+ clearTimeout(cardSelectorTimer);
+ if(!button)return;
+ cardSelectorTimer=setTimeout(()=>button.classList.remove('show-card-indicator'),shouldReduceMotion()?0:1600);
+}
 function prepareSwipe(){if(swipeLayers)return swipeLayers;const app=$('#app'),track=$('.card-track'),cards=allCards(),index=newCardSelected?cards.length:Math.max(0,cards.findIndex(c=>c.id===state.activeCard)),background=document.createElement('div');background.className='swipe-gradient';app.prepend(background);
- swipeLayers={track,cards,indicator:$('.card-selector .selector-dots'),width:app.clientWidth,index,background,dx:0,theme:null};document.documentElement.dataset.gesture='active';app.classList.add('card-gesture-active');return swipeLayers}
+ swipeLayers={track,cards,indicator:$('.card-selector .selector-dots'),width:app.clientWidth,trackWidth:track.offsetWidth,index,background,dx:0,theme:null};document.documentElement.dataset.gesture='active';app.classList.add('card-gesture-active');showCardIndicator(swipeLayers.indicator?.parentElement);return swipeLayers}
 function cardIndicatorMarkers(index){
  const total=allCards().length;
  const first=Math.max(0,Math.min(index-2,total-4));
@@ -151,11 +167,19 @@ function cardIndicatorMarkers(index){
 }
 function updateCardIndicator(indicator,index){
  if(!indicator||indicator.dataset.index===String(index))return;
- indicator.innerHTML=cardIndicatorMarkers(index);
+ const total=allCards().length;
+ const first=Math.max(0,Math.min(index-2,total-4));
+ if(indicator.dataset.first===String(first)){
+  indicator.querySelector('.selected')?.classList.remove('selected');
+  indicator.children[index-first]?.classList.add('selected');
+ }else{
+  indicator.innerHTML=cardIndicatorMarkers(index);
+  indicator.dataset.first=first;
+ }
  indicator.dataset.index=index;
 }
-function moveHomeSwipe(distance,rubber=true){const l=prepareSwipe(),edge=(l.index===0&&distance>0)||(l.index===l.cards.length&&distance<0),dx=edge&&rubber?distance*.2:distance;l.dx=dx;updateCardIndicator(l.indicator,Math.max(0,Math.min(l.cards.length,Math.round(l.index-dx/l.width))));l.track.style.transform=`translate3d(${-l.index*l.width*.88+dx*.88}px,0,0)`;const next=l.index+(dx<0?1:-1);if(l.theme!==next){const c=l.cards[next];l.background.style.background=next===l.cards.length?'var(--home-new-gradient)':c&&cardWhite(c)?'var(--home-white-gradient)':'var(--home-black-gradient)';l.theme=next}l.background.style.opacity=Math.min(1,Math.abs(dx)/l.width)}
-function cleanupSwipe(){if(!swipeLayers)return;updateCardIndicator(swipeLayers.indicator,carouselIndex);swipeLayers.background.remove();$('#app').classList.remove('card-gesture-active');delete document.documentElement.dataset.gesture;swipeLayers=null}
+function moveHomeSwipe(distance,rubber=true){const l=prepareSwipe(),edge=(l.index===0&&distance>0)||(l.index===l.cards.length&&distance<0),dx=rubber?Math.max(-l.width,Math.min(l.width,edge?distance*.2:distance)):distance;l.dx=dx;updateCardIndicator(l.indicator,Math.max(0,Math.min(l.cards.length,Math.round(l.index-dx/l.width))));l.track.style.transform=`translate3d(${cardPixel((-l.index+dx/l.width)*l.trackWidth*.88)}px,0,0)`;const next=l.index+(dx<0?1:-1);if(l.theme!==next){const c=l.cards[next];l.background.style.background=next===l.cards.length?'var(--home-new-gradient)':c&&cardWhite(c)?'var(--home-white-gradient)':'var(--home-black-gradient)';l.theme=next}l.background.style.opacity=Math.min(1,Math.abs(dx)/l.width)}
+function cleanupSwipe(){if(!swipeLayers)return;updateCardIndicator(swipeLayers.indicator,carouselIndex);restoreCardSelector(swipeLayers.indicator?.parentElement);swipeLayers.background.remove();$('#app').classList.remove('card-gesture-active');delete document.documentElement.dataset.gesture;swipeLayers=null}
 function refreshSelectedCard(){
  const app=$('#app');
  app.classList.toggle('white-active',!newCardSelected&&cardWhite(activeCard()));
@@ -191,7 +215,7 @@ function bindHorizontalGesture(element,{read,write,settle,cancel}){
  const stopClick=e=>{e.preventDefault();e.stopPropagation()};
  const flush=()=>{cancelAnimationFrame(frame);frame=0;if(start&&dragging)write(pending)};
  element.addEventListener('pointerdown',e=>{if(e.button!==0||start)return;if(element.classList.contains('card-carousel')&&(e.clientX-$('#app').getBoundingClientRect().left<=28||document.body.classList.contains('has-glass-history')))return;if(element.classList.contains('home-content')&&(e.target.closest('.operation-panel')||e.clientX-element.getBoundingClientRect().left<=28))return;start={x:e.clientX,y:e.clientY,base:read(),id:e.pointerId};dragging=false;vertical=false;samples=[{x:e.clientX,time:performance.now()}]});
- element.addEventListener('pointermove',e=>{if(!start||e.pointerId!==start.id||vertical)return;const dx=e.clientX-start.x,dy=e.clientY-start.y;if(!dragging&&Math.abs(dy)>8&&Math.abs(dy)>Math.abs(dx)){vertical=true;return}if(!dragging&&Math.abs(dx)>14&&Math.abs(dx)>Math.abs(dy)*1.6){cancel();start.base=read();dragging=true;element.setPointerCapture(e.pointerId)}if(!dragging)return;const time=performance.now();samples.push({x:e.clientX,time});samples=samples.filter(p=>time-p.time<100);pending=start.base+dx;if(!frame)frame=requestAnimationFrame(()=>{frame=0;if(start&&dragging)write(pending)})});
+ element.addEventListener('pointermove',e=>{if(!start||e.pointerId!==start.id||vertical)return;const dx=e.clientX-start.x,dy=e.clientY-start.y;if(!dragging&&Math.abs(dy)>8&&Math.abs(dy)>Math.abs(dx)){vertical=true;return}if(!dragging&&Math.abs(dx)>14&&Math.abs(dx)>Math.abs(dy)*1.6){cancel();start.base=read()-(element.classList.contains('card-carousel')?Math.sign(dx)*14:0);dragging=true;element.setPointerCapture(e.pointerId)}if(!dragging)return;const time=performance.now();samples.push({x:e.clientX,time});samples=samples.filter(p=>time-p.time<100);pending=start.base+dx;if(!frame)frame=requestAnimationFrame(()=>{frame=0;if(start&&dragging)write(pending)})});
  const end=e=>{if(!start||e.pointerId!==start.id)return;flush();const moved=dragging,first=samples[0],last=samples.at(-1),v=e.type==='pointercancel'?0:last&&first&&performance.now()-last.time<80&&last.time>first.time?(last.x-first.x)/(last.time-first.time)*1000:0;start=null;dragging=false;vertical=false;if(element.hasPointerCapture(e.pointerId))element.releasePointerCapture(e.pointerId);if(moved){element.addEventListener('click',stopClick,{once:true,capture:true});setTimeout(()=>element.removeEventListener('click',stopClick,true),0);settle(v,e.type==='pointercancel'||e.type==='lostpointercapture')}};
  element.addEventListener('pointerup',end);element.addEventListener('pointercancel',end);element.addEventListener('lostpointercapture',e=>{if(start&&e.target===element&&!element.hasPointerCapture(e.pointerId))end(e)})
 }

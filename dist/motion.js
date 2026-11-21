@@ -58,7 +58,8 @@ prepareSwipe=function(){
  layer.pages=[];
  for(const index of [layer.index-1,layer.index+1]){
   if(index<0||index>allCards().length)continue;
-  const content=(accountPreviewCache.get(index)||buildAccountPreview(index)).cloneNode(true);
+  const content=accountPreviewCache.get(index)||buildAccountPreview(index);
+  accountPreviewCache.delete(index);
   const preview=document.createElement('div');
   preview.className='account-swipe-preview';
   preview.inert=true;
@@ -68,7 +69,6 @@ prepareSwipe=function(){
  }
  pane.append(...layer.pages.map(page=>page.node));
  for(const {node} of layer.pages){
-  prepareVisibleGlyphs(node);
   fitMonetaryLabels(node);
  }
  const top=pane.querySelector(homeAccountIntro).getBoundingClientRect().top;
@@ -79,9 +79,9 @@ prepareSwipe=function(){
 moveHomeSwipe=function(distance,rubber=true){
  moveAccountSwipe(distance,rubber);
  const layer=swipeLayers;
- const translation=`translate3d(${layer.dx}px,0,0)`;
+ const translation=`translate3d(${cardPixel(layer.dx)}px,0,0)`;
  for(const element of layer.movingContent)element.style.transform=translation;
- for(const {node,index} of layer.pages)node.style.transform=`translate3d(${(index-layer.index)*layer.width+layer.dx}px,0,0)`;
+ for(const {node,index} of layer.pages)node.style.transform=`translate3d(${cardPixel((index-layer.index)*layer.width+layer.dx)}px,0,0)`;
 };
 cleanupSwipe=function(){
  if(swipeLayers){
@@ -600,7 +600,13 @@ function buildAccountPreview(index){
   if(!newCardSelected)state.activeCard=cards[index].id;
   const template=document.createElement('template');
   template.innerHTML=homeAccountContent(true);
-  return template.content.firstElementChild;
+  const content=template.content.firstElementChild;
+  prepareVisibleGlyphs(content);
+  for(const image of content.querySelectorAll('img')){
+   if(image.complete)continue;
+   image.decode().catch(()=>{});
+  }
+  return content;
  }finally{
   state.activeCard=selected;
   newCardSelected=wasNew;
