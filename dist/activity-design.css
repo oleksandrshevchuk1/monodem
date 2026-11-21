@@ -913,34 +913,3 @@ body:not(.has-glass-history) #app.history #screen {
   pointer-events: none;
   background: linear-gradient(132deg, #d8e4ff19, transparent 43%, #c6dcff10 78%, #d7e5ff23);
 }
-
-.account-swipe-preview.demo-transition-surface.home {
-  background: transparent;
-}
-
-.card-selector .selector-label,
-.card-selector .selector-dots {
-  filter: none;
-  will-change: auto;
-  transition-property: opacity;
-}
-
-.card-gesture-active .card-selector .selector-label {
-  opacity: 0;
-}
-
-.card-gesture-active .card-selector .selector-dots {
-  opacity: 1;
-}
-
-.new-card-empty .new-card-sticker {
-  width: 22px;
-  height: 22px;
-  vertical-align: middle;
-  object-fit: contain;
-}
-
-:is(.expanded-card,.precise-card-surface) .card-glint {
-  opacity: .52;
-  pointer-events: none;
-}
