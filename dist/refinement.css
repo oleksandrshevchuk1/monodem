@@ -36,12 +36,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,DemoInter,'Helvetica Neue',Ari
   line-height: 16px;
   white-space: nowrap;
   pointer-events: none;
-  will-change: opacity, filter;
-  filter: blur(0);
-  transition: opacity 180ms var(--ease-out), filter 180ms var(--ease-out);
+  transition: opacity 180ms var(--ease-out);
 }
 .selector-label .icon { width: 15px; height: 15px; opacity: .75; }
-.selector-dots { opacity: 0; filter: blur(4px); }
+.selector-dots { opacity: 0; }
+.card-gesture-active .selector-label { opacity: 0; }
+.card-gesture-active .selector-dots { opacity: 1; }
 .selector-dots i {
   flex: 0 0 5px;
   height: 5px;

@@ -187,7 +187,7 @@ function animateSideSurfaces(app, preview, from, to, duration) {
  const width = app.clientWidth;
  const enteringDetail = from === width && to === 0 && !!app.querySelector('.operation-boundary-slot');
  if (enteringDetail && !pageScrollY()) app.classList.add('operation-entry-frame');
- let frame, lastTime, elapsed = 0, settled = false, resolve;
+ let frame, started, settled = false, resolve;
  const finished = new Promise(done => { resolve = done; });
  placeSideSurfaces(app, preview, from, width);
  app.classList.add('paired-side-motion');
@@ -199,9 +199,8 @@ function animateSideSurfaces(app, preview, from, to, duration) {
   resolve();
  };
  const advance = time => {
-  if (lastTime !== undefined) elapsed += Math.min(time - lastTime, 1000 / 60);
-  lastTime = time;
-  const progress = Math.min(1, elapsed / duration);
+  started ??= time;
+  const progress = Math.min(1, (time - started) / duration);
   // Ease gently from the first visible pixels, then slow near the destination.
   const eased = progress * progress * (3 - 2 * progress);
   placeSideSurfaces(app, preview, from + (to - from) * eased, width);
@@ -224,7 +223,10 @@ function animateSideSurfaces(app, preview, from, to, duration) {
  };
 }
 
+let limitReveals = [];
 function finishSideEntrance() {
+ for (const reveal of limitReveals) reveal.cancel();
+ limitReveals = [];
  const previous = sideEntrance;
  if (!previous) return;
  sideEntrance = null;
@@ -256,7 +258,7 @@ function freezePageSurface() {
   frozenSelector.classList.add('frozen-card-selector');
   frozenSelector.style.inlineSize = style.inlineSize;
   frozenSelector.style.blockSize = style.blockSize;
-  for (const part of ['.selector-label']) {
+  for (const part of ['.selector-label', '.selector-dots']) {
    const livePart = selector.querySelector(part), frozenPart = frozenSelector.querySelector(part);
    if (!livePart || !frozenPart) continue;
    const pose = getComputedStyle(livePart);
@@ -342,9 +344,7 @@ paint = function(direction) {
   const width = app.clientWidth;
   const parallax = slidingTransferPages.has(fromSide);
   const options = {duration: pageMotionDuration, easing: slideEase, fill: 'both'};
-  const exit = snapshot.animate(fromSide === 'limits' && !dx
-   ? [{opacity: 1}, {opacity: 0}]
-   : [{transform: translateX(dx)}, {transform: translateX(width)}], options);
+  const exit = snapshot.animate([{transform: translateX(dx)}, {transform: translateX(width)}], options);
   exit.isRouteExit = true;
   let underlay, companion;
   if (parallax) {
@@ -378,12 +378,25 @@ paint = function(direction) {
   const width = app.clientWidth;
   const parallax = slidingTransferPages.has(route.page);
   const options = {duration: pageMotionDuration, easing: slideEase, fill: 'both'};
+  const poses = [{transform: translateX(width)}, {transform: translateX(0)}];
   const entrance = parallax
    ? animateSideSurfaces(app, snapshot, width, 0, options.duration)
-   : app.animate(route.page === 'limits'
-    ? [{opacity: 0}, {opacity: 1}]
-    : [{transform: translateX(width)}, {transform: translateX(0)}], options);
-  if (route.page === 'limits') playAfterFirstPaint(entrance);
+   : app.animate(poses, options);
+  if (route.page === 'limits') {
+   const header = app.querySelector('.reference-page > h1');
+   const content = app.querySelectorAll('.reference-limit-group, .reference-legal');
+   const fade = (element, delay) => element.animate(
+    [{opacity: 0}, {opacity: 1}],
+    {delay, duration: 220, easing: slideEase, fill: 'backwards'}
+   );
+   const reveals = [fade(header, 100), ...Array.from(content, element => fade(element, 175))];
+   playAfterFirstPaint(entrance, ...reveals);
+   // Cancel unfinished fades before moving the limits screen into an exit snapshot.
+   limitReveals = reveals;
+   Promise.allSettled(reveals.map(reveal => reveal.finished)).then(() => {
+    if (limitReveals === reveals) limitReveals = [];
+   });
+  }
   trackSideMotion(entrance, snapshot);
   return;
  }
@@ -615,7 +628,7 @@ personalPage=function(){const rows=[['Як до вас звертатися?',st
 const renderBeforeFinalMotion=render;render=function(){renderBeforeFinalMotion();if(route.page==='home')scheduleAccountPreviews();if(route.page!=='history')historyTouchCleanup?.();if(route.page==='history'&&historyFavoritesActive){const list=$('#tx-list');if(list)list.innerHTML=grouped(txFor().filter(t=>t.favorite))}if(route.page==='detail'){const button=$('[data-action="favorite"]');button?.classList.toggle('is-favorite',!!currentTx()?.favorite);button?.setAttribute('aria-pressed',String(!!currentTx()?.favorite))}};
 render();
 
-sidePages.add("analytics");
+for (const page of ['analytics', 'capital', 'statbreakdown', 'statcategory']) sidePages.add(page);
 // Reuse the decoded home elements when returning from card/history overlays.
 // The source card and action icons keep their DOM identity across the handoff.
 let retainedHome=null;
