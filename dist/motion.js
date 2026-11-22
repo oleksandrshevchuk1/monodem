@@ -162,7 +162,10 @@ document.addEventListener('pointerdown',event=>{
  },{capture:true,passive:true});
 document.addEventListener('click',event=>{if(event.detail&&performance.now()<sideReturnClickUntil){event.preventDefault();event.stopImmediatePropagation()}},true);
 const sidePages = new Set(['limits','abroad','detail']), paintWithOperations = paint;
-const quickSidePages = new Set(['transfer', 'transferAmount', 'transferArchive', 'iban', 'payments', 'limits', 'abroad']);
+const quickSidePages = new Set([
+ 'transfer', 'transferAmount', 'transferArchive', 'iban', 'payments', 'limits', 'abroad',
+ 'notifications', 'cashback', 'appearance', 'analytics'
+]);
 const pairedSidePages = new Set(['detail', ...quickSidePages]);
 const mainTabs = ['home', 'credit', 'jars', 'more', 'market'];
 const tabFeedback = new WeakMap();
@@ -187,6 +190,8 @@ tabBar.addEventListener('click', event => {
  });
 });
 const slideEase = 'cubic-bezier(.32,.72,0,1)';
+const sideSlideEase = 'cubic-bezier(.333333,0,.666667,1)';
+const quickSideDuration = 270;
 const translateX = x => `translate3d(${x}px,0,0)`;
 
 const navigateBeforeTabReselect = actions.nav;
@@ -232,7 +237,7 @@ function animateSideSurfaces(app, preview, from, to, duration) {
  placeSideSurfaces(app, preview, from, width);
  app.classList.add('paired-side-motion');
  // This curve preserves the previous smoothstep trajectory on the compositor.
- const timing = {duration, easing: 'cubic-bezier(.333333,0,.666667,1)', fill: 'both'};
+ const timing = {duration, easing: sideSlideEase, fill: 'both'};
  const foreground = app.animate([{transform: translateX(from)}, {transform: translateX(to)}], timing);
  const background = preview.classList.contains('home') ? null : preview.animate([
   {transform: translateX(sideUnderlayOffset(from, width))},
@@ -278,14 +283,24 @@ function freezePageSurface() {
  surface.classList.remove('bank-surface-transition');
  surface.classList.add('side-page-snapshot');
  surface.classList.remove('paired-side-motion');
+ if (surface.classList.contains('home')) {
+  // Match the painted Home layout even if the viewport changes during navigation.
+  copy.style.top = (source.getBoundingClientRect().top - parseFloat(surface.style.top)) + 'px';
+  copy.style.zIndex = getComputedStyle(source).zIndex;
+  const header = source.querySelector('.home-top');
+  const frozenHeader = copy.querySelector('.home-top');
+  if (header && frozenHeader) {
+   const style = getComputedStyle(header);
+   frozenHeader.style.height = style.height;
+   frozenHeader.style.paddingTop = style.paddingTop;
+  }
+ }
  const scroll = source.querySelector('.operation-content-scroll')?.scrollTop;
  if (scroll) copy.querySelector('.operation-content').style.transform = 'translateY(' + (-scroll) + 'px)';
  const track = source.querySelector('.card-track');
  const frozenTrack = copy.querySelector('.card-track');
  if (track && frozenTrack) {
-  const pose = new DOMMatrixReadOnly(getComputedStyle(track).transform);
-  // The track only translates. Flatten its motion layer inside the static image of Home.
-  frozenTrack.style.transform = 'translate(' + pose.m41 + 'px,' + pose.m42 + 'px)';
+  frozenTrack.style.transform = getComputedStyle(track).transform;
  }
  const selector = source.querySelector('.card-selector');
  const frozenSelector = copy.querySelector('.card-selector');
@@ -396,10 +411,11 @@ paint = function(direction) {
   // Reveal the live Home while the outgoing page slides over it.
   const returningHome = route.page === 'home';
   const parallax = !returningHome && pairedSidePages.has(fromSide);
-  const duration = returningHome && pairedSidePages.has(fromSide)
-   ? Math.max(160, (quickSidePages.has(fromSide) ? 270 : 350) * (1 - dx / width))
+  const pairedHomeReturn = returningHome && pairedSidePages.has(fromSide);
+  const duration = pairedHomeReturn
+   ? Math.max(160, (quickSidePages.has(fromSide) ? quickSideDuration : 350) * (1 - dx / width))
    : pageMotionDuration;
-  const options = {duration, easing: slideEase, fill: 'both'};
+  const options = {duration, easing: pairedHomeReturn ? sideSlideEase : slideEase, fill: 'both'};
   const exit = snapshot.animate([{transform: translateX(dx)}, {transform: translateX(width)}], options);
   exit.isRouteExit = true;
   let underlay, companion;
@@ -413,6 +429,8 @@ paint = function(direction) {
     {transform: translateX(0)}
    ], options);
    playAfterFirstPaint(exit, companion);
+  } else if (pairedHomeReturn) {
+   playAfterFirstPaint(exit);
   }
   trackSideMotion(exit, snapshot, underlay, companion);
   return;
@@ -433,7 +451,7 @@ paint = function(direction) {
 
   const width = app.clientWidth;
   const parallax = pairedSidePages.has(route.page);
-  const duration = quickSidePages.has(route.page) ? 270 : pageMotionDuration;
+  const duration = quickSidePages.has(route.page) ? quickSideDuration : pageMotionDuration;
   const options = {duration, easing: slideEase, fill: 'both'};
   const poses = [{transform: translateX(width)}, {transform: translateX(0)}];
   const entrance = parallax
@@ -494,7 +512,7 @@ function startLiveSideExit(source, commit) {
  app.style.transform = '';
  app.style.zIndex = '41';
 
- const duration = quickSidePages.has(page.page) ? 270 : 350;
+ const duration = quickSidePages.has(page.page) ? quickSideDuration : 350;
  const exit = animateSideSurfaces(app, preview, x, width, Math.max(160, duration * (1 - x / width)));
  exit.isRouteExit = true;
  trackSideMotion(exit, null, preview);
