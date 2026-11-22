@@ -92,7 +92,7 @@ paint = function(direction) {
   document.body.append(exit);
  }
 
- render();
+ renderWithHomeBackdrop(isOverview ? backdrop : null);
  if (isOverview) app.classList.add('overview-visible');
 
  const content = exit ? exit.firstElementChild : screen;

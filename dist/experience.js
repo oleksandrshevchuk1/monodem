@@ -155,7 +155,7 @@ function expandTransition(from,to,opening){
 }
 
 const baseNavigate=navigate;
-navigate=function(page,id){const el=route.page==='home'&&page==='card'?$('.card-face[data-id="'+state.activeCard+'"]')||$('.card-face'):null,from=el?measureCardPose(el):null;cardFlipped=false;baseNavigate(page,id);if(from)expandTransition(from,$('.expanded-card'),true)};
+navigate=function(page,id){const el=route.page==='home'&&page==='card'?$('.card-face[data-id="'+state.activeCard+'"]')||$('.card-face'):null,from=el?measureCardPose(el):null;cardFlipped=false;if(from?.snapshot)renderWithHomeBackdrop(from.snapshot,()=>baseNavigate(page,id));else baseNavigate(page,id);if(from)expandTransition(from,$('.expanded-card'),true)};
 actions.back=back;
 window.addEventListener('hashchange',()=>{if(adminMode){adminTab=location.hash.slice(1)||'overview';if(adminSections.some(x=>x[0]===adminTab)){route={page:'home'};render()}}else{const [page,id]=location.hash.slice(1).split('/');if(page&&(route.page!==page||route.id!==id)){route={page,id};render()}}});
 render();

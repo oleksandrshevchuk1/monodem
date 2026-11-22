@@ -105,7 +105,7 @@ function restoreOperationsNav(){operationsNavMotion?.cancel();operationsNavMotio
 function endOperationsEntrance(){const scene=operationsScene;if(scene?.phase!=='opening')return;scene.motion.cancel();if(route.page==='history')$('#screen').append(scene.page);scene.page.style.marginTop='';scene.layer.remove();scene.home?.remove();operationsScene=null;delete document.documentElement.dataset.gesture;restoreOperationsNav()}
 function makeOperationsLayer(page){const rect=$('#app').getBoundingClientRect(),layer=document.createElement('div');layer.className='history-gesture-drawer soft-operations-layer history';Object.assign(layer.style,{left:rect.left+'px',width:rect.width+'px',height:innerHeight+'px',overflow:'hidden'});layer.append(page);document.body.append(layer);return layer}
 const paintBeforeOperations=paint;
-paint=function(direction){if(route.page!=='history'||skipPageMotion||shouldReduceMotion())return paintBeforeOperations(direction);pageTransition?.skipTransition();pageAnimation?.cancel();if(operationsScene?.phase==='closing')operationsScene.finish();endOperationsEntrance();if($('#app').classList.contains('home'))operationsHome=freezeHome();render();const page=$('.all-operations-page');if(!page)return;const layer=makeOperationsLayer(page),home=operationsHome?.cloneNode(true),scene={phase:'opening',page,layer,home,y:0};operationsScene=scene;document.documentElement.dataset.gesture='active';if(home){document.body.append(home);home.animate([{opacity:1,filter:'blur(0px)'},{opacity:0,filter:'blur(4px)'}],{duration:300,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});home.querySelector('.home-content')?.animate([{transform:'translate3d(0,0,0)'},{transform:'translate3d(0,-160px,0)'}],{duration:300,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'})}operationsNav(1,0,300);scene.motion=layer.animate([{transform:'translate3d(0,180px,0)',opacity:0,filter:'blur(3px)'},{transform:'translate3d(0,0,0)',opacity:1,filter:'blur(0px)'}],{duration:320,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});operationsEntrance=scene.motion;scene.motion.finished.then(()=>{if(operationsScene===scene)endOperationsEntrance()}).catch(()=>{})};
+paint=function(direction){if(route.page!=='history'||skipPageMotion||shouldReduceMotion())return paintBeforeOperations(direction);pageTransition?.skipTransition();pageAnimation?.cancel();if(operationsScene?.phase==='closing')operationsScene.finish();endOperationsEntrance();if($('#app').classList.contains('home'))operationsHome=freezeHome();render();const page=$('.all-operations-page');if(!page)return;const layer=makeOperationsLayer(page),home=operationsHome?.cloneNode(true),scene={phase:'opening',page,layer,home,y:0};operationsScene=scene;document.documentElement.dataset.gesture='active';if(home){document.body.append(home);home.animate([{opacity:1,filter:'blur(0px)'},{opacity:0,filter:'blur(4px)'}],{duration:300,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'})}operationsNav(1,0,300);scene.motion=layer.animate([{transform:'translate3d(0,180px,0)',opacity:0,filter:'blur(3px)'},{transform:'translate3d(0,0,0)',opacity:1,filter:'blur(0px)'}],{duration:320,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});operationsEntrance=scene.motion;scene.motion.finished.then(()=>{if(operationsScene===scene)endOperationsEntrance()}).catch(()=>{})};
 const backBeforeSoftOperations=back;
 back=function(){
  if(route.page!=='history')return backBeforeSoftOperations();
@@ -277,6 +277,7 @@ function freezePageSurface(preserveArtwork = true) {
  const app = $('#app'), surface = captureBankSurface(preserveArtwork), source = $('#screen');
  const copy = surface.firstElementChild;
  const frame = getComputedStyle(app);
+ surface.preserveArtwork = preserveArtwork;
  surface.style.borderLeft = frame.borderLeft;
  surface.style.borderRight = frame.borderRight;
  copy.style.paddingBottom = getComputedStyle(source).paddingBottom;
@@ -445,7 +446,7 @@ paint = function(direction) {
   const snapshot = sideSnapshot;
   snapshot.style.zIndex = 35;
   document.body.append(snapshot);
-  render();
+  renderWithHomeBackdrop(snapshot);
   app.style.zIndex = '41';
 
   const width = app.clientWidth;
@@ -703,16 +704,28 @@ const renderBeforeFinalMotion=render;render=function(){renderBeforeFinalMotion()
 render();
 
 for (const page of ['analytics', 'capital', 'statbreakdown', 'statcategory']) sidePages.add(page);
-// Reuse the decoded home elements when returning from card/history overlays.
-// The source card and action icons keep their DOM identity across the handoff.
+// Display the existing Home elements beneath the opening page and reuse them on return.
 let retainedHome=null;
+let openingHomeBackdrop=null;
+function renderWithHomeBackdrop(backdrop, update = render) {
+ const previous = openingHomeBackdrop;
+ openingHomeBackdrop = backdrop?.classList.contains('home') ? backdrop : null;
+ try { return update(); }
+ finally { openingHomeBackdrop = previous; }
+}
 const renderBeforeHomeRetention=render;
 render=function(){
  const app=$('#app'),screen=$('#screen');
  if(!adminMode&&route.page!=='home'&&app.classList.contains('home')&&screen.querySelector('.home-content')&&!swipeLayers){
-  const fragment=document.createDocumentFragment();
-  while(screen.firstChild)fragment.append(screen.firstChild);
-  retainedHome={fragment,revision:serverRevision,card:state.activeCard,newCard:newCardSelected};
+  const nodes=[...screen.childNodes];
+  const backdrop=openingHomeBackdrop;
+  const destination=backdrop?.firstElementChild || document.createDocumentFragment();
+  destination.replaceChildren(...nodes);
+  if(backdrop && !backdrop.preserveArtwork){
+   const card=[...destination.querySelectorAll('.card-face')].find(face=>face.dataset.id===state.activeCard);
+   card?.classList.add('opening-card-source');
+  }
+  retainedHome={nodes,revision:serverRevision,card:state.activeCard,newCard:newCardSelected};
  }
  const restore=!adminMode&&route.page==='home'&&retainedHome&&retainedHome.revision===serverRevision&&retainedHome.card===state.activeCard&&retainedHome.newCard===newCardSelected;
  if(!restore){
@@ -724,7 +737,8 @@ render=function(){
  // Restore the scroll only once the retained Home rows are back in the document.
  pendingRouteScroll=null;
  renderBeforeHomeRetention();
- screen.replaceChildren(retainedHome.fragment);
+ screen.replaceChildren(...retainedHome.nodes);
+ screen.querySelector('.opening-card-source')?.classList.remove('opening-card-source');
  retainedHome=null;
  pageScrollTo({top:scroll,behavior:'instant'});
  scheduleAccountPreviews();

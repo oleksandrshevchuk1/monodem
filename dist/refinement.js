@@ -130,11 +130,10 @@ function statsSourceLabel(){
  const title=card?.account||(statsCards&&statsCards.length>1?statsCards.length+' картки':'Усі картки');
  return `${statsCardThumbnail(card)}${statsSourceCopy(card,title)}<span class="vertical-dots" aria-hidden="true">⋮</span>`;
 }
-let statisticsVisit,seenStatisticsSummaries=new Set();
+let statisticsVisit;
 analytics=function(){
  if(statisticsVisit!==route){
   statisticsVisit=route;
-  seenStatisticsSummaries.clear();
   statsKind='expense';
  }
  return `<div class="stats-page analytics-overview">
@@ -275,7 +274,38 @@ actions['stats-breakdown']=b=>{
 };
 actions['stats-category']=b=>navigate('statcategory',encodeURIComponent(b.dataset.category));
 actions['capital-card']=b=>{statsCards=[b.dataset.id];navigate('analytics')};
-function updateStatsGroups(){if($('#stats-group-list'))$('#stats-group-list').innerHTML=statsGroupRows();document.querySelectorAll('.stats-tabs button').forEach(b=>b.classList.toggle('selected',b.dataset.tab===statsTab));document.querySelectorAll('.stats-dots button').forEach(b=>b.classList.toggle('selected',b.dataset.kind===statsKind))}
+const statsGroupMotions = new WeakMap();
+function updateStatsGroups(){
+ const list=$('#stats-group-list');
+ document.querySelectorAll('.stats-tabs button').forEach(b=>b.classList.toggle('selected',b.dataset.tab===statsTab));
+ if(!list)return;
+ const markup=statsGroupRows();
+ const previous=statsGroupMotions.get(list);
+ const opacity=previous?Number(getComputedStyle(list).opacity):1;
+ previous?.cancel();
+ statsGroupMotions.delete(list);
+ if(shouldReduceMotion()){
+  list.innerHTML=markup;
+  return;
+ }
+ const fadeIn=from=>{
+  if(from===1)return;
+  const motion=list.animate([{opacity:from},{opacity:1}],{duration:160,easing:'ease-out'});
+  statsGroupMotions.set(list,motion);
+  motion.finished.then(()=>{
+   if(statsGroupMotions.get(list)===motion)statsGroupMotions.delete(list);
+  }).catch(()=>{});
+ };
+ if(markup===list.innerHTML){fadeIn(opacity);return}
+ const motion=list.animate([{opacity},{opacity:.25}],{duration:90,easing:'ease-in',fill:'forwards'});
+ statsGroupMotions.set(list,motion);
+ motion.finished.then(()=>{
+  if(!list.isConnected||statsGroupMotions.get(list)!==motion)return;
+  list.innerHTML=markup;
+  motion.cancel();
+  fadeIn(.25);
+ }).catch(()=>{});
+}
 function calendarHTML(){const d=new Date(calendarMonth+'T12:00:00'),year=d.getFullYear(),month=d.getMonth(),days=new Date(year,month+1,0).getDate(),offset=(new Date(year,month,1).getDay()+6)%7;const start=$('#f-start')?.value||statsStart,end=$('#f-end')?.value||statsEnd;return `<div class="calendar-month"><button type="button" data-action="calendar-month" data-step="-1" aria-label="Попередній місяць">${icon('arrow-left')}</button><strong>${esc(d.toLocaleDateString('uk-UA',{month:'long',year:'numeric'}))}</strong><button type="button" data-action="calendar-month" data-step="1" aria-label="Наступний місяць">${icon('arrow-right')}</button></div><div class="calendar-weekdays">${['пн','вт','ср','чт','пт','сб','нд'].map(x=>`<span>${x}</span>`).join('')}</div><div class="calendar-grid">${'<span></span>'.repeat(offset)}${Array.from({length:days},(_,i)=>{const value=year+'-'+String(month+1).padStart(2,'0')+'-'+String(i+1).padStart(2,'0');return `<button type="button" data-action="calendar-day" data-date="${value}" class="${value>=start&&value<=end?'in-range':''} ${value===start?'range-start':''} ${value===end?'range-end':''}">${i+1}</button>`}).join('')}</div>`}
 actions['stats-period']=()=>{calendarMonth=statsStart;calendarPick='start';bottomSheet('Період',field('Від','start',statsStart,'date','required')+field('До','end',statsEnd,'date','required')+'<div id="calendar"></div>',f=>{if(f.get('start')>f.get('end'))throw Error('Кінцева дата має бути пізнішою за початкову');statsStart=f.get('start');statsEnd=f.get('end')});$('#calendar').innerHTML=calendarHTML();$('#f-start').onchange=$('#f-end').onchange=()=>$('#calendar').innerHTML=calendarHTML()};
 actions['calendar-month']=b=>{const d=new Date(calendarMonth+'T12:00:00');d.setMonth(d.getMonth()+Number(b.dataset.step));calendarMonth=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01';$('#calendar').innerHTML=calendarHTML()};
@@ -285,12 +315,6 @@ modal=function(...args){delete $('#modal').dataset.kind;basicModal(...args)};
 function statsMetricIcon(tag){return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${tag?'<circle cx="12" cy="12" r="10" fill="currentColor"/><path d="m10 7-2 10m8-10-2 10M7 10h11M6 14h11" fill="none" stroke="#616176" stroke-width="1.7"/>':'<path fill="currentColor" fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20ZM7 7h4v4H7Zm6 0h4v4h-4Zm-6 6h4v4H7Zm6 0h4v4h-4Z"/>'}</svg>`}
 function statsArrow(income){return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${income?'M18 6 6 18M6 8v10h10':'M6 18 18 6M8 6h10v10'}"/></svg>`}
 function capitalIcon(){return `<svg class="icon" viewBox="0 0 28 28" aria-hidden="true" fill="currentColor"><ellipse cx="10" cy="6" rx="6" ry="3"/><path d="M4 9c3 2.4 9 2.4 12 0v4c-3 2.5-9 2.5-12 0Zm0 7c3 2.4 9 2.4 12 0v4c-3 2.5-9 2.5-12 0Z"/><ellipse cx="21" cy="13" rx="5" ry="2.5"/><path d="M16 16c3 2 7 2 10 0v4c-3 2-7 2-10 0Zm0 7c3 2 7 2 10 0v2c-3 2-7 2-10 0Z"/></svg>`}
-function animateFirstStatsSummary(summary){
- const kind=summary.dataset.kind;
- if(seenStatisticsSummaries.has(kind))return;
- seenStatisticsSummaries.add(kind);
- animateSummaryValue(summary.querySelector(':scope>strong'),0,Number(summary.dataset.total),kind);
-}
 function initStats(){
  const track=$('#stats-carousel');
  if(!track){statsController=null;return}
@@ -311,7 +335,6 @@ function initStats(){
   const kind=index?'income':'expense';
   if(kind===statsKind)return;
   statsKind=kind;
-  animateFirstStatsSummary(cards[index]);
   updateStatsGroups();
  };
  const go=kind=>{
@@ -326,7 +349,6 @@ function initStats(){
  track.scrollLeft=position(initial);
  dots(initial);
  fitMonetaryLabels(track);
- animateFirstStatsSummary(cards[initial]);
  track.tabIndex=0;
  track.setAttribute('aria-label','Доходи та витрати: гортайте ліворуч або праворуч');
  bindHorizontalGesture(track,{
@@ -338,23 +360,15 @@ function initStats(){
  });
  // Touch and trackpad scrolling use native momentum and snapping.
  const commitScroll=()=>{
+  clearTimeout(settleTimer);
   if(track.classList.contains('stats-dragging'))return;
   select(nearest(track.scrollLeft));
  };
- const hasScrollEnd='onscrollend' in track;
  track.addEventListener('scroll',()=>{
-  const offset=track.scrollLeft;
-  const index=nearest(offset);
-  dots(index);
-  const incoming=1-initial;
-  const distance=Math.abs(position(incoming)-position(initial));
-  if(distance&&Math.abs(offset-position(initial))>=distance*.18)animateFirstStatsSummary(cards[incoming]);
-  if(!hasScrollEnd){
-   clearTimeout(settleTimer);
-   settleTimer=setTimeout(commitScroll,120);
-  }
+  clearTimeout(settleTimer);
+  settleTimer=setTimeout(commitScroll,120);
  },{passive:true});
- if(hasScrollEnd)track.addEventListener('scrollend',commitScroll);
+ track.addEventListener('scrollend',commitScroll);
  track.addEventListener('keydown',e=>{
   if(!['ArrowLeft','ArrowRight'].includes(e.key))return;
   e.preventDefault();
@@ -568,27 +582,11 @@ function fitMonetaryLabels(root=$('#screen')){
  const sizes=[['.home-balance strong',46,26],['.stats-summary>strong',46,24],['.capital-total>strong',38,22],['.compact-card>strong',21,12]];
  for(const [selector,max,min] of sizes){
   for(const el of root.querySelectorAll(selector)){
-   if(el.dataset.numberMotion==='1')continue;
    el.style.fontSize=max+'px';
    const available=el.clientWidth;
    if(available&&el.scrollWidth>available)el.style.fontSize=Math.max(min,Math.floor(max*available/el.scrollWidth))+'px';
   }
  }
-}
-function animateSummaryValue(el,from,to,kind){
- if(!el||from===to||shouldReduceMotion())return;
- const label=value=>(kind==='expense'?'−':'')+displayMoney(value)+' ₴';
- el.dataset.numberMotion='1';
- el.textContent=label(from);
- const start=performance.now();
- const tick=now=>{
-  if(!el.isConnected)return;
-  const progress=Math.min(1,(now-start)/420);
-  el.textContent=label(from+(to-from)*(progress*progress*(3-2*progress)));
-  if(progress<1)requestAnimationFrame(tick);
-  else delete el.dataset.numberMotion;
- };
- requestAnimationFrame(tick);
 }
 const beforeAmountRender=render;
 render=function(){beforeAmountRender();fitMonetaryLabels()};

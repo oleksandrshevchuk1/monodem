@@ -69,6 +69,7 @@ body:has(.side-return-underlay) #nav,body:has(.all-cards-backdrop):has(.all-card
 /* Keep the edge of the moving page flush and the captured selector still. */
 #app.paired-side-motion{will-change:transform;box-shadow:none}
 .frozen-card-selector :is(.selector-label,.selector-dots,.selector-dots > *){transition:none}
+.side-page-snapshot .opening-card-source{visibility:hidden}
 
 /* Live and incoming account blocks share the same fixed row starts. */
 .home-content {
