@@ -230,6 +230,32 @@ function sideUnderlayOffset(x, width) {
 }
 
 let pairedSideMotion = null;
+let nativeHomeOpening = null;
+function openSidePageOverPaintedHome(snapshot) {
+ const root=document.documentElement;
+ const scrollHost=$('#pwa-scroll')||$('#app');
+ if(navigator.vendor!=='Apple Computer, Inc.'||typeof document.startViewTransition!=='function')return false;
+ const destination=route;
+ const duration=quickSidePages.has(destination.page)?quickSideDuration:pageMotionDuration;
+ root.dataset.paintedHomeOpening='';
+ root.style.setProperty('--painted-home-duration',duration+'ms');
+ const transition=document.startViewTransition(()=>{
+  if(route!==destination)return;
+  renderWithHomeBackdrop(snapshot);
+  scrollHost.style.viewTransitionName='opening-page';
+ });
+ nativeHomeOpening=transition;
+ const cleanup=()=>{
+  if(nativeHomeOpening!==transition)return;
+  nativeHomeOpening=null;
+  scrollHost.style.viewTransitionName='';
+  delete root.dataset.paintedHomeOpening;
+  root.style.removeProperty('--painted-home-duration');
+ };
+ transition.ready.catch(()=>{});
+ transition.finished.then(cleanup,cleanup);
+ return true;
+}
 function animateSideSurfaces(app, preview, from, to, duration) {
  const width = app.clientWidth;
  const enteringDetail = from === width && to === 0 && !!app.querySelector('.operation-boundary-slot');
@@ -368,6 +394,7 @@ function trackSideMotion(motion, snapshot, underlay, companion) {
 }
 
 paint = function(direction) {
+ nativeHomeOpening?.skipTransition();
  if(direction==='back'&&route.page==='analytics'&&$('#app').classList.contains('capital'))statisticsVisit=route;
  pageTransition?.skipTransition();
  pageAnimation?.cancel();
@@ -452,6 +479,7 @@ paint = function(direction) {
   sideSnapshot = pendingSideSnapshot || freezePageSurface();
   if (sideSnapshot.classList.contains('home')) sideHomeSnapshot = sideSnapshot;
   const snapshot = sideSnapshot;
+  if(snapshot.classList.contains('home')&&openSidePageOverPaintedHome(snapshot))return;
   snapshot.style.zIndex = 35;
   if(snapshot.classList.contains('home'))mountHomeOpeningSurface(snapshot);
   else document.body.append(snapshot);
