@@ -162,8 +162,8 @@ document.addEventListener('pointerdown',event=>{
  },{capture:true,passive:true});
 document.addEventListener('click',event=>{if(event.detail&&performance.now()<sideReturnClickUntil){event.preventDefault();event.stopImmediatePropagation()}},true);
 const sidePages = new Set(['limits','abroad','detail']), paintWithOperations = paint;
-const quickPaymentPages = new Set(['transfer', 'transferAmount', 'transferArchive', 'iban', 'payments']);
-const slidingTransferPages = new Set(['detail', ...quickPaymentPages]);
+const quickSidePages = new Set(['transfer', 'transferAmount', 'transferArchive', 'iban', 'payments', 'limits', 'abroad']);
+const pairedSidePages = new Set(['detail', ...quickSidePages]);
 const mainTabs = ['home', 'credit', 'jars', 'more', 'market'];
 const tabFeedback = new WeakMap();
 const tabBar = $('#nav');
@@ -367,7 +367,7 @@ paint = function(direction) {
   sideEntrance.adoptBackDestination();
   return;
  }
- if (direction === 'back' && fromSide && slidingTransferPages.has(fromSide)) {
+ if (direction === 'back' && fromSide && pairedSidePages.has(fromSide)) {
   const source = sideSourceForPage(route.page);
   if (source) {
    startLiveSideExit(source, render);
@@ -390,7 +390,7 @@ paint = function(direction) {
   render();
 
   const width = app.clientWidth;
-  const parallax = slidingTransferPages.has(fromSide);
+  const parallax = pairedSidePages.has(fromSide);
   const options = {duration: pageMotionDuration, easing: slideEase, fill: 'both'};
   const exit = snapshot.animate([{transform: translateX(dx)}, {transform: translateX(width)}], options);
   exit.isRouteExit = true;
@@ -424,14 +424,13 @@ paint = function(direction) {
   app.style.zIndex = '41';
 
   const width = app.clientWidth;
-  const parallax = slidingTransferPages.has(route.page);
-  const duration = quickPaymentPages.has(route.page) ? 270 : pageMotionDuration;
+  const parallax = pairedSidePages.has(route.page);
+  const duration = quickSidePages.has(route.page) ? 270 : pageMotionDuration;
   const options = {duration, easing: slideEase, fill: 'both'};
   const poses = [{transform: translateX(width)}, {transform: translateX(0)}];
   const entrance = parallax
    ? animateSideSurfaces(app, snapshot, width, 0, options.duration)
    : app.animate(poses, options);
-  if (route.page === 'limits') playAfterFirstPaint(entrance);
   trackSideMotion(entrance, snapshot);
   return;
  }
@@ -488,7 +487,7 @@ function startLiveSideExit(source, commit) {
  app.style.transform = '';
  app.style.zIndex = '41';
 
- const duration = quickPaymentPages.has(page.page) ? 270 : 350;
+ const duration = quickSidePages.has(page.page) ? 270 : 350;
  const exit = animateSideSurfaces(app, preview, x, width, Math.max(160, duration * (1 - x / width)));
  exit.isRouteExit = true;
  trackSideMotion(exit, null, preview);
@@ -521,7 +520,7 @@ back = function() {
   return;
  }
  const source = sideSourceForPage(route.page === 'detail' ? returnRoute.page : 'home');
- if (!slidingTransferPages.has(route.page) || !source || shouldReduceMotion() || $('#modal').open) {
+ if (!pairedSidePages.has(route.page) || !source || shouldReduceMotion() || $('#modal').open) {
   return backBeforeLiveSideReturn();
  }
  startLiveSideExit(source, () => {
@@ -551,7 +550,7 @@ function bindSideReturn() {
   if (!sideSwipeLayer) {
    if (dx <= 10 || dx <= Math.abs(dy) * 1.65) return false;
    const destination = route.page === 'detail' ? returnRoute.page : 'home';
-   const source = slidingTransferPages.has(route.page) ? sideSourceForPage(destination) : sideSnapshot;
+   const source = pairedSidePages.has(route.page) ? sideSourceForPage(destination) : sideSnapshot;
    if (!source) return false;
    origin = sidePageX(app);
    finishSideEntrance();
@@ -560,7 +559,7 @@ function bindSideReturn() {
    document.documentElement.dataset.routeMotion = 'active';
   }
   x = Math.min(app.clientWidth, Math.max(0, origin + dx));
-  if (slidingTransferPages.has(route.page)) {
+  if (pairedSidePages.has(route.page)) {
    placeSideSurfaces(app, sideSwipeLayer, x, app.clientWidth);
    app.classList.add('paired-side-motion');
   } else app.style.transform = translateX(x);
@@ -580,7 +579,7 @@ function bindSideReturn() {
   sideSwipeLayer = null;
   app.style.transform = '';
   const options = {duration: 220, easing: slideEase, fill: 'both'};
-  const settle = slidingTransferPages.has(route.page)
+  const settle = pairedSidePages.has(route.page)
    ? animateSideSurfaces(app, layer, x, 0, options.duration)
    : app.animate([{transform: translateX(x)}, {transform: translateX(0)}], options);
   trackSideMotion(settle, null, layer);
