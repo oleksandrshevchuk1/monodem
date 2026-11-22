@@ -270,13 +270,11 @@
 #app.card,
 body:has(#app.card) {
   --card-page-width: min(393px, 100%);
-  --card-header-paint: linear-gradient(#060622, #090e2b);
   --card-page-paint: linear-gradient(#060622, #090e2b 97px, #0c1939 200px, #0b214a 317px, #0e2654 400px, #10264f 500px, #132549 600px, #132646 733px);
 }
 
 body:has(#app.card .expanded-card .is-white),
 #app.card:has(.expanded-card .is-white) {
-  --card-header-paint: linear-gradient(#110614, #190c26);
   --card-page-paint: linear-gradient(#110614, #190c26 97px, #21143f 200px, #242657 317px, #232e64 400px, #28336b 500px, #2a3573 600px, #2e3979 733px);
 }
 
@@ -291,7 +289,7 @@ body:has(#app.card .expanded-card .is-white),
 }
 
 #app.card::before,
-body > .card-scroll-barrier {
+#app.card > .card-scroll-barrier {
   content: "";
   position: fixed;
   inset: 0 auto auto 50%;
@@ -305,10 +303,10 @@ body > .card-scroll-barrier {
   background: var(--card-page-paint);
 }
 
-body > .card-scroll-barrier {
+#app.card > .card-scroll-barrier {
   z-index: 69;
   height: calc(var(--safe-header) + 56px);
-  background: var(--card-header-paint);
+  background: var(--card-page-paint) 0 0 / 100% 100lvh no-repeat;
   overflow: clip;
 }
 

@@ -148,6 +148,13 @@ const paintBeforeRearCardClose=paint;
 paint=function(direction){
  const card=route.page==='home'?$('#app.card .expanded-card'):null;
  const pose=card?measureCardPose(card):null;
+ const barrier=$('#app.card > .card-scroll-barrier');
+ if(pose&&barrier&&pose.rect.bottom<=barrier.getBoundingClientRect().bottom){
+  // Use the expanded pose for the same return motion after scrolling the card away.
+  const scroll=pageScrollY();
+  pose.geometry.layout.y+=scroll;
+  if(pose.faceCorners)pose.faceCorners=pose.faceCorners.map(([x,y])=>[x,y+scroll]);
+ }
  if(pose)skipPageMotion=true;
  const result=paintBeforeRearCardClose(direction);
  if(pose)expandTransition(pose,$('.card-face[data-id="'+state.activeCard+'"]')||$('.card-face'),false);
