@@ -83,7 +83,7 @@ paint = function(direction) {
    backdrop.append(shade);
   }
   backdrop.style.zIndex = '35';
-  if (!backdrop.isConnected) document.body.append(backdrop);
+  if (!backdrop.isConnected) mountHomeOpeningSurface(backdrop);
  } else {
   exit = cardsViewportSnapshot();
   exit.classList.add('all-cards-exit');

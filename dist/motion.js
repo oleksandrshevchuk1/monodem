@@ -336,6 +336,12 @@ function freezePageSurface(preserveArtwork = true) {
  return surface;
 }
 
+function mountHomeOpeningSurface(surface) {
+ // Keep the outgoing Home under the same compositor as the live scroll surface.
+ const parent = $('#pwa-scroll') || document.body;
+ parent.append(surface);
+}
+
 function trackSideMotion(motion, snapshot, underlay, companion) {
  const app = $('#app');
  sideEntrance = motion;
@@ -446,7 +452,8 @@ paint = function(direction) {
   if (sideSnapshot.classList.contains('home')) sideHomeSnapshot = sideSnapshot;
   const snapshot = sideSnapshot;
   snapshot.style.zIndex = 35;
-  document.body.append(snapshot);
+  if(snapshot.classList.contains('home'))mountHomeOpeningSurface(snapshot);
+  else document.body.append(snapshot);
   renderWithHomeBackdrop(snapshot);
   app.style.zIndex = '41';
 

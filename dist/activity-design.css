@@ -263,7 +263,7 @@
 }
 
 :is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).card:not(:has(.expanded-card .is-white)) .expanded-card .bank-card-front,
-body > .card-header-mini .bank-card:not(.is-white) .bank-card-front {
+.card-scroll-barrier .card-header-mini .bank-card:not(.is-white) .bank-card-front {
   background: linear-gradient(180deg, #282828, #222 32%, #111 100%);
 }
 
@@ -309,36 +309,38 @@ body > .card-scroll-barrier {
   z-index: 69;
   height: calc(var(--safe-header) + 56px);
   background: var(--card-header-paint);
+  overflow: clip;
 }
 
-body > .card-header-mini {
+.card-scroll-barrier > .card-header-mini {
   display: block !important;
-  position: fixed;
+  position: absolute;
   inset: calc(var(--safe-header) + 5px) auto auto 50%;
   z-index: 70;
   width: 56px;
   height: 36px;
   opacity: 1;
+  translate: 0 calc(51px * (1 - var(--mini-progress, 0)));
   pointer-events: auto;
   perspective: none;
 }
 
-body > .card-header-mini[hidden] {
+.card-scroll-barrier > .card-header-mini[hidden] {
   display: none !important;
 }
 
-body > .card-header-mini .bank-card {
+.card-scroll-barrier .card-header-mini .bank-card {
   container-type: inline-size;
 }
 
-body > .card-header-mini .bank-card,
-body > .card-header-mini.flipped .bank-card,
-body > .card-header-mini .bank-card :is(.bank-card-front, .bank-card-back) {
+.card-scroll-barrier .card-header-mini .bank-card,
+.card-scroll-barrier .card-header-mini.flipped .bank-card,
+.card-scroll-barrier .card-header-mini .bank-card :is(.bank-card-front, .bank-card-back) {
   transform: none;
 }
 
-body > .card-header-mini:not(.flipped) .bank-card-back,
-body > .card-header-mini.flipped .bank-card-front {
+.card-scroll-barrier .card-header-mini:not(.flipped) .bank-card-back,
+.card-scroll-barrier .card-header-mini.flipped .bank-card-front {
   visibility: hidden;
 }
 

@@ -13,7 +13,6 @@ bindCardCollapse=function(){
  if(!card)return;
  const barrier=document.createElement('div');
  barrier.className='card-scroll-barrier';
- barrier.setAttribute('aria-hidden','true');
  const mini=document.createElement('button');
  mini.type='button';
  mini.className='card-header-mini';
@@ -21,12 +20,20 @@ bindCardCollapse=function(){
  mini.setAttribute('aria-label','Повернутися до картки');
  mini.innerHTML=cardArtwork(activeCard());
  mini.hidden=true;
- document.body.append(barrier,mini);
- let frame=0;
+ barrier.append(mini);
+ document.body.append(barrier);
+ let frame=0,previous=-1;
  const update=()=>{
   frame=0;
   if(route.page!=='card'||!card.isConnected)return;
-  mini.hidden=card.getBoundingClientRect().bottom>barrier.getBoundingClientRect().bottom;
+  const distance=barrier.getBoundingClientRect().bottom-card.getBoundingClientRect().bottom;
+  const progress=shouldReduceMotion()?Number(distance>=0):Math.max(0,Math.min(1,distance/51));
+  if(progress!==previous){
+   mini.style.setProperty('--mini-progress',String(progress));
+   mini.hidden=progress===0;
+   mini.inert=progress<.5;
+   previous=progress;
+  }
   mini.classList.toggle('flipped',card.classList.contains('flipped'));
  };
  const queueUpdate=()=>{if(!frame)frame=requestAnimationFrame(update)};
@@ -40,7 +47,6 @@ bindCardCollapse=function(){
   window.removeEventListener('scroll',queueUpdate,true);
   window.removeEventListener('resize',queueUpdate);
   barrier.remove();
-  mini.remove();
   naturalCardScrollCleanup=null;
  };
  update();
