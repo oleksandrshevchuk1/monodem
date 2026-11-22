@@ -68,6 +68,10 @@ body:has(.side-return-underlay) #nav,body:has(.all-cards-backdrop):has(.all-card
 
 /* Keep the edge of the moving page flush and the captured selector still. */
 #app.paired-side-motion{will-change:transform;box-shadow:none}
+
+/* Keep the same compositing layers on both sides of the animation handoff. */
+#app.home,.side-page-snapshot.home{will-change:transform}
+#app.cashback{will-change:transform;box-shadow:none;overflow-anchor:none}
 .frozen-card-selector :is(.selector-label,.selector-dots,.selector-dots > *){transition:none}
 .side-page-snapshot .opening-card-source{visibility:hidden}
 

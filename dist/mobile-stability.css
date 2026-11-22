@@ -11,8 +11,8 @@ body.document-open .toolbar{height:calc(56px + var(--safe-top));min-height:calc(
 body.document-open .toolbar>.back,body.document-open .toolbar>.right{top:calc(var(--safe-top) + 8px)}
 body.document-open .receipt-share-footer{padding:14px 16px calc(var(--safe-bottom) + 16px)}
 .home-top{height:calc(97px + var(--top-extra));padding-top:calc(49px + var(--top-extra))}
-#app:not(.appearance):not(.receipt):not(.file):not(.card) .toolbar{height:calc(100px + var(--top-extra));padding-top:calc(44px + var(--top-extra))}
-#app:not(.appearance):not(.receipt):not(.file):not(.card) .toolbar>.back,#app:not(.appearance):not(.receipt):not(.file):not(.card) .toolbar>.right{top:calc(50px + var(--top-extra))}
+:is(#app:not(.appearance):not(.receipt):not(.file):not(.card),.side-page-snapshot.notifications) .toolbar{height:calc(100px + var(--top-extra));padding-top:calc(44px + var(--top-extra))}
+:is(#app:not(.appearance):not(.receipt):not(.file):not(.card),.side-page-snapshot.notifications) .toolbar>.back,:is(#app:not(.appearance):not(.receipt):not(.file):not(.card),.side-page-snapshot.notifications) .toolbar>.right{top:calc(50px + var(--top-extra))}
 .stable-card-close{top:calc(57px + var(--top-extra))}
 .credit-reference,.more-reference{padding-top:max(64px,calc(var(--safe-top) + 12px));min-height:var(--app-height,100dvh)}
 .reference-sticky-header,.side-history-compact{height:calc(100px + var(--top-extra));padding-top:calc(44px + var(--top-extra))}
@@ -59,8 +59,8 @@ button,a,[role=button]{-webkit-tap-highlight-color:transparent;-webkit-touch-cal
 #modal[data-sheet=funding] .funding-option>span:nth-child(2){font-size:16px}
 #modal[data-sheet=funding] .stats-mini-card{width:46px;height:30px;flex:none}
 .home-top{padding-top:calc(var(--safe-header) + 5px);height:calc(var(--safe-header) + 53px)}
-#app:not(.appearance):not(.receipt):not(.file):not(.card) .toolbar{padding-top:var(--safe-header);height:calc(var(--safe-header) + 56px)}
-#app:not(.appearance):not(.receipt):not(.file):not(.card) .toolbar>.back,#app:not(.appearance):not(.receipt):not(.file):not(.card) .toolbar>.right{top:calc(var(--safe-header) + 6px)}
+:is(#app:not(.appearance):not(.receipt):not(.file):not(.card),.side-page-snapshot.notifications) .toolbar{padding-top:var(--safe-header);height:calc(var(--safe-header) + 56px)}
+:is(#app:not(.appearance):not(.receipt):not(.file):not(.card),.side-page-snapshot.notifications) .toolbar>.back,:is(#app:not(.appearance):not(.receipt):not(.file):not(.card),.side-page-snapshot.notifications) .toolbar>.right{top:calc(var(--safe-header) + 6px)}
 .reference-sticky-header,.side-history-compact{padding-top:var(--safe-header);height:calc(var(--safe-header) + 56px)}
 .side-history-compact button{top:calc(var(--safe-header) + 7px)}
 .stable-card-close{top:calc(var(--safe-header) + 13px)}
