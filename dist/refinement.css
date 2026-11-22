@@ -36,7 +36,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,DemoInter,'Helvetica Neue',Ari
   line-height: 16px;
   white-space: nowrap;
   pointer-events: none;
-  transition: opacity 240ms var(--ease-out);
+  transition: opacity 260ms var(--ease-out, ease-out);
 }
 .selector-label { opacity: calc(1 - var(--card-indicator-opacity, 0)); }
 .selector-label .icon { width: 15px; height: 15px; opacity: .75; }

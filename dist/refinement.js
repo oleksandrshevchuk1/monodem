@@ -15,7 +15,7 @@ const basicHome=home;
 const cardWhite=c=>c.color?c.color==='white':c.id==='white';
 function selector(){
  const index=newCardSelected?allCards().length:allCards().findIndex(card=>card.id===activeCard().id);
- return `<button class="card-selector" data-action="nav" data-page="cards" aria-label="Усі картки"><span class="selector-label" aria-hidden="true"><svg class="icon" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><path d="m2 5 7.1-3.3a2.3 2.3 0 0 1 3.1 1.1l.6 1.2H7.3A4.3 4.3 0 0 0 3 8.3v2.8L.9 7.8A2 2 0 0 1 2 5Z"/><path fill-rule="evenodd" d="M7.1 5.4h7a2.7 2.7 0 0 1 2.7 2.7v5.1a2.7 2.7 0 0 1-2.7 2.7h-7a2.7 2.7 0 0 1-2.7-2.7V8.1a2.7 2.7 0 0 1 2.7-2.7Zm-.4 3.2c0 .4.3.7.7.7h6.3a.7.7 0 1 0 0-1.4H7.4a.7.7 0 0 0-.7.7Z"/></svg>Усі картки</span><span class="selector-dots" aria-hidden="true" data-index="${index}">${cardIndicatorMarkers(index)}</span></button>`;
+ return `<button class="card-selector${!shouldReduceMotion()&&performance.now()<cardSelectorVisibleUntil?' show-card-indicator':''}" data-action="nav" data-page="cards" aria-label="Усі картки"><span class="selector-label" aria-hidden="true"><svg class="icon" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><path d="m2 5 7.1-3.3a2.3 2.3 0 0 1 3.1 1.1l.6 1.2H7.3A4.3 4.3 0 0 0 3 8.3v2.8L.9 7.8A2 2 0 0 1 2 5Z"/><path fill-rule="evenodd" d="M7.1 5.4h7a2.7 2.7 0 0 1 2.7 2.7v5.1a2.7 2.7 0 0 1-2.7 2.7h-7a2.7 2.7 0 0 1-2.7-2.7V8.1a2.7 2.7 0 0 1 2.7-2.7Zm-.4 3.2c0 .4.3.7.7.7h6.3a.7.7 0 1 0 0-1.4H7.4a.7.7 0 0 0-.7.7Z"/></svg>Усі картки</span><span class="selector-dots" aria-hidden="true" data-index="${index}">${cardIndicatorMarkers(index)}</span></button>`;
 }
 function cardSlides(){return `<div class="card-stage card-carousel" id="card-swipe"><div class="card-track">${allCards().map(c=>`<div class="card-slide"><button class="card-face" data-action="show-card" data-id="${c.id}" aria-label="Відкрити ${esc(c.account)}">${cardArtwork(c)}</button></div>`).join('')}<div class="card-slide"><button class="card-face new-card-face" data-action="open-card" aria-label="Відкрити нову картку"><span>${icon('plus-circle-fill')}</span></button></div></div></div>`}
 function homeActions(){return `<div class="home-actions"><button data-action="transfer"><span class="action-circle">${referenceControlGlyph('transfer')}</span>Переказати<br>на картку</button><button data-action="iban"><span class="action-circle">${referenceControlGlyph('iban')}</span>Платіж<br>за IBAN</button><button data-action="nav" data-page="payments"><span class="action-circle">${referenceControlGlyph('payments')}</span>Інші<br>платежі</button></div>`}
@@ -369,11 +369,14 @@ function bindRefresh(){}
 const experienceRender=render;
 render=function(){if(!adminMode&&['capital','statcategory','statbreakdown','openCard','service'].includes(route.page)){defaults();$('#app').className=route.page;$('#nav').hidden=true;$('#screen').innerHTML=({capital:capitalPage,statcategory:statsCategoryPage,statbreakdown:statsBreakdownPage,openCard:openCardPage,service:servicePage})[route.page]()}else{experienceRender();if(!adminMode){if(['cards','analytics'].includes(route.page))$('#nav').hidden=true;if(route.page==='home'){bindRefresh();$('#app').classList.toggle('new-card-theme',newCardSelected);$('#app').classList.toggle('white-active',!newCardSelected&&cardWhite(activeCard()))}if(route.page==='analytics')initStats();if(route.page==='card'){let p;$('.expanded-card')?.addEventListener('pointerdown',e=>p={x:e.clientX,y:e.clientY});$('.expanded-card')?.addEventListener('pointerup',e=>{if(p&&Math.abs(e.clientX-p.x)>40&&Math.abs(e.clientY-p.y)<50){actions['flip-card']();e.currentTarget.addEventListener('click',e=>{e.stopPropagation();e.preventDefault()},{once:true,capture:true})}p=null})}}}};
 // The carousel and indicator share the same drag position.
-let swipeLayers=null,cardSelectorTimer;
+let swipeLayers=null,cardSelectorTimer,cardSelectorVisibleUntil=0;
 function prepareSwipe(){if(swipeLayers)return swipeLayers;const app=$('#app'),track=$('.card-track'),cards=allCards(),index=newCardSelected?cards.length:Math.max(0,cards.findIndex(c=>c.id===state.activeCard)),background=document.createElement('div');background.className='swipe-gradient';app.prepend(background);
  const selector=$('.card-selector');
  clearTimeout(cardSelectorTimer);
- if(!shouldReduceMotion())selector?.classList.add('show-card-indicator');
+ if(!shouldReduceMotion()&&selector){
+  cardSelectorVisibleUntil=Infinity;
+  selector.classList.add('show-card-indicator');
+ }
  swipeLayers={track,cards,selector,indicator:selector?.querySelector('.selector-dots'),width:track.getBoundingClientRect().width,slideWidth:track.firstElementChild.getBoundingClientRect().width,index,background,dx:0,theme:null};
  document.documentElement.dataset.gesture='active';app.classList.add('card-gesture-active');return swipeLayers}
 function firstCardIndicator(index){
@@ -427,7 +430,13 @@ function cleanupSwipe(){
  $('#app').classList.remove('card-gesture-active');
  clearTimeout(cardSelectorTimer);
  if(selector?.classList.contains('show-card-indicator')){
-  cardSelectorTimer=setTimeout(()=>selector.classList.remove('show-card-indicator'),shouldReduceMotion()?0:1500);
+  const delay=shouldReduceMotion()?0:1500;
+  cardSelectorVisibleUntil=performance.now()+delay;
+  cardSelectorTimer=setTimeout(()=>{
+   cardSelectorVisibleUntil=0;
+   selector.classList.remove('show-card-indicator');
+   $('#app .card-selector')?.classList.remove('show-card-indicator');
+  },delay);
  }
  delete document.documentElement.dataset.gesture;
  swipeLayers=null;
