@@ -139,10 +139,9 @@ function capitalIcon(){return `<svg class="icon" viewBox="0 0 28 28" aria-hidden
 function initStats(){
  const track=$('#stats-carousel');
  if(!track)return;
- statsController?.cancel();
  const cards=[...track.querySelectorAll('.stats-summary')];
  const buttons=[...document.querySelectorAll('.stats-dots button')];
- let motion=null,wheelTimer,indicator=-1,listMotion=null;
+ let indicator=-1,listMotion=null;
  const position=index=>Math.min(track.scrollWidth-track.clientWidth,cards[index].offsetLeft-cards[0].offsetLeft);
  const nearest=x=>Math.abs(x-position(0))<=Math.abs(x-position(1))?0:1;
  const dots=index=>{
@@ -150,10 +149,6 @@ function initStats(){
   buttons[indicator]?.classList.remove('selected');
   buttons[index]?.classList.add('selected');
   indicator=index;
- };
- const cancel=()=>{
-  motion?.cancel();
-  clearTimeout(wheelTimer);
  };
  const select=index=>{
   if(!track.isConnected)return;
@@ -169,14 +164,11 @@ function initStats(){
   if(list&&!shouldReduceMotion())listMotion=list.animate([{opacity:.2},{opacity:1}],{duration:180,easing:'ease-out'});
  };
  const go=kind=>{
-  cancel();
-  const index=kind==='income'?1:0,target=position(index);
-  if(shouldReduceMotion()||Math.abs(track.scrollLeft-target)<1){
-   track.scrollLeft=target;
-   select(index);
-   return;
-  }
-  motion=settleCardStrip(()=>track.scrollLeft,x=>{track.scrollLeft=x},target,()=>select(index));
+  const index=kind==='income'?1:0;
+  const instant=shouldReduceMotion();
+  track.classList.remove('stats-mouse-drag');
+  track.scrollTo({left:position(index),behavior:instant?'instant':'smooth'});
+  if(instant)select(index);
  };
  const initial=statsKind==='income'?1:0;
  track.scrollLeft=position(initial);
@@ -186,23 +178,18 @@ function initStats(){
  bindHorizontalGesture(track,{
   read:()=>-track.scrollLeft,
   write:x=>{track.scrollLeft=-x},
-  cancel,
-  settle:(v,cancelled)=>go(nearest(track.scrollLeft-(cancelled?0:v*.12))?'income':'expense')
+  cancel:()=>track.classList.add('stats-mouse-drag'),
+  settle:(v,cancelled)=>go(nearest(track.scrollLeft-(cancelled?0:v*.12))?'income':'expense'),
+  mouseOnly:true
  });
- track.addEventListener('scroll',()=>dots(nearest(track.scrollLeft)),{passive:true});
+ // Native touch and trackpad scrolling keep running as the active summary updates.
+ track.addEventListener('scroll',()=>select(nearest(track.scrollLeft)),{passive:true});
  track.addEventListener('keydown',e=>{
   if(!['ArrowLeft','ArrowRight'].includes(e.key))return;
   e.preventDefault();
   go(e.key==='ArrowRight'?'income':'expense');
  });
- track.addEventListener('wheel',e=>{
-  if(Math.abs(e.deltaX)<=Math.abs(e.deltaY))return;
-  e.preventDefault();
-  cancel();
-  track.scrollLeft+=e.deltaX;
-  wheelTimer=setTimeout(()=>go(nearest(track.scrollLeft)?'income':'expense'),90);
- },{passive:false});
- statsController={go,cancel};
+ statsController={go};
 }
 
 
@@ -306,12 +293,12 @@ function finishCardSelection(index){
 }
 
 slideCardTo=function(index){if(document.body.classList.contains('has-glass-history'))return;const l=prepareSwipe();index=Math.max(0,Math.min(allCards().length,index));const target=(l.index-index)*l.width;cardSlideAnimation?.cancel();const done=()=>index===l.index?cleanupSwipe():finishCardSelection(index);if(shouldReduceMotion()){moveHomeSwipe(target,false);done();return}cardSlideAnimation=settleCardStrip(()=>l.dx,x=>moveHomeSwipe(x,false),target,done)};
-function bindHorizontalGesture(element,{read,write,settle,cancel}){
+function bindHorizontalGesture(element,{read,write,settle,cancel,mouseOnly=false}){
  let start=null,dragging=false,vertical=false,samples=[],frame=0,pending=0;
  const stopClick=e=>{e.preventDefault();e.stopPropagation()};
  const flush=()=>{cancelAnimationFrame(frame);frame=0;if(start&&dragging)write(pending)};
  if(element.classList.contains('card-carousel'))bindCardTouchAxis(element);
- element.addEventListener('pointerdown',e=>{if(e.button!==0||start)return;if(element.classList.contains('card-carousel')&&(e.clientX-$('#app').getBoundingClientRect().left<=28||document.body.classList.contains('has-glass-history')))return;if(element.classList.contains('home-content')&&(e.target.closest('.operation-panel')||e.clientX-element.getBoundingClientRect().left<=28))return;start={x:e.clientX,y:e.clientY,base:read(),id:e.pointerId};dragging=false;vertical=false;samples=[{x:e.clientX,time:performance.now()}]});
+ element.addEventListener('pointerdown',e=>{if(e.button!==0||start||(mouseOnly&&e.pointerType!=='mouse'))return;if(element.classList.contains('card-carousel')&&(e.clientX-$('#app').getBoundingClientRect().left<=28||document.body.classList.contains('has-glass-history')))return;if(element.classList.contains('home-content')&&(e.target.closest('.operation-panel')||e.clientX-element.getBoundingClientRect().left<=28))return;start={x:e.clientX,y:e.clientY,base:read(),id:e.pointerId};dragging=false;vertical=false;samples=[{x:e.clientX,time:performance.now()}]});
  element.addEventListener('pointermove',e=>{if(!start||e.pointerId!==start.id||vertical)return;const dx=e.clientX-start.x,dy=e.clientY-start.y;if(!dragging&&Math.abs(dy)>8&&Math.abs(dy)>Math.abs(dx)){vertical=true;return}if(!dragging&&Math.abs(dx)>14&&Math.abs(dx)>Math.abs(dy)*1.6){cancel();start.base=read()-(element.classList.contains('card-carousel')?Math.sign(dx)*14:0);dragging=true;element.setPointerCapture(e.pointerId)}if(!dragging)return;const time=performance.now();samples.push({x:e.clientX,time});samples=samples.filter(p=>time-p.time<100);pending=start.base+dx;if(!frame)frame=requestAnimationFrame(()=>{frame=0;if(start&&dragging)write(pending)})});
  const end=e=>{if(!start||e.pointerId!==start.id)return;flush();const moved=dragging,first=samples[0],last=samples.at(-1),v=e.type==='pointercancel'?0:last&&first&&performance.now()-last.time<80&&last.time>first.time?(last.x-first.x)/(last.time-first.time)*1000:0;start=null;dragging=false;vertical=false;if(element.hasPointerCapture(e.pointerId))element.releasePointerCapture(e.pointerId);if(moved){element.addEventListener('click',stopClick,{once:true,capture:true});setTimeout(()=>element.removeEventListener('click',stopClick,true),0);settle(v,e.type==='pointercancel'||e.type==='lostpointercapture')}};
  element.addEventListener('pointerup',end);element.addEventListener('pointercancel',end);element.addEventListener('lostpointercapture',e=>{if(start&&e.target===element&&!element.hasPointerCapture(e.pointerId))end(e)})
