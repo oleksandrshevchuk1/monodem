@@ -69,6 +69,8 @@ body:has(.side-return-underlay) #nav,body:has(.all-cards-backdrop):has(.all-card
 /* Keep the edge of the moving page flush and the captured selector still. */
 #app.paired-side-motion{will-change:transform;box-shadow:none}
 
+/* Keep the same compositing layers on both sides of the animation handoff. */
+#app.home,.side-page-snapshot.home{will-change:transform}
 #app.cashback{will-change:transform;box-shadow:none;overflow-anchor:none}
 
 /* Safari keeps the already painted Home frame while the live page slides over it. */
@@ -111,10 +113,10 @@ html[data-painted-home-opening]::view-transition-new(opening-page) {
  pointer-events: none;
  z-index: 2;
 }
-/* Promote the Home rows only while they are moving during an account swipe. */
-#app.limits,
+/* Keep the painted layers through the existing gesture and animation handoff. */
+:is(#app,.side-page-snapshot).home .home-top, #app.limits,
 #nav .tab :is(.reference-control-glyph,.icon) { will-change: transform; }
-#app.home.card-gesture-active .home-content > :is(.home-balance,.open-card-intro,.home-actions,.operation-panel) {
+.home-content > :is(.home-balance,.open-card-intro,.home-actions,.operation-panel) {
+ translate: 0 0 0;
  will-change: translate;
 }
-:is(#app,.side-page-snapshot).home:not(.card-gesture-active) .card-track { will-change: auto; }

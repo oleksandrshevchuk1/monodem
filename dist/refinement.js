@@ -45,8 +45,8 @@ function cardPixel(value){
  return Math.round(value*scale)/scale;
 }
 function setCarouselPosition(index){
- const track=$('#app.home .card-track');
- if(track)track.style.transform=index?`translateX(${cardPixel(-index*track.firstElementChild.getBoundingClientRect().width)}px)`:'none';
+ const track=$('.card-track');
+ if(track)track.style.transform=`translate3d(${cardPixel(-index*track.firstElementChild.getBoundingClientRect().width)}px,0,0)`;
 }
 let slideCardTo;
 const homeAccountIntro='.home-balance,.open-card-intro';
@@ -484,7 +484,6 @@ function cleanupSwipe(){
  updateCardIndicator(indicator,carouselIndex);
  background.remove();
  $('#app').classList.remove('card-gesture-active');
- setCarouselPosition(carouselIndex);
  clearTimeout(cardSelectorTimer);
  if(selector?.classList.contains('show-card-indicator')){
   const delay=shouldReduceMotion()?0:1500;

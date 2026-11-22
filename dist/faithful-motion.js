@@ -203,10 +203,8 @@ expandTransition=function(from,to,opening){
  const motion=rear?planeMotion:node.animate(motionFrames,scene.timing);scene.motion=motion;cardTransition=motion;
  // Collect after the caller adds its face/ink tracks; never discard a still-moving layer.
  Promise.resolve().then(()=>{
-  const tracks=[...node.getAnimations({subtree:true}),...(snapshot?.getAnimations()||[])]
-   .filter(a=>a.effect?.getTiming().iterations!==Infinity);
-  if(opening&&!reduce)playAfterFirstPaint(...tracks);
-  return Promise.allSettled(tracks.map(a=>a.finished));
+  const tracks=[...node.getAnimations({subtree:true}),...(snapshot?.getAnimations()||[])];
+  return Promise.allSettled(tracks.filter(a=>a.effect?.getTiming().iterations!==Infinity).map(a=>a.finished));
  }).then(()=>requestAnimationFrame(()=>scene.dispose()));
 };
 // The card carousel owns only its own strip. The rest of Home opens all operations.
