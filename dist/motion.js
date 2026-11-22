@@ -213,7 +213,10 @@ function playAfterFirstPaint(...motions) {
 // Both surfaces use the same position in every frame, including the swipe handoff.
 function placeSideSurfaces(app, preview, x, width) {
  app.style.transform = translateX(x);
- preview.style.transform = translateX(sideUnderlayOffset(x, width));
+ // Home stays aligned with the live screen while the foreground moves.
+ if (!preview.classList.contains('home')) {
+  preview.style.transform = translateX(sideUnderlayOffset(x, width));
+ }
 }
 
 function sideUnderlayOffset(x, width) {
@@ -231,20 +234,20 @@ function animateSideSurfaces(app, preview, from, to, duration) {
  // This curve preserves the previous smoothstep trajectory on the compositor.
  const timing = {duration, easing: 'cubic-bezier(.333333,0,.666667,1)', fill: 'both'};
  const foreground = app.animate([{transform: translateX(from)}, {transform: translateX(to)}], timing);
- const background = preview.animate([
+ const background = preview.classList.contains('home') ? null : preview.animate([
   {transform: translateX(sideUnderlayOffset(from, width))},
   {transform: translateX(sideUnderlayOffset(to, width))}
  ], timing);
- if (enteringDetail) playAfterFirstPaint(foreground, background);
+ if (enteringDetail) playAfterFirstPaint(...[foreground, background].filter(Boolean));
  const motion = {
   finished: foreground.finished,
   finish() {
    foreground.finish();
-   background.finish();
+   background?.finish();
   },
   cancel() {
    foreground.cancel();
-   background.cancel();
+   background?.cancel();
    if (pairedSideMotion !== motion) return;
    pairedSideMotion = null;
    app.style.transform = '';
@@ -367,7 +370,7 @@ paint = function(direction) {
   sideEntrance.adoptBackDestination();
   return;
  }
- if (direction === 'back' && fromSide && pairedSidePages.has(fromSide)) {
+ if (direction === 'back' && route.page !== 'home' && fromSide && pairedSidePages.has(fromSide)) {
   const source = sideSourceForPage(route.page);
   if (source) {
    startLiveSideExit(source, render);
@@ -390,8 +393,13 @@ paint = function(direction) {
   render();
 
   const width = app.clientWidth;
-  const parallax = pairedSidePages.has(fromSide);
-  const options = {duration: pageMotionDuration, easing: slideEase, fill: 'both'};
+  // Reveal the live Home while the outgoing page slides over it.
+  const returningHome = route.page === 'home';
+  const parallax = !returningHome && pairedSidePages.has(fromSide);
+  const duration = returningHome && pairedSidePages.has(fromSide)
+   ? Math.max(160, (quickSidePages.has(fromSide) ? 270 : 350) * (1 - dx / width))
+   : pageMotionDuration;
+  const options = {duration, easing: slideEase, fill: 'both'};
   const exit = snapshot.animate([{transform: translateX(dx)}, {transform: translateX(width)}], options);
   exit.isRouteExit = true;
   let underlay, companion;
@@ -436,8 +444,7 @@ paint = function(direction) {
  }
  finishSideEntrance();
  render();
- if (route.page === 'card') return;
- if (route.page === 'home' && direction !== 'back') return;
+ if (route.page === 'card' || route.page === 'home') return;
  const offset = direction === 'back' ? -8 : 8;
  pageAnimation = $('#screen').animate(
   [{transform: translateX(offset)}, {transform: translateX(0)}],
@@ -519,7 +526,8 @@ back = function() {
   paint('back');
   return;
  }
- const source = sideSourceForPage(route.page === 'detail' ? returnRoute.page : 'home');
+ const destination = route.page === 'detail' ? returnRoute.page : 'home';
+ const source = destination === 'home' ? null : sideSourceForPage(destination);
  if (!pairedSidePages.has(route.page) || !source || shouldReduceMotion() || $('#modal').open) {
   return backBeforeLiveSideReturn();
  }
