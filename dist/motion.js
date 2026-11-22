@@ -285,7 +285,8 @@ function freezePageSurface(preserveArtwork = true) {
  surface.classList.add('side-page-snapshot');
  surface.classList.remove('paired-side-motion');
  if (surface.classList.contains('home')) {
-  surface.homeViewportTop = window.visualViewport?.offsetTop;
+  const content = source.querySelector('.home-content');
+  surface.homeVisualTop = content ? content.getBoundingClientRect().top - (window.visualViewport?.offsetTop ?? 0) : null;
   // Match the painted Home layout even if the viewport changes during navigation.
   copy.style.top = (source.getBoundingClientRect().top - parseFloat(surface.style.top)) + 'px';
   copy.style.zIndex = getComputedStyle(source).zIndex;
@@ -719,21 +720,19 @@ let homeBackdropViewportAnchor=null;
 function alignHomeBackdropToViewport(){
  const anchor=homeBackdropViewportAnchor;
  if(!anchor)return;
- if(!anchor.surface.isConnected){homeBackdropViewportAnchor=null;return}
- // Safari can shift the visual viewport independently of the fixed layout viewport.
- const offset=window.visualViewport.offsetTop-anchor.viewportTop;
- anchor.surface.style.top=(anchor.surfaceTop+offset)+'px';
+ if(!anchor.surface.isConnected||!anchor.content.isConnected)return;
+ // Match the position of the real Home content, including scroll-root and viewport changes.
+ const paintedTop=anchor.content.getBoundingClientRect().top-(window.visualViewport?.offsetTop??0);
+ const delta=anchor.visualTop-paintedTop;
+ if(Math.abs(delta)<.03)return;
+ anchor.top+=delta;
+ anchor.surface.style.top=anchor.top+'px';
 }
 window.visualViewport?.addEventListener('scroll',alignHomeBackdropToViewport,{passive:true});
 window.visualViewport?.addEventListener('resize',alignHomeBackdropToViewport,{passive:true});
 function renderWithHomeBackdrop(backdrop, update = render) {
  const previous = openingHomeBackdrop;
  openingHomeBackdrop = backdrop?.classList.contains('home') ? backdrop : null;
- if(openingHomeBackdrop&&window.visualViewport){
-  const surface=backdrop.closest('.glass-history-backdrop')||backdrop;
-  homeBackdropViewportAnchor={surface,surfaceTop:parseFloat(surface.style.top)||0,viewportTop:backdrop.homeViewportTop??window.visualViewport.offsetTop};
-  if(surface.isConnected)alignHomeBackdropToViewport();
- }
  try { return update(); }
  finally { openingHomeBackdrop = previous; }
 }
@@ -741,13 +740,25 @@ const renderBeforeHomeRetention=render;
 render=function(){
  const app=$('#app'),screen=$('#screen');
  if(route.page==='home'&&homeBackdropViewportAnchor){
-  const {surface,surfaceTop}=homeBackdropViewportAnchor;
-  surface.style.top=surfaceTop+'px';
+  const {surface,startTop}=homeBackdropViewportAnchor;
+  surface.style.top=startTop;
   homeBackdropViewportAnchor=null;
  }
- if(!adminMode&&route.page!=='home'&&app.classList.contains('home')&&screen.querySelector('.home-content')&&!swipeLayers){
+ const homeContent=screen.querySelector('.home-content');
+ if(!adminMode&&route.page!=='home'&&app.classList.contains('home')&&homeContent&&!swipeLayers){
   const nodes=[...screen.childNodes];
   const backdrop=openingHomeBackdrop;
+  if(backdrop){
+   const surface=backdrop.closest('.glass-history-backdrop')||backdrop;
+   const visualTop=backdrop.homeVisualTop??homeContent.getBoundingClientRect().top-(window.visualViewport?.offsetTop??0);
+   const anchor={surface,content:homeContent,visualTop,startTop:surface.style.top,top:parseFloat(surface.style.top)||0};
+   homeBackdropViewportAnchor=anchor;
+   requestAnimationFrame(()=>{
+    if(homeBackdropViewportAnchor!==anchor)return;
+    alignHomeBackdropToViewport();
+    requestAnimationFrame(()=>{if(homeBackdropViewportAnchor===anchor)alignHomeBackdropToViewport()});
+   });
+  }
   const destination=backdrop?.firstElementChild || document.createDocumentFragment();
   destination.replaceChildren(...nodes);
   if(backdrop?.preserveArtwork===false){
@@ -760,6 +771,7 @@ render=function(){
  if(!restore){
   if(route.page==='home')retainedHome=null;
   renderBeforeHomeRetention();
+  alignHomeBackdropToViewport();
   return;
  }
  const scroll=pendingRouteScroll??pageScrollY();

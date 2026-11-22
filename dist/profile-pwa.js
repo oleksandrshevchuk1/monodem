@@ -19,30 +19,21 @@ bindCardCollapse=function(){
  mini.dataset.action='card-scroll-top';
  mini.setAttribute('aria-label','Повернутися до картки');
  mini.innerHTML=cardArtwork(activeCard());
- mini.hidden=true;
+ mini.inert=true;
  barrier.append(mini);
  $('#app').append(barrier);
- let frame=0,previous=-1;
+ let frame=0;
  const update=()=>{
   frame=0;
   if(route.page!=='card'||!card.isConnected)return;
-  const distance=barrier.getBoundingClientRect().bottom-card.getBoundingClientRect().bottom;
-  const progress=shouldReduceMotion()?Number(distance>=0):Math.max(0,Math.min(1,distance/51));
-  if(progress!==previous){
-   mini.style.setProperty('--mini-progress',String(progress));
-   mini.hidden=progress===0;
-   mini.inert=progress<.5;
-   previous=progress;
-  }
-  mini.classList.toggle('flipped',card.classList.contains('flipped'));
+  const visible=card.getBoundingClientRect().bottom<=barrier.getBoundingClientRect().bottom;
+  mini.classList.toggle('visible',visible);
+  mini.inert=!visible;
  };
  const queueUpdate=()=>{if(!frame)frame=requestAnimationFrame(update)};
- const observer=new MutationObserver(queueUpdate);
- observer.observe(card,{attributes:true,attributeFilter:['class']});
  window.addEventListener('scroll',queueUpdate,{passive:true,capture:true});
  window.addEventListener('resize',queueUpdate,{passive:true});
  naturalCardScrollCleanup=()=>{
-  observer.disconnect();
   cancelAnimationFrame(frame);
   window.removeEventListener('scroll',queueUpdate,true);
   window.removeEventListener('resize',queueUpdate);

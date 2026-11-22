@@ -318,13 +318,25 @@ body:has(#app.card .expanded-card .is-white),
   width: 56px;
   height: 36px;
   opacity: 1;
-  translate: 0 calc(51px * (1 - var(--mini-progress, 0)));
-  pointer-events: auto;
+  translate: 0 58px;
+  filter: blur(5px);
+  transition: translate 220ms var(--ease-out), filter 220ms var(--ease-out);
+  pointer-events: none;
   perspective: none;
 }
 
-.card-scroll-barrier > .card-header-mini[hidden] {
-  display: none !important;
+.card-scroll-barrier > .card-header-mini.visible {
+  translate: 0 0;
+  filter: blur(0);
+  pointer-events: auto;
+}
+
+html[data-motion="reduced"] .card-scroll-barrier > .card-header-mini {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="full"]) .card-scroll-barrier > .card-header-mini { transition: none; }
 }
 
 .card-scroll-barrier .card-header-mini .bank-card {
@@ -332,13 +344,11 @@ body:has(#app.card .expanded-card .is-white),
 }
 
 .card-scroll-barrier .card-header-mini .bank-card,
-.card-scroll-barrier .card-header-mini.flipped .bank-card,
 .card-scroll-barrier .card-header-mini .bank-card :is(.bank-card-front, .bank-card-back) {
   transform: none;
 }
 
-.card-scroll-barrier .card-header-mini:not(.flipped) .bank-card-back,
-.card-scroll-barrier .card-header-mini.flipped .bank-card-front {
+.card-scroll-barrier .card-header-mini .bank-card-back {
   visibility: hidden;
 }
 
