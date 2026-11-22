@@ -131,9 +131,11 @@ function statsSourceLabel(){
  return `${statsCardThumbnail(card)}${statsSourceCopy(card,title)}<span class="vertical-dots" aria-hidden="true">⋮</span>`;
 }
 let statisticsVisit;
+const seenStatisticsSummaries=new Set();
 analytics=function(){
  if(statisticsVisit!==route){
   statisticsVisit=route;
+  seenStatisticsSummaries.clear();
   statsKind='expense';
  }
  return `<div class="stats-page analytics-overview">
@@ -290,14 +292,14 @@ function updateStatsGroups(){
  }
  const fadeIn=from=>{
   if(from===1)return;
-  const motion=list.animate([{opacity:from},{opacity:1}],{duration:160,easing:'ease-out'});
+  const motion=list.animate([{opacity:from},{opacity:1}],{duration:105,easing:'ease-out'});
   statsGroupMotions.set(list,motion);
   motion.finished.then(()=>{
    if(statsGroupMotions.get(list)===motion)statsGroupMotions.delete(list);
   }).catch(()=>{});
  };
  if(markup===list.innerHTML){fadeIn(opacity);return}
- const motion=list.animate([{opacity},{opacity:.25}],{duration:90,easing:'ease-in',fill:'forwards'});
+ const motion=list.animate([{opacity},{opacity:.25}],{duration:55,easing:'ease-in',fill:'forwards'});
  statsGroupMotions.set(list,motion);
  motion.finished.then(()=>{
   if(!list.isConnected||statsGroupMotions.get(list)!==motion)return;
@@ -315,12 +317,29 @@ modal=function(...args){delete $('#modal').dataset.kind;basicModal(...args)};
 function statsMetricIcon(tag){return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${tag?'<circle cx="12" cy="12" r="10" fill="currentColor"/><path d="m10 7-2 10m8-10-2 10M7 10h11M6 14h11" fill="none" stroke="#616176" stroke-width="1.7"/>':'<path fill="currentColor" fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20ZM7 7h4v4H7Zm6 0h4v4h-4Zm-6 6h4v4H7Zm6 0h4v4h-4Z"/>'}</svg>`}
 function statsArrow(income){return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${income?'M18 6 6 18M6 8v10h10':'M6 18 18 6M8 6h10v10'}"/></svg>`}
 function capitalIcon(){return `<svg class="icon" viewBox="0 0 28 28" aria-hidden="true" fill="currentColor"><ellipse cx="10" cy="6" rx="6" ry="3"/><path d="M4 9c3 2.4 9 2.4 12 0v4c-3 2.5-9 2.5-12 0Zm0 7c3 2.4 9 2.4 12 0v4c-3 2.5-9 2.5-12 0Z"/><ellipse cx="21" cy="13" rx="5" ry="2.5"/><path d="M16 16c3 2 7 2 10 0v4c-3 2-7 2-10 0Zm0 7c3 2 7 2 10 0v2c-3 2-7 2-10 0Z"/></svg>`}
+function animateFirstStatsSummary(summary){
+ const kind=summary.dataset.kind;
+ if(seenStatisticsSummaries.has(kind))return;
+ seenStatisticsSummaries.add(kind);
+ const label=summary.querySelector(':scope > strong');
+ const total=Number(summary.dataset.total);
+ if(!total||shouldReduceMotion())return;
+ const start=performance.now();
+ const update=now=>{
+  if(!label.isConnected)return;
+  const progress=Math.max(0,Math.min(1,(now-start)/420));
+  const value=total*progress*progress*(3-2*progress);
+  label.textContent=(kind==='expense'?'−':'')+displayMoney(value)+' ₴';
+  if(progress<1)requestAnimationFrame(update);
+ };
+ update(start);
+}
 function initStats(){
  const track=$('#stats-carousel');
  if(!track){statsController=null;return}
  const cards=[...track.querySelectorAll('.stats-summary')];
  const buttons=[...document.querySelectorAll('.stats-dots button')];
- let indicator=-1,settleTimer;
+ let indicator=-1;
  const position=index=>Math.min(track.scrollWidth-track.clientWidth,cards[index].offsetLeft-cards[0].offsetLeft);
  const nearest=x=>Math.abs(x-position(0))<=Math.abs(x-position(1))?0:1;
  const dots=index=>{
@@ -335,6 +354,7 @@ function initStats(){
   const kind=index?'income':'expense';
   if(kind===statsKind)return;
   statsKind=kind;
+  animateFirstStatsSummary(cards[index]);
   updateStatsGroups();
  };
  const go=kind=>{
@@ -349,6 +369,7 @@ function initStats(){
  track.scrollLeft=position(initial);
  dots(initial);
  fitMonetaryLabels(track);
+ animateFirstStatsSummary(cards[initial]);
  track.tabIndex=0;
  track.setAttribute('aria-label','Доходи та витрати: гортайте ліворуч або праворуч');
  bindHorizontalGesture(track,{
@@ -359,16 +380,14 @@ function initStats(){
   mouseOnly:true
  });
  // Touch and trackpad scrolling use native momentum and snapping.
- const commitScroll=()=>{
-  clearTimeout(settleTimer);
-  if(track.classList.contains('stats-dragging'))return;
-  select(nearest(track.scrollLeft));
- };
  track.addEventListener('scroll',()=>{
-  clearTimeout(settleTimer);
-  settleTimer=setTimeout(commitScroll,120);
+  const offset=track.scrollLeft;
+  const other=1-initial;
+  if(Math.abs(offset-position(initial))>=Math.abs(position(other)-position(initial))*.18){
+   animateFirstStatsSummary(cards[other]);
+  }
+  select(nearest(offset));
  },{passive:true});
- track.addEventListener('scrollend',commitScroll);
  track.addEventListener('keydown',e=>{
   if(!['ArrowLeft','ArrowRight'].includes(e.key))return;
   e.preventDefault();
