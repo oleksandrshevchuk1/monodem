@@ -98,7 +98,35 @@ function statsCategoryArt(group){
 function statsGroupRows(){const total=statsTotal(statsKind);return statsGroups().map((g,i)=>{const art=statsCategoryArt(g);return `<button class="stats-category" data-action="stats-category" data-category="${esc(g.name)}"><span class="stats-category-icon tone-${i%4} ${art.kind}">${art.glyph}</span><span><strong>${esc(g.name)}</strong><small>${g.count} транзакцій</small></span><span class="stats-category-amount ${statsKind==='income'?'green':''}">${statsKind==='expense'?'−':''}${displayMoney(g.total)} ₴<small>${total&&g.total&&g.total/total<.01?'&lt; 1':total?Math.round(g.total/total*100):0}%</small></span></button>`}).join('')||empty('Немає операцій','Оберіть інший період або картки.')}
 function statsTabs(){return `<div class="stats-tabs"><button data-action="stats-tab" data-tab="categories" class="${statsTab==='categories'?'selected':''}">Категорії</button><button data-action="stats-tab" data-tab="tags" class="${statsTab==='tags'?'selected':''}">Теги</button></div>`}
 function summaryCard(kind){const tx=statsTransactions(kind),count=new Set(tx.map(t=>t.category||'Інше')).size,total=statsTotal(kind),income=kind==='income';return `<section class="stats-summary" data-kind="${kind}" data-total="${total}"><span class="summary-arrow ${income?'income':'expense'}">${statsArrow(income)}</span><span class="currency-badge">UAH</span><h2>${income?'Надходження':'Витрати'}</h2><strong>${income?'':'−'}${displayMoney(total)} ₴</strong><div class="summary-count">${icon('receipt')}Усього ви зробили ${tx.length} транзакцій</div><div class="summary-metrics"><button data-action="stats-breakdown" data-tab="categories">${statsMetricIcon(false)}<strong>${count}</strong><span>Категорії</span></button><button data-action="stats-breakdown" data-tab="tags">${statsMetricIcon(true)}<strong>${new Set(tx.filter(t=>t.tag).map(t=>t.tag)).size}</strong><span>Тегів</span></button></div></section>`}
-analytics=function(){return `<div class="stats-page"><div class="stats-toolbar"><button data-action="back" aria-label="Назад">${icon('arrow-left')}</button><button data-action="nav" data-page="capital" aria-label="Капітал">${capitalIcon()}</button></div><h1>Статистика</h1><button class="stats-period" data-action="stats-period">${esc(periodLabel())}${icon('calendar')}</button><button class="stats-source" data-action="stats-source"><span class="stats-mini-card">${cardArtwork(statsCards?.length===1?allCards().find(c=>c.id===statsCards[0])||mainCard():mainCard())}</span><strong>${statsCards?.length===1?esc(allCards().find(c=>c.id===statsCards[0])?.account||'Картка'):statsCards?statsCards.length+' картки':'Усі картки'}</strong><span class="vertical-dots">⋮</span></button><div class="stats-carousel" id="stats-carousel">${summaryCard('expense')}${summaryCard('income')}</div><div class="stats-dots"><button class="${statsKind==='expense'?'selected':''}" data-action="stats-kind" data-kind="expense" aria-label="Витрати"></button><button class="${statsKind==='income'?'selected':''}" data-action="stats-kind" data-kind="income" aria-label="Надходження"></button></div>${statsTabs()}<div id="stats-group-list">${statsGroupRows()}</div></div>`};
+function statsCardThumbnail(kind){
+ return `<span class="stats-card-thumbnail stats-card-thumbnail--${kind}" aria-hidden="true"><span class="stats-card-face"><i></i><b>VISA</b></span></span>`;
+}
+function statsSourceCopy(card, title){
+ return `<span class="stats-source-copy"><strong>${esc(title)}</strong>${card?`<small>${displayMoney(cardBalance(card))} ₴</small>`:''}</span>`;
+}
+function statsContent(){
+ if(!statsTransactions('expense').length&&!statsTransactions('income').length){
+  return `<section class="stats-empty">
+   <img src="assets/statistics-empty.webp" alt="" width="640" height="640">
+   <h2>Немає операцій</h2>
+   <p>За вибраний період за цим джерелом не було операцій</p>
+  </section>`;
+ }
+ return `<div class="stats-carousel" id="stats-carousel">${summaryCard('expense')}${summaryCard('income')}</div>
+  <div class="stats-dots"><button class="${statsKind==='expense'?'selected':''}" data-action="stats-kind" data-kind="expense" aria-label="Витрати"></button><button class="${statsKind==='income'?'selected':''}" data-action="stats-kind" data-kind="income" aria-label="Надходження"></button></div>
+  ${statsTabs()}<div id="stats-group-list">${statsGroupRows()}</div>`;
+}
+analytics=function(){
+ const cards=allCards();
+ const card=statsCards?.length===1?cards.find(c=>c.id===statsCards[0]):null;
+ const title=card?.account||(statsCards&&statsCards.length>1?statsCards.length+' картки':'Усі картки');
+ return `<div class="stats-page analytics-overview">
+  <div class="stats-toolbar"><button data-action="back" aria-label="Назад">${icon('arrow-left')}</button><button data-action="nav" data-page="capital" aria-label="Капітал">${capitalIcon()}</button></div>
+  <h1>Статистика</h1><button class="stats-period" data-action="stats-period">${esc(periodLabel())}${icon('calendar')}</button>
+  <button class="stats-source" data-action="stats-source" aria-haspopup="dialog">${statsCardThumbnail(card?(card.id==='white'?'white':'dark'):'stack')}${statsSourceCopy(card,title)}${icon('caret-down')}</button>
+  <div class="stats-content">${statsContent()}</div>
+ </div>`;
+};
 function capitalPage(){const cards=allCards().filter(c=>!statsCards||statsCards.includes(c.id)),total=cards.reduce((n,c)=>n+cardBalance(c),0)+state.jars.reduce((n,j)=>n+j.amount,0)+state.deposits.reduce((n,d)=>n+d.amount,0);return `<div class="capital-page"><div class="stats-toolbar"><button data-action="nav" data-page="analytics" aria-label="Назад">${icon('arrow-left')}</button></div><h1>Капітал</h1><section class="capital-total"><span class="capital-symbol">${icon('wallet')}</span><span class="currency-badge">UAH</span><p>Сума</p><strong>${displayMoney(total)} ₴</strong><div class="capital-note">Ваш капітал складається з ${cards.length+state.jars.length+state.deposits.length} джерел</div></section><div class="capital-sources">${cards.map(c=>`<button data-action="capital-card" data-id="${c.id}"><span class="stats-mini-card">${cardArtwork(c)}</span><small>${esc(c.account)}</small><strong>${displayMoney(cardBalance(c))} ₴</strong></button>`).join('')}${state.jars.map(j=>`<div><span class="capital-symbol">${uiIcon('jar-native')}</span><small>${esc(j.name)}</small><strong>${displayMoney(j.amount)} ₴</strong></div>`).join('')}${state.deposits.map(d=>`<div><span class="capital-symbol">${uiIcon('deposit-native')}</span><small>${esc(d.name)}</small><strong>${displayMoney(d.amount)} ₴</strong></div>`).join('')}</div></div>`}
 function statsBreakdownPage(){
  const income=route.id==='income';
@@ -117,7 +145,36 @@ function statsBreakdownPage(){
 }
 function statsCategoryPage(){const name=decodeURIComponent(route.id||''),tx=statsTransactions().filter(t=>(statsTab==='tags'?(t.tag||'Без тегів'):(t.category||'Інше'))===name);return `<div class="stats-page stats-category-page"><div class="stats-toolbar"><button data-action="nav" data-page="analytics" aria-label="Назад">${icon('arrow-left')}</button><button data-action="nav" data-page="capital" aria-label="Капітал">${capitalIcon()}</button></div><h1>${esc(name)}</h1><p class="stats-period-label">${esc(periodLabel())}</p><div class="category-transaction-list">${grouped(tx)}</div></div>`}
 function bottomSheet(title,html,fn,cta='Показати'){modal(title,html,fn,cta);$('#modal').dataset.kind='sheet'}
-actions['stats-source']=()=>bottomSheet('Джерело',`<div class="source-options">${allCards().map(c=>`<label><span class="stats-mini-card">${cardArtwork(c)}</span><span>${esc(c.account)}<small>${displayMoney(cardBalance(c))} ₴</small></span><input type="checkbox" name="cards" value="${c.id}" ${!statsCards||statsCards.includes(c.id)?'checked':''}></label>`).join('')}</div>`,f=>{const ids=f.getAll('cards');if(!ids.length)throw Error('Оберіть хоча б одну картку');statsCards=ids.length===allCards().length?null:ids});
+actions['stats-source']=()=>{
+ const cards=allCards();
+ bottomSheet('Джерело',`<div class="source-options stats-source-options">${cards.map(card=>`<label>
+  ${statsCardThumbnail(card.id==='white'?'white':'dark')}
+  ${statsSourceCopy(card,card.account)}
+  <input type="checkbox" name="cards" value="${esc(card.id)}" ${!statsCards||statsCards.includes(card.id)?'checked':''}>
+ </label>`).join('')}</div>`,()=>{});
+};
+$('#form').addEventListener('submit',event=>{
+ const dialog=$('#modal');
+ if(!dialog.open||!dialog.querySelector('.stats-source-options'))return;
+ event.preventDefault();
+ event.stopImmediatePropagation();
+ const ids=new FormData(event.currentTarget).getAll('cards');
+ if(!ids.length){
+  $('#error').textContent='Оберіть хоча б одну картку';
+  return;
+ }
+ statsCards=ids.length===allCards().length?null:ids;
+ dialog.close();
+ render();
+ const source=$('.analytics-overview .stats-source');
+ source?.focus({preventScroll:true});
+ if(!shouldReduceMotion()){
+  $('.analytics-overview .stats-content')?.animate(
+   [{opacity:.55,transform:'translateY(6px)'},{opacity:1,transform:'translateY(0)'}],
+   {duration:200,easing:'ease-out'}
+  );
+ }
+},true);
 actions['stats-kind']=b=>statsController?.go(b.dataset.kind);
 actions['stats-tab']=b=>{statsTab=b.dataset.tab;updateStatsGroups()};
 actions['stats-breakdown']=b=>{
@@ -138,7 +195,7 @@ function statsArrow(income){return `<svg class="icon" viewBox="0 0 24 24" fill="
 function capitalIcon(){return `<svg class="icon" viewBox="0 0 28 28" aria-hidden="true" fill="currentColor"><ellipse cx="10" cy="6" rx="6" ry="3"/><path d="M4 9c3 2.4 9 2.4 12 0v4c-3 2.5-9 2.5-12 0Zm0 7c3 2.4 9 2.4 12 0v4c-3 2.5-9 2.5-12 0Z"/><ellipse cx="21" cy="13" rx="5" ry="2.5"/><path d="M16 16c3 2 7 2 10 0v4c-3 2-7 2-10 0Zm0 7c3 2 7 2 10 0v2c-3 2-7 2-10 0Z"/></svg>`}
 function initStats(){
  const track=$('#stats-carousel');
- if(!track)return;
+ if(!track){statsController=null;return}
  const cards=[...track.querySelectorAll('.stats-summary')];
  const buttons=[...document.querySelectorAll('.stats-dots button')];
  let indicator=-1,listMotion=null;
@@ -198,18 +255,11 @@ function bindRefresh(){}
 const experienceRender=render;
 render=function(){if(!adminMode&&['capital','statcategory','statbreakdown','openCard','service'].includes(route.page)){defaults();$('#app').className=route.page;$('#nav').hidden=true;$('#screen').innerHTML=({capital:capitalPage,statcategory:statsCategoryPage,statbreakdown:statsBreakdownPage,openCard:openCardPage,service:servicePage})[route.page]()}else{experienceRender();if(!adminMode){if(['cards','analytics'].includes(route.page))$('#nav').hidden=true;if(route.page==='home'){bindRefresh();$('#app').classList.toggle('new-card-theme',newCardSelected);$('#app').classList.toggle('white-active',!newCardSelected&&cardWhite(activeCard()))}if(route.page==='analytics')initStats();if(route.page==='card'){let p;$('.expanded-card')?.addEventListener('pointerdown',e=>p={x:e.clientX,y:e.clientY});$('.expanded-card')?.addEventListener('pointerup',e=>{if(p&&Math.abs(e.clientX-p.x)>40&&Math.abs(e.clientY-p.y)<50){actions['flip-card']();e.currentTarget.addEventListener('click',e=>{e.stopPropagation();e.preventDefault()},{once:true,capture:true})}p=null})}}}};
 // The carousel and indicator share the same drag position.
-let swipeLayers=null,cardSelectorTimer;
-function showCardIndicator(button){
- clearTimeout(cardSelectorTimer);
- button?.classList.add('show-card-indicator');
-}
-function restoreCardSelector(button){
- clearTimeout(cardSelectorTimer);
- if(!button)return;
- cardSelectorTimer=setTimeout(()=>button.classList.remove('show-card-indicator'),shouldReduceMotion()?0:1600);
-}
+let swipeLayers=null;
 function prepareSwipe(){if(swipeLayers)return swipeLayers;const app=$('#app'),track=$('.card-track'),cards=allCards(),index=newCardSelected?cards.length:Math.max(0,cards.findIndex(c=>c.id===state.activeCard)),background=document.createElement('div');background.className='swipe-gradient';app.prepend(background);
- swipeLayers={track,cards,indicator:$('.card-selector .selector-dots'),width:track.getBoundingClientRect().width,slideWidth:track.firstElementChild.getBoundingClientRect().width,index,background,dx:0,theme:null};document.documentElement.dataset.gesture='active';app.classList.add('card-gesture-active');showCardIndicator(swipeLayers.indicator?.parentElement);return swipeLayers}
+ const selector=$('.card-selector');
+ swipeLayers={track,cards,selector,indicator:selector?.querySelector('.selector-dots'),width:track.getBoundingClientRect().width,slideWidth:track.firstElementChild.getBoundingClientRect().width,index,background,dx:0,theme:null};
+ document.documentElement.dataset.gesture='active';app.classList.add('card-gesture-active');return swipeLayers}
 function firstCardIndicator(index){
  return Math.max(0,Math.min(index-2,allCards().length-4));
 }
@@ -243,6 +293,10 @@ function moveHomeSwipe(distance,rubber=true){
  const dx=rubber?Math.max(-width,Math.min(width,edge?distance*.2:distance)):distance;
  const position=index-dx/width;
  layer.dx=dx;
+ if(layer.selector&&!shouldReduceMotion()){
+  const opacity=index===cards.length?1:Math.min(1,Math.abs(dx)/24);
+  layer.selector.style.setProperty('--card-indicator-opacity',opacity);
+ }
  updateCardIndicator(indicator,Math.max(0,Math.min(cards.length,Math.round(position))));
  track.style.transform=`translate3d(${cardPixel(-position*slideWidth)}px,0,0)`;
  if(edge||dx===0){background.style.opacity='0';return}
@@ -253,7 +307,16 @@ function moveHomeSwipe(distance,rubber=true){
  }
  background.style.opacity=Math.min(1,Math.abs(dx)/width);
 }
-function cleanupSwipe(){if(!swipeLayers)return;updateCardIndicator(swipeLayers.indicator,carouselIndex);restoreCardSelector(swipeLayers.indicator?.parentElement);swipeLayers.background.remove();$('#app').classList.remove('card-gesture-active');delete document.documentElement.dataset.gesture;swipeLayers=null}
+function cleanupSwipe(){
+ if(!swipeLayers)return;
+ const {indicator,selector,background}=swipeLayers;
+ updateCardIndicator(indicator,carouselIndex);
+ background.remove();
+ $('#app').classList.remove('card-gesture-active');
+ selector?.style.removeProperty('--card-indicator-opacity');
+ delete document.documentElement.dataset.gesture;
+ swipeLayers=null;
+}
 function refreshSelectedCard(){
  const app=$('#app');
  app.classList.toggle('white-active',!newCardSelected&&cardWhite(activeCard()));

@@ -38,10 +38,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,DemoInter,'Helvetica Neue',Ari
   pointer-events: none;
   transition: opacity 220ms var(--ease-out);
 }
+.selector-label { opacity: calc(1 - var(--card-indicator-opacity, var(--card-indicator-rest, 0))); }
 .selector-label .icon { width: 15px; height: 15px; opacity: .75; }
-.selector-dots { gap: 10px; color: #fff; opacity: 0; }
-.show-card-indicator .selector-label { opacity: 0; }
-.show-card-indicator .selector-dots { opacity: 1; }
+.selector-dots { gap: 10px; color: #fff; opacity: var(--card-indicator-opacity, var(--card-indicator-rest, 0)); }
+#app.card-gesture-active .card-selector[style*="--card-indicator-opacity"] :is(.selector-label, .selector-dots) { transition: none; }
+html[data-motion="reduced"] .card-selector :is(.selector-label, .selector-dots, .selector-dots > *) { transition: none; }
 .selector-dots i {
   flex: 0 0 7px;
   height: 7px;

@@ -987,8 +987,7 @@ html:has(#app.home),
 .selector-dots .indicator-add::before { display: none; }
 .selector-dots .indicator-add .indicator-plus { display: block; }
 
-.new-card-selected > .card-selector .selector-dots { opacity: 1; }
-.new-card-selected > .card-selector .selector-label { opacity: 0; }
+.new-card-selected > .card-selector { --card-indicator-rest: 1; }
 
 /* A press changes the surface without moving the label, glyph, or row. */
 :is(#app, #modal) :is(
@@ -1017,4 +1016,274 @@ html:has(#app.home),
 
 #app [data-action="save-contact"] {
   -webkit-tap-highlight-color: transparent;
+}
+
+#app.detail #screen button {
+  -webkit-tap-highlight-color: transparent;
+  transition: none;
+}
+
+#app.detail #screen .menu-row:is(:hover, :active) {
+  background-color: transparent;
+}
+
+/* Statistics overview and its source picker */
+#app.analytics {
+    background: #151b2a;
+}
+
+.analytics-overview .stats-toolbar > button {
+    width: 44px;
+    height: 44px;
+}
+
+.analytics-overview .stats-period {
+    margin-bottom: 20px;
+}
+
+.analytics-overview .stats-source {
+    gap: 14px;
+    min-height: 62px;
+    margin-bottom: 18px;
+    border: 1px solid #43516b;
+    border-radius: 14px;
+    background: #222e43;
+}
+
+.stats-source > .icon {
+    width: 18px;
+    height: 18px;
+    color: #a6c3ef;
+    flex: none;
+}
+
+.stats-source-copy {
+    display: grid;
+    gap: 3px;
+    flex: 1;
+    min-width: 0;
+}
+
+.stats-source-copy > strong {
+    font-size: 16px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.stats-source-copy > small {
+    color: #b4bfd3;
+    font-size: 13px;
+}
+
+.stats-card-thumbnail {
+    position: relative;
+    display: block;
+    width: 45px;
+    height: 30px;
+    flex: none;
+    color: white;
+}
+
+.stats-card-face,
+.stats-card-thumbnail--stack::before {
+    position: absolute;
+    inset: 0;
+    border: 1px solid #ffffff26;
+    border-radius: 5px;
+}
+
+.stats-card-face {
+    background: linear-gradient(142deg, #39414f, #12151a 70%);
+    box-shadow: 0 3px 5px #090d1660;
+}
+
+.stats-card-thumbnail--white .stats-card-face,
+.stats-card-thumbnail--stack::before {
+    background: linear-gradient(142deg, #f9fafb, #c8d4e5);
+    color: #1c2c55;
+}
+
+.stats-card-thumbnail--stack::before {
+    content: "";
+    transform: translate(4px, 4px);
+}
+
+.stats-card-face i,
+.stats-card-face i::before,
+.stats-card-face i::after {
+    position: absolute;
+    width: 8px;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+}
+
+.stats-card-face i {
+    top: 5px;
+    left: 4px;
+    opacity: .38;
+}
+
+.stats-card-face i::before {
+    content: "";
+    left: 10px;
+}
+
+.stats-card-face i::after {
+    content: "";
+    top: 14px;
+    width: 11px;
+}
+
+.stats-card-face b {
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    font: italic 800 7px/1 Arial, sans-serif;
+}
+
+.analytics-overview .stats-summary,
+.analytics-overview .stats-empty {
+    background: linear-gradient(155deg, #344661, #26334a);
+    border: 1px solid #566989;
+    border-radius: 20px;
+}
+
+.analytics-overview .stats-summary {
+    min-height: 332px;
+}
+
+.analytics-overview .summary-arrow {
+    border-radius: 14px;
+}
+
+.analytics-overview .summary-arrow.expense {
+    background: #ac501a;
+}
+
+.analytics-overview .summary-arrow.income {
+    background: #087e5c;
+}
+
+.analytics-overview .stats-dots {
+    padding-block: 20px;
+}
+
+.analytics-overview .stats-tabs {
+    background: #222e43;
+    border-color: #43516b;
+}
+
+.analytics-overview .stats-tabs .selected {
+    background: #a6c3ef;
+    color: #15233b;
+}
+
+.stats-empty {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    min-height: 344px;
+    padding: 24px 20px;
+    text-align: center;
+}
+
+.stats-empty img {
+    display: block;
+    width: min(56%, 190px);
+    height: auto;
+    aspect-ratio: 1;
+    object-fit: contain;
+    margin-bottom: 18px;
+}
+
+.stats-empty h2 {
+    font-size: 23px;
+}
+
+.stats-empty p {
+    max-width: 28ch;
+    margin: 8px 0 0;
+    color: #c4d0e4;
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+#modal[data-kind=sheet]:has(.stats-source-options) {
+    padding: 18px 16px calc(18px + var(--safe-bottom, 0px));
+    border: 1px solid #566989;
+    border-bottom: 0;
+    background: #252f45;
+}
+
+#modal[data-kind=sheet]:has(.stats-source-options) .modal-head {
+    margin-bottom: 8px;
+}
+
+#modal[data-kind=sheet] .stats-source-options label {
+    border-radius: 0;
+    border-top: 1px solid #465671;
+    padding-inline: 4px;
+    cursor: pointer;
+}
+
+#modal[data-kind=sheet] .stats-source-options input:checked {
+    background-color: #30669e;
+    border-color: #83b8f0;
+}
+
+#modal[data-kind=sheet]:has(.stats-source-options) #form > .primary {
+    background: #a6c3ef;
+    color: #15233b;
+    border-radius: 12px;
+}
+
+#modal[data-kind=sheet]:has(.stats-source-options)::backdrop {
+    background: #080d19a6;
+}
+
+@supports (transition-behavior: allow-discrete) and (overlay: auto) {
+    #modal[data-kind=sheet]:has(.stats-source-options) {
+        transform: translateY(100%);
+        animation: none;
+        transition: transform 240ms var(--ease-drawer), display 240ms allow-discrete, overlay 240ms allow-discrete;
+    }
+
+    #modal[data-kind=sheet]:has(.stats-source-options)[open] {
+        transform: translateY(0);
+    }
+
+    #modal[data-kind=sheet]:has(.stats-source-options)::backdrop {
+        animation: none;
+        opacity: 0;
+        transition: opacity 240ms ease-out, display 240ms allow-discrete, overlay 240ms allow-discrete;
+    }
+
+    #modal[data-kind=sheet]:has(.stats-source-options)[open]::backdrop {
+        opacity: 1;
+    }
+
+    @starting-style {
+        #modal[data-kind=sheet]:has(.stats-source-options)[open] {
+            transform: translateY(100%);
+        }
+
+        #modal[data-kind=sheet]:has(.stats-source-options)[open]::backdrop {
+            opacity: 0;
+        }
+    }
+}
+
+html[data-motion="reduced"] #modal:has(.stats-source-options),
+html[data-motion="reduced"] #modal:has(.stats-source-options)::backdrop {
+    animation: none;
+    transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html:not([data-motion="full"]) #modal:has(.stats-source-options),
+    html:not([data-motion="full"]) #modal:has(.stats-source-options)::backdrop {
+        animation: none;
+        transition: none;
+    }
 }
