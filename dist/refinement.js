@@ -165,7 +165,9 @@ function cardIndicatorMarkers(index){
  return Array.from({length:last-first+1},(_,offset)=>{
   const position=first+offset;
   const current=position===index?' class="selected"':'';
-  return position===total?`<i class="indicator-plus${position===index?' selected':''}"></i>`:`<i${current}></i>`;
+  return position===total
+   ? `<svg class="indicator-plus${position===index?' selected':''}" viewBox="0 0 9 9" aria-hidden="true"><path d="M4.5 1.25v6.5M1.25 4.5h6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`
+   : `<i${current}></i>`;
  }).join('');
 }
 function updateCardIndicator(indicator,index){
@@ -235,10 +237,30 @@ function bindHorizontalGesture(element,{read,write,settle,cancel}){
  let start=null,dragging=false,vertical=false,samples=[],frame=0,pending=0;
  const stopClick=e=>{e.preventDefault();e.stopPropagation()};
  const flush=()=>{cancelAnimationFrame(frame);frame=0;if(start&&dragging)write(pending)};
+ if(element.classList.contains('card-carousel'))bindCardTouchAxis(element);
  element.addEventListener('pointerdown',e=>{if(e.button!==0||start)return;if(element.classList.contains('card-carousel')&&(e.clientX-$('#app').getBoundingClientRect().left<=28||document.body.classList.contains('has-glass-history')))return;if(element.classList.contains('home-content')&&(e.target.closest('.operation-panel')||e.clientX-element.getBoundingClientRect().left<=28))return;start={x:e.clientX,y:e.clientY,base:read(),id:e.pointerId};dragging=false;vertical=false;samples=[{x:e.clientX,time:performance.now()}]});
  element.addEventListener('pointermove',e=>{if(!start||e.pointerId!==start.id||vertical)return;const dx=e.clientX-start.x,dy=e.clientY-start.y;if(!dragging&&Math.abs(dy)>8&&Math.abs(dy)>Math.abs(dx)){vertical=true;return}if(!dragging&&Math.abs(dx)>14&&Math.abs(dx)>Math.abs(dy)*1.6){cancel();start.base=read()-(element.classList.contains('card-carousel')?Math.sign(dx)*14:0);dragging=true;element.setPointerCapture(e.pointerId)}if(!dragging)return;const time=performance.now();samples.push({x:e.clientX,time});samples=samples.filter(p=>time-p.time<100);pending=start.base+dx;if(!frame)frame=requestAnimationFrame(()=>{frame=0;if(start&&dragging)write(pending)})});
  const end=e=>{if(!start||e.pointerId!==start.id)return;flush();const moved=dragging,first=samples[0],last=samples.at(-1),v=e.type==='pointercancel'?0:last&&first&&performance.now()-last.time<80&&last.time>first.time?(last.x-first.x)/(last.time-first.time)*1000:0;start=null;dragging=false;vertical=false;if(element.hasPointerCapture(e.pointerId))element.releasePointerCapture(e.pointerId);if(moved){element.addEventListener('click',stopClick,{once:true,capture:true});setTimeout(()=>element.removeEventListener('click',stopClick,true),0);settle(v,e.type==='pointercancel'||e.type==='lostpointercapture')}};
  element.addEventListener('pointerup',end);element.addEventListener('pointercancel',end);element.addEventListener('lostpointercapture',e=>{if(start&&e.target===element&&!element.hasPointerCapture(e.pointerId))end(e)})
+}
+function bindCardTouchAxis(element){
+ // Claim horizontal touch movement before the scroll host can move vertically.
+ // A vertical gesture or a gesture at the screen edge keeps its native behavior.
+ let touchAxis=null;
+ element.addEventListener('touchstart',event=>{
+  const touch=event.touches[0];
+  touchAxis=event.touches.length===1&&touch.clientX-$('#app').getBoundingClientRect().left>28
+   &&!document.body.classList.contains('has-glass-history')
+   ? {x:touch.clientX,y:touch.clientY,locked:false} : null;
+ },{passive:true});
+ element.addEventListener('touchmove',event=>{
+  if(!touchAxis||event.touches.length!==1)return;
+  const {clientX,clientY}=event.touches[0];
+  const x=Math.abs(clientX-touchAxis.x),y=Math.abs(clientY-touchAxis.y);
+  if(!touchAxis.locked&&y>=6&&y>=x){touchAxis=null;return}
+  if(x>=6&&x>y*1.6)touchAxis.locked=true;
+  if(touchAxis.locked&&event.cancelable)event.preventDefault();
+ },{passive:false});
 }
 bindCardSwipe=function(){const pane=$('.card-carousel');if(!pane)return;carouselIndex=newCardSelected?allCards().length:allCards().findIndex(c=>c.id===activeCard().id);setCarouselPosition(carouselIndex);bindHorizontalGesture(pane,{read:()=>swipeLayers?.dx||0,write:x=>moveHomeSwipe(x),cancel:()=>cardSlideAnimation?.cancel(),settle:(v,cancelled)=>{const l=prepareSwipe(),projected=l.dx+v*.12;slideCardTo(l.index+(!cancelled&&Math.abs(projected)>l.width*.25?(projected<0?1:-1):0))}})};
 

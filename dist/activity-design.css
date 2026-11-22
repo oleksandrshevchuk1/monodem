@@ -622,9 +622,8 @@ body:not(.has-glass-history) #app.history #screen {
 .reference-control-glyph {
   display: inline-block;
   flex: none;
-  background-color: currentColor;
-  -webkit-mask: url("assets/reference/home-control-glyphs.png") var(--glyph-position) center / 1200% 100% no-repeat;
-  mask: url("assets/reference/home-control-glyphs.png") var(--glyph-position) center / 1200% 100% no-repeat;
+  background: url("assets/reference/home-control-sprite.png")
+    var(--glyph-position) var(--glyph-row, 0%) / 1200% 300% no-repeat;
 }
 
 .home-top {
@@ -673,11 +672,11 @@ body:not(.has-glass-history) #app.history #screen {
 }
 
 :is(#nav, .transition-nav) .tab:not(.active) .reference-control-glyph {
-  color: #adadad;
+  --glyph-row: 50%;
 }
 
 :is(#nav, .transition-nav) .tab.active .reference-control-glyph {
-  color: #ff4d57;
+  --glyph-row: 100%;
 }
 
 .home-useful .exchange-rates,
@@ -939,13 +938,14 @@ html:has(#app.home),
 }
 
 /* Keep the stroke visible at the same size when the marker becomes selected. */
-.selector-dots i.indicator-plus {
+.selector-dots .indicator-plus {
+  display: block;
   flex-basis: 9px;
+  width: 9px;
   height: 9px;
-  background:
-    linear-gradient(currentColor, currentColor) center / 9px 2px no-repeat,
-    linear-gradient(currentColor, currentColor) center / 2px 9px no-repeat;
-  border-radius: 0;
+  color: #fff;
+  opacity: .38;
+  transition: opacity 150ms var(--ease-out);
 }
 
 .selector-dots .indicator-plus.selected {

@@ -79,11 +79,11 @@ body:has(.side-return-underlay) #nav,body:has(.all-cards-backdrop):has(.all-card
  width: 100%;
  pointer-events: none;
  z-index: 2;
- contain: layout paint;
- will-change: transform;
+ contain: layout;
+ will-change: translate;
 }
 .account-swipe-preview > .home-content { width: 100%; }
 .account-swipe-preview :is(.card-carousel,.card-selector) { visibility: hidden; }
-.card-gesture-active .home-content > :is(.home-balance,.open-card-intro,.home-actions,.operation-panel) {
- will-change: translate;
+.home-content > :is(.home-balance,.open-card-intro,.home-actions,.operation-panel) {
+ translate: 0 0;
 }

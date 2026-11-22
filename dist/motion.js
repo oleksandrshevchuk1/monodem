@@ -64,7 +64,7 @@ prepareSwipe=function(){
   preview.className='account-swipe-preview';
   preview.inert=true;
   preview.append(content);
-  preview.style.transform=`translate3d(${(index-layer.index)*layer.width}px,0,0)`;
+  preview.style.translate=`${cardPixel((index-layer.index)*layer.width)}px`;
   layer.pages.push({node:preview,index});
  }
  pane.append(...layer.pages.map(page=>page.node));
@@ -82,7 +82,7 @@ moveHomeSwipe=function(distance,rubber=true){
  if(!layer.pages)return;
  const translation=`${cardPixel(layer.dx)}px`;
  for(const element of layer.movingContent)element.style.translate=translation;
- for(const {node,index} of layer.pages)node.style.transform=`translate3d(${cardPixel((index-layer.index)*layer.width+layer.dx)}px,0,0)`;
+ for(const {node,index} of layer.pages)node.style.translate=`${cardPixel((index-layer.index)*layer.width+layer.dx)}px`;
 };
 cleanupSwipe=function(){
  if(swipeLayers){
