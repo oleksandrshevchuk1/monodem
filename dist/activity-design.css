@@ -681,7 +681,7 @@ body:not(.has-glass-history) #app.history #screen {
 }
 
 :is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).home .card-selector {
-  translate: 0 7px;
+  top: 7px;
 }
 
 :is(#nav, .transition-nav) .tabs-main {

@@ -82,10 +82,8 @@ body:has(.side-return-underlay) #nav,body:has(.all-cards-backdrop):has(.all-card
 .home-content > .card-carousel { grid-area: 2 / 1; }
 .home-content > .card-selector { grid-area: 3 / 1; }
 .home-content > .home-actions { grid-area: 4 / 1; }
-.home-content > .operation-panel { grid-area: 5 / 1; }
+.home-content > .operation-panel { grid-area: 5 / 1; align-self: start; }
 .home-content > .account-swipe-preview {
- position: absolute;
- inset: 0 0 auto;
  pointer-events: none;
  z-index: 2;
 }
