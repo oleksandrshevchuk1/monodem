@@ -237,11 +237,11 @@
 
 
 :is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).card {
-  background: linear-gradient(#060622, #090e2b 97px, #0c1939 200px, #0b214a 317px, #0e2654 400px, #10264f 500px, #132549 600px, #132646 733px) fixed !important;
+  background: linear-gradient(#060622, #090e2b 97px, #0c1939 200px, #0b214a 317px, #0e2654 400px, #10264f 500px, #132549 600px, #132646 733px) !important;
 }
 
 :is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).card:has(.expanded-card .is-white) {
-  background: linear-gradient(#110614, #190c26 97px, #21143f 200px, #242657 317px, #232e64 400px, #28336b 500px, #2a3573 600px, #2e3979 733px) fixed !important;
+  background: linear-gradient(#110614, #190c26 97px, #21143f 200px, #242657 317px, #232e64 400px, #28336b 500px, #2a3573 600px, #2e3979 733px) !important;
 }
 
 :is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).card .card-settings > .settings-group {
@@ -267,40 +267,79 @@ body > .card-header-mini .bank-card:not(.is-white) .bank-card-front {
   background: linear-gradient(180deg, #282828, #222 32%, #111 100%);
 }
 
+#app.card,
+body:has(#app.card) {
+  --card-page-width: min(393px, 100%);
+  --card-header-paint: linear-gradient(#060622, #090e2b);
+  --card-page-paint: linear-gradient(#060622, #090e2b 97px, #0c1939 200px, #0b214a 317px, #0e2654 400px, #10264f 500px, #132549 600px, #132646 733px);
+}
+
+body:has(#app.card .expanded-card .is-white),
+#app.card:has(.expanded-card .is-white) {
+  --card-header-paint: linear-gradient(#110614, #190c26);
+  --card-page-paint: linear-gradient(#110614, #190c26 97px, #21143f 200px, #242657 317px, #232e64 400px, #28336b 500px, #2a3573 600px, #2e3979 733px);
+}
+
+.installed-scroll body:has(#app.card),
+.installed-scroll #app.card {
+  --card-page-width: 100%;
+}
+
+#app.card,
+#app.card:has(.expanded-card .is-white) {
+  background: transparent !important;
+}
+
+#app.card::before,
+body > .card-scroll-barrier {
+  content: "";
+  position: fixed;
+  inset: 0 auto auto 50%;
+  width: var(--card-page-width);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+#app.card::before {
+  height: 100lvh;
+  background: var(--card-page-paint);
+}
+
+body > .card-scroll-barrier {
+  z-index: 69;
+  height: calc(var(--safe-header) + 56px);
+  background: var(--card-header-paint);
+}
+
 body > .card-header-mini {
   display: block !important;
-  transition: none;
   position: fixed;
-  inset: max(46px, env(safe-area-inset-top)) auto auto 50%;
+  inset: calc(var(--safe-header) + 5px) auto auto 50%;
   z-index: 70;
   width: 56px;
-  height: 40px;
+  height: 36px;
+  opacity: 1;
+  pointer-events: auto;
+  perspective: none;
+}
+
+body > .card-header-mini[hidden] {
+  display: none !important;
 }
 
 body > .card-header-mini .bank-card {
+  container-type: inline-size;
+}
+
+body > .card-header-mini .bank-card,
+body > .card-header-mini.flipped .bank-card,
+body > .card-header-mini .bank-card :is(.bank-card-front, .bank-card-back) {
   transform: none;
-  translate: 0 calc(-5px * (1 - var(--mini-progress, 0)));
-  scale: calc(.9 + .1 * var(--mini-progress, 0));
 }
 
-body > .card-header-mini.flipped .bank-card {
-  transform: rotateY(180deg);
-}
-
-body > .card-header-mini::before {
-  content: "";
-  position: absolute;
-  inset: auto auto -13px 50%;
-  width: min(430px, 100vw);
-  height: calc(max(46px, env(safe-area-inset-top)) + 54px);
-  transform: translateX(-50%);
-  background: linear-gradient(#060622, #0a0f2c);
-  pointer-events: none;
-  z-index: -1;
-}
-
-body:has(:is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).card .expanded-card .is-white) > .card-header-mini::before {
-  background: linear-gradient(#100513, #190c26);
+body > .card-header-mini:not(.flipped) .bank-card-back,
+body > .card-header-mini.flipped .bank-card-front {
+  visibility: hidden;
 }
 
 :is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).home .card-selector {

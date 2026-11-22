@@ -285,6 +285,7 @@ function freezePageSurface(preserveArtwork = true) {
  surface.classList.add('side-page-snapshot');
  surface.classList.remove('paired-side-motion');
  if (surface.classList.contains('home')) {
+  surface.homeViewportTop = window.visualViewport?.offsetTop;
   // Match the painted Home layout even if the viewport changes during navigation.
   copy.style.top = (source.getBoundingClientRect().top - parseFloat(surface.style.top)) + 'px';
   copy.style.zIndex = getComputedStyle(source).zIndex;
@@ -707,15 +708,36 @@ for (const page of ['analytics', 'capital', 'statbreakdown', 'statcategory']) si
 // Display the existing Home elements beneath the opening page and reuse them on return.
 let retainedHome=null;
 let openingHomeBackdrop=null;
+let homeBackdropViewportAnchor=null;
+function alignHomeBackdropToViewport(){
+ const anchor=homeBackdropViewportAnchor;
+ if(!anchor)return;
+ if(!anchor.surface.isConnected){homeBackdropViewportAnchor=null;return}
+ // Safari can shift the visual viewport independently of the fixed layout viewport.
+ const offset=window.visualViewport.offsetTop-anchor.viewportTop;
+ anchor.surface.style.top=(anchor.surfaceTop+offset)+'px';
+}
+window.visualViewport?.addEventListener('scroll',alignHomeBackdropToViewport,{passive:true});
+window.visualViewport?.addEventListener('resize',alignHomeBackdropToViewport,{passive:true});
 function renderWithHomeBackdrop(backdrop, update = render) {
  const previous = openingHomeBackdrop;
  openingHomeBackdrop = backdrop?.classList.contains('home') ? backdrop : null;
+ if(openingHomeBackdrop&&window.visualViewport){
+  const surface=backdrop.closest('.glass-history-backdrop')||backdrop;
+  homeBackdropViewportAnchor={surface,surfaceTop:parseFloat(surface.style.top)||0,viewportTop:backdrop.homeViewportTop??window.visualViewport.offsetTop};
+  if(surface.isConnected)alignHomeBackdropToViewport();
+ }
  try { return update(); }
  finally { openingHomeBackdrop = previous; }
 }
 const renderBeforeHomeRetention=render;
 render=function(){
  const app=$('#app'),screen=$('#screen');
+ if(route.page==='home'&&homeBackdropViewportAnchor){
+  const {surface,surfaceTop}=homeBackdropViewportAnchor;
+  surface.style.top=surfaceTop+'px';
+  homeBackdropViewportAnchor=null;
+ }
  if(!adminMode&&route.page!=='home'&&app.classList.contains('home')&&screen.querySelector('.home-content')&&!swipeLayers){
   const nodes=[...screen.childNodes];
   const backdrop=openingHomeBackdrop;

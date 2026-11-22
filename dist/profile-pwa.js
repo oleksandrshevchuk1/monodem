@@ -5,31 +5,28 @@ function validatePersonal(key,value){const text=String(value||'').trim();if(key=
 actions['edit-personal-field']=button=>{const key=button.dataset.field,labels={name:'Як до вас звертатися?',phone:'Телефон',email:'Ваша ел. пошта'},types={name:'text',phone:'tel',email:'email'};if(!labels[key])return;modal(labels[key],field(labels[key],key,state[key]||'',types[key],`maxlength="${key==='name'?60:key==='phone'?30:100}" autocomplete="${key==='name'?'name':key==='phone'?'tel':'email'}" ${key==='name'?'required':''}`),f=>{state[key]=validatePersonal(key,f.get(key))});const input=$('#fields input');input?.focus();if(key!=='email')input?.select()};
 actions['edit-personal-all']=()=>modal('Особисті дані',field('Як до вас звертатися?','name',state.name,'text','required maxlength="60" autocomplete="name"')+field('Телефон','phone',state.phone||'','tel','maxlength="30" autocomplete="tel"')+field('Ваша ел. пошта','email',state.email||'','email','maxlength="100" autocomplete="email"'),f=>{const values={};for(const key of ['name','phone','email'])values[key]=validatePersonal(key,f.get(key));Object.assign(state,values)});
 actions['edit-personal-avatar']=()=>modal('Фото профілю',`${state.avatar?`<img class="profile-editor-avatar" src="${esc(state.avatar)}" alt="Поточне фото">`:''}<label for="profile-avatar-upload">Виберіть нове фото</label><input id="profile-avatar-upload" name="avatar" type="file" accept="image/jpeg,image/png,image/webp">${state.avatar?'<label class="profile-remove-avatar"><input type="checkbox" name="removeAvatar"> Прибрати поточне фото</label>':''}`,async f=>{const file=f.get('avatar');if(file?.size){const value=await imageData(file);if(!value)throw Error('Виберіть JPG, PNG або WebP');const image=new Image();image.src=value;await image.decode();state.avatar=value}else if(f.get('removeAvatar'))state.avatar=null;else throw Error('Виберіть нове фото')});
-// The large card scrolls out naturally. Only a separate header thumbnail remains.
+// The large card scrolls behind a fixed header, then hands off to the thumbnail.
 let naturalCardScrollCleanup=null;
 bindCardCollapse=function(){
  naturalCardScrollCleanup?.();
  const card=$('.expanded-card');
  if(!card)return;
+ const barrier=document.createElement('div');
+ barrier.className='card-scroll-barrier';
+ barrier.setAttribute('aria-hidden','true');
  const mini=document.createElement('button');
  mini.type='button';
  mini.className='card-header-mini';
  mini.dataset.action='card-scroll-top';
  mini.setAttribute('aria-label','Повернутися до картки');
  mini.innerHTML=cardArtwork(activeCard());
- document.body.append(mini);
- let frame=0,previous=-1;
+ mini.hidden=true;
+ document.body.append(barrier,mini);
+ let frame=0;
  const update=()=>{
   frame=0;
   if(route.page!=='card'||!card.isConnected)return;
-  const progress=Math.max(0,Math.min(1,(172-card.getBoundingClientRect().bottom)/74));
-  if(progress!==previous){
-   mini.style.opacity=String(progress);
-   mini.style.setProperty('--mini-progress',String(progress));
-   mini.style.pointerEvents=progress>.5?'auto':'none';
-   mini.inert=progress<=.5;
-   previous=progress;
-  }
+  mini.hidden=card.getBoundingClientRect().bottom>barrier.getBoundingClientRect().bottom;
   mini.classList.toggle('flipped',card.classList.contains('flipped'));
  };
  const queueUpdate=()=>{if(!frame)frame=requestAnimationFrame(update)};
@@ -42,6 +39,7 @@ bindCardCollapse=function(){
   cancelAnimationFrame(frame);
   window.removeEventListener('scroll',queueUpdate,true);
   window.removeEventListener('resize',queueUpdate);
+  barrier.remove();
   mini.remove();
   naturalCardScrollCleanup=null;
  };
@@ -59,4 +57,4 @@ function clearReceiptIntro(){if(!receiptIntro)return;receiptIntro.observer?.disc
 function showReceiptIntro(){if(adminMode||!['file','receipt'].includes(route.page)){clearReceiptIntro();receiptIntroKey=null;return}const key=route.page+'/'+route.id;if(receiptIntroKey===key)return;clearReceiptIntro();const screen=$('#screen'),stage=$('.receipt-fit')||$('.receipt-document-stage')||$('.receipt-page'),footer=$('.receipt-share-footer');if(!stage)return;receiptIntroKey=key;const loader=document.createElement('div');loader.className='mono-receipt-intro';loader.setAttribute('role','status');loader.setAttribute('aria-label','Відкриваємо квитанцію');loader.innerHTML='<span>m</span>';loader.style.top=($('.toolbar')?.offsetHeight||64)+'px';loader.style.bottom=(footer?.offsetHeight||100)+'px';screen.append(loader);const session={key,loader,start:performance.now(),observer:null,timer:null,checking:false};receiptIntro=session;const reveal=()=>{if(receiptIntro!==session||session.checking)return;const images=[...stage.querySelectorAll('img')];if(route.page==='file'&&!images.length&&stage.getAttribute('aria-busy')==='true')return;session.checking=true;Promise.all(images.map(img=>img.decode().catch(()=>{}))).then(()=>{if(receiptIntro!==session)return;session.timer=setTimeout(()=>{if(receiptIntro!==session)return;if(shouldReduceMotion()){clearReceiptIntro();return}loader.animate([{opacity:1},{opacity:0}],{duration:120,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'}).finished.then(()=>{if(receiptIntro===session)clearReceiptIntro()}).catch(()=>{if(receiptIntro===session)clearReceiptIntro()})},Math.max(0,180-(performance.now()-session.start)))})};session.observer=new MutationObserver(reveal);session.observer.observe(stage,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-busy']});reveal()}
 const renderBeforeProfileAndPWA=render;render=function(){renderBeforeProfileAndPWA();if(route.page!=='card')naturalCardScrollCleanup?.();showReceiptIntro()};
 render();
-const measureBeforeHeaderThumbnail=measureCardPose;measureCardPose=function(el){if(el?.classList.contains('expanded-card')){const mini=$('.card-header-mini'),rect=el.getBoundingClientRect();if(mini&&rect.bottom<=110&&Number(getComputedStyle(mini).opacity)>.5){const pose=measureBeforeHeaderThumbnail(mini),painted=mini.querySelector('.bank-card').getBoundingClientRect();pose.rect=painted;pose.center={x:painted.x+painted.width/2,y:painted.y+painted.height/2};pose.sourceAngle=0;pose.flipped=mini.classList.contains('flipped');return pose}}return measureBeforeHeaderThumbnail(el)};
+const measureBeforeHeaderThumbnail=measureCardPose;measureCardPose=function(el){if(el?.classList.contains('expanded-card')){const mini=$('.card-header-mini');if(mini&&!mini.hidden){const pose=measureBeforeHeaderThumbnail(mini),surface=mini.querySelector('.bank-card'),painted=surface.getBoundingClientRect();pose.geometry=stableCardGeometry(surface);pose.rect=painted;pose.center={x:painted.x+painted.width/2,y:painted.y+painted.height/2};pose.sourceAngle=0;pose.flipped=mini.classList.contains('flipped');return pose}}return measureBeforeHeaderThumbnail(el)};

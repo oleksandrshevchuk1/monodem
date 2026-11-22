@@ -1,6 +1,7 @@
 'use strict';
 const recordedCardExpandTransition=expandTransition;
-measureCardPose=function(el){const pose=measureBeforeHeaderThumbnail(el);pose.geometry=stableCardGeometry(el);pose.shadow=getComputedStyle(el).boxShadow;const material=el.querySelector('.card-material');pose.materialOpacity=material?getComputedStyle(material).opacity:'0';return pose};
+const measureBeforeStableCard=measureCardPose;
+measureCardPose=function(el){const pose=measureBeforeStableCard(el);pose.geometry??=stableCardGeometry(el);pose.shadow=getComputedStyle(el).boxShadow;const material=el.querySelector('.card-material');pose.materialOpacity=material?getComputedStyle(material).opacity:'0';return pose};
 const renderBeforeStableCard=render;render=function(){renderBeforeStableCard();const existing=$('.stable-card-close');if(route.page!=='card'||adminMode){existing?.remove();return}if(!$('.entry-overlay')){$('#app').inert=false;$('#nav').inert=false}if(!existing){const close=document.createElement('button');close.type='button';close.className='stable-card-close';close.setAttribute('aria-label','Закрити картку');close.innerHTML=icon('x');close.onclick=e=>{e.preventDefault();e.stopPropagation();back()};document.body.append(close)}};
 render();
 
