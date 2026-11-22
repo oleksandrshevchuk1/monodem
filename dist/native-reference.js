@@ -33,15 +33,13 @@ const cardsHiddenPose = reduced => ({
  transform: reduced ? cardsRestingPose.transform : 'translate3d(0,64px,0)',
  opacity: 0
 });
-const clearCardsBackdrop = {filter: 'blur(0px) brightness(1)'};
-const blurredCardsBackdrop = {filter: 'blur(20px) brightness(.62)'};
-
 function cardsViewportSnapshot() {
  const snapshot = freezePageSurface();
  const top = parseFloat(snapshot.style.top);
  snapshot.style.top = '0px';
  snapshot.style.height = ($('#pwa-scroll')?.clientHeight || innerHeight) + 'px';
- snapshot.firstElementChild.style.marginTop = top + 'px';
+ const content = snapshot.firstElementChild;
+ content.style.top = ((parseFloat(content.style.top) || 0) + top) + 'px';
  const nav = snapshot.querySelector('.transition-nav');
  if (nav) nav.style.top = (parseFloat(nav.style.top) + top) + 'px';
  return snapshot;
@@ -62,22 +60,28 @@ paint = function(direction) {
  const reduced = shouldReduceMotion();
  const options = {duration: reduced ? 0 : pageMotionDuration, easing: slideEase, fill: 'both'};
  const backdrop = previous?.backdrop || (isOverview ? cardsViewportSnapshot() : null);
+ let shade = previous?.shade;
  const source = isOverview ? previous?.exit?.firstElementChild : screen;
  const initialPose = source ? cardsPose(source) : cardsHiddenPose(reduced);
  const homeCard = previous ? previous.homeCard : (newCardSelected ? null : state.activeCard);
  const returningToSameHome = route.page === 'home' && homeCard === (newCardSelected ? null : state.activeCard);
- const initialBackdrop = backdrop && previous
-  ? {filter: getComputedStyle(backdrop).filter, opacity: getComputedStyle(backdrop).opacity}
-  : {...clearCardsBackdrop, opacity: 1};
+ const initialShade = shade ? getComputedStyle(shade).opacity : '0';
+ const initialBackdrop = backdrop ? getComputedStyle(backdrop).opacity : '1';
 
  previous?.motion.cancel();
  previous?.blur?.cancel();
+ previous?.fade?.cancel();
  previous?.exit?.remove();
  finishSideEntrance();
 
  let exit = null;
  if (isOverview) {
   backdrop.classList.add('all-cards-backdrop');
+  if (!shade) {
+   shade = document.createElement('div');
+   shade.className = 'all-cards-shade';
+   backdrop.append(shade);
+  }
   backdrop.style.zIndex = '35';
   if (!backdrop.isConnected) document.body.append(backdrop);
  } else {
@@ -93,13 +97,11 @@ paint = function(direction) {
 
  const content = exit ? exit.firstElementChild : screen;
  const motion = content.animate([initialPose, isOverview ? cardsRestingPose : cardsHiddenPose(reduced)], options);
- const targetBackdrop = isOverview
-  ? {...blurredCardsBackdrop, opacity: 1}
-  : {...clearCardsBackdrop, opacity: returningToSameHome ? 1 : 0};
- const blur = backdrop?.animate([initialBackdrop, targetBackdrop], options);
- const scene = {backdrop, exit, motion, blur, homeCard};
+ const blur = shade?.animate([{opacity: initialShade}, {opacity: isOverview ? 1 : 0}], options);
+ const fade = backdrop?.animate([{opacity: initialBackdrop}, {opacity: isOverview || returningToSameHome ? 1 : 0}], options);
+ const scene = {backdrop, shade, exit, motion, blur, fade, homeCard};
  allCardsScene = scene;
- playAfterFirstPaint(...[motion, blur].filter(Boolean));
+ playAfterFirstPaint(...[motion, blur, fade].filter(Boolean));
  motion.finished.catch(() => {}).finally(() => {
   if (allCardsScene !== scene) return;
   motion.cancel();
@@ -107,6 +109,7 @@ paint = function(direction) {
   exit.remove();
   backdrop?.remove();
   blur?.cancel();
+  fade?.cancel();
   allCardsScene = null;
  });
 };

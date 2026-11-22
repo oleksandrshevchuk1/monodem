@@ -114,7 +114,7 @@ body.document-open .receipt-fit,body.document-open .receipt-document-stage{flex:
 
 .home-content{isolation:isolate}
 .home .operation-panel{position:relative;z-index:2}
-#app.transfer .transfer-gradient{padding-top:var(--safe-header)}
+:is(#app,.side-page-snapshot).transfer .transfer-gradient{padding-top:var(--safe-header)}
 #recipient-search input::selection{background:#8eaaff66;color:#fff}
 .transfer-page,.amount-entry-page,.transfer-archive{touch-action:pan-y}
 

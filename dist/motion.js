@@ -273,8 +273,8 @@ function finishSideEntrance() {
  previous.cleanup?.();
 }
 
-function freezePageSurface() {
- const app = $('#app'), surface = captureBankSurface(true), source = $('#screen');
+function freezePageSurface(preserveArtwork = true) {
+ const app = $('#app'), surface = captureBankSurface(preserveArtwork), source = $('#screen');
  const copy = surface.firstElementChild;
  const frame = getComputedStyle(app);
  surface.style.borderLeft = frame.borderLeft;
@@ -401,7 +401,6 @@ paint = function(direction) {
   const frozen = snapshot.querySelector('.transition-screen');
   frozen.replaceChildren(...$('#screen').childNodes);
   snapshot.style.left = (rect.x - dx) + 'px';
-  snapshot.style.top = -pageScrollY() + 'px';
   snapshot.style.zIndex = 45;
   document.body.append(snapshot);
   app.style.transform = '';

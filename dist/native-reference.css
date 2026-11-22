@@ -19,3 +19,11 @@
 .notification-reference .notification-shortcuts{align-items:flex-start;padding-bottom:18px}.notification-reference .notification-shortcuts>button{white-space:nowrap;overflow-wrap:normal;word-break:normal}.notification-reference>h2{margin-bottom:20px}
 
 .character-reference-cover>img{aspect-ratio:592/520}
+.all-cards-shade {
+ position: absolute;
+ inset: 0;
+ z-index: 16;
+ opacity: 0;
+ -webkit-backdrop-filter: blur(20px) brightness(.62);
+ backdrop-filter: blur(20px) brightness(.62);
+}
