@@ -36,12 +36,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,DemoInter,'Helvetica Neue',Ari
   line-height: 16px;
   white-space: nowrap;
   pointer-events: none;
-  transition: opacity 220ms var(--ease-out);
+  transition: opacity 240ms var(--ease-out);
 }
-.selector-label { opacity: calc(1 - var(--card-indicator-opacity, var(--card-indicator-rest, 0))); }
+.selector-label { opacity: calc(1 - var(--card-indicator-opacity, 0)); }
 .selector-label .icon { width: 15px; height: 15px; opacity: .75; }
-.selector-dots { gap: 10px; color: #fff; opacity: var(--card-indicator-opacity, var(--card-indicator-rest, 0)); }
-#app.card-gesture-active .card-selector[style*="--card-indicator-opacity"] :is(.selector-label, .selector-dots) { transition: none; }
+.selector-dots { gap: 10px; color: #fff; opacity: var(--card-indicator-opacity, 0); }
+.card-selector.show-card-indicator { --card-indicator-opacity: 1; }
 html[data-motion="reduced"] .card-selector :is(.selector-label, .selector-dots, .selector-dots > *) { transition: none; }
 .selector-dots i {
   flex: 0 0 7px;

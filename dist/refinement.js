@@ -123,7 +123,7 @@ analytics=function(){
  return `<div class="stats-page analytics-overview">
   <div class="stats-toolbar"><button data-action="back" aria-label="Назад">${icon('arrow-left')}</button><button data-action="nav" data-page="capital" aria-label="Капітал">${capitalIcon()}</button></div>
   <h1>Статистика</h1><button class="stats-period" data-action="stats-period">${esc(periodLabel())}${icon('calendar')}</button>
-  <button class="stats-source" data-action="stats-source" aria-haspopup="dialog">${statsCardThumbnail(card?(card.id==='white'?'white':'dark'):'stack')}${statsSourceCopy(card,title)}${icon('caret-down')}</button>
+  <button class="stats-source" data-action="stats-source" aria-haspopup="dialog">${statsCardThumbnail(card?(card.id==='white'?'white':'dark'):'stack')}${statsSourceCopy(card,title)}<span class="vertical-dots" aria-hidden="true">⋮</span></button>
   <div class="stats-content">${statsContent()}</div>
  </div>`;
 };
@@ -255,9 +255,11 @@ function bindRefresh(){}
 const experienceRender=render;
 render=function(){if(!adminMode&&['capital','statcategory','statbreakdown','openCard','service'].includes(route.page)){defaults();$('#app').className=route.page;$('#nav').hidden=true;$('#screen').innerHTML=({capital:capitalPage,statcategory:statsCategoryPage,statbreakdown:statsBreakdownPage,openCard:openCardPage,service:servicePage})[route.page]()}else{experienceRender();if(!adminMode){if(['cards','analytics'].includes(route.page))$('#nav').hidden=true;if(route.page==='home'){bindRefresh();$('#app').classList.toggle('new-card-theme',newCardSelected);$('#app').classList.toggle('white-active',!newCardSelected&&cardWhite(activeCard()))}if(route.page==='analytics')initStats();if(route.page==='card'){let p;$('.expanded-card')?.addEventListener('pointerdown',e=>p={x:e.clientX,y:e.clientY});$('.expanded-card')?.addEventListener('pointerup',e=>{if(p&&Math.abs(e.clientX-p.x)>40&&Math.abs(e.clientY-p.y)<50){actions['flip-card']();e.currentTarget.addEventListener('click',e=>{e.stopPropagation();e.preventDefault()},{once:true,capture:true})}p=null})}}}};
 // The carousel and indicator share the same drag position.
-let swipeLayers=null;
+let swipeLayers=null,cardSelectorTimer;
 function prepareSwipe(){if(swipeLayers)return swipeLayers;const app=$('#app'),track=$('.card-track'),cards=allCards(),index=newCardSelected?cards.length:Math.max(0,cards.findIndex(c=>c.id===state.activeCard)),background=document.createElement('div');background.className='swipe-gradient';app.prepend(background);
  const selector=$('.card-selector');
+ clearTimeout(cardSelectorTimer);
+ if(!shouldReduceMotion())selector?.classList.add('show-card-indicator');
  swipeLayers={track,cards,selector,indicator:selector?.querySelector('.selector-dots'),width:track.getBoundingClientRect().width,slideWidth:track.firstElementChild.getBoundingClientRect().width,index,background,dx:0,theme:null};
  document.documentElement.dataset.gesture='active';app.classList.add('card-gesture-active');return swipeLayers}
 function firstCardIndicator(index){
@@ -293,10 +295,6 @@ function moveHomeSwipe(distance,rubber=true){
  const dx=rubber?Math.max(-width,Math.min(width,edge?distance*.2:distance)):distance;
  const position=index-dx/width;
  layer.dx=dx;
- if(layer.selector&&!shouldReduceMotion()){
-  const opacity=index===cards.length?1:Math.min(1,Math.abs(dx)/24);
-  layer.selector.style.setProperty('--card-indicator-opacity',opacity);
- }
  updateCardIndicator(indicator,Math.max(0,Math.min(cards.length,Math.round(position))));
  track.style.transform=`translate3d(${cardPixel(-position*slideWidth)}px,0,0)`;
  if(edge||dx===0){background.style.opacity='0';return}
@@ -313,7 +311,10 @@ function cleanupSwipe(){
  updateCardIndicator(indicator,carouselIndex);
  background.remove();
  $('#app').classList.remove('card-gesture-active');
- selector?.style.removeProperty('--card-indicator-opacity');
+ clearTimeout(cardSelectorTimer);
+ if(selector?.classList.contains('show-card-indicator')){
+  cardSelectorTimer=setTimeout(()=>selector.classList.remove('show-card-indicator'),shouldReduceMotion()?0:1500);
+ }
  delete document.documentElement.dataset.gesture;
  swipeLayers=null;
 }

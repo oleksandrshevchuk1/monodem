@@ -987,7 +987,7 @@ html:has(#app.home),
 .selector-dots .indicator-add::before { display: none; }
 .selector-dots .indicator-add .indicator-plus { display: block; }
 
-.new-card-selected > .card-selector { --card-indicator-rest: 1; }
+.new-card-selected > .card-selector { --card-indicator-opacity: 1; }
 
 /* A press changes the surface without moving the label, glyph, or row. */
 :is(#app, #modal) :is(
@@ -1028,35 +1028,6 @@ html:has(#app.home),
 }
 
 /* Statistics overview and its source picker */
-#app.analytics {
-    background: #151b2a;
-}
-
-.analytics-overview .stats-toolbar > button {
-    width: 44px;
-    height: 44px;
-}
-
-.analytics-overview .stats-period {
-    margin-bottom: 20px;
-}
-
-.analytics-overview .stats-source {
-    gap: 14px;
-    min-height: 62px;
-    margin-bottom: 18px;
-    border: 1px solid #43516b;
-    border-radius: 14px;
-    background: #222e43;
-}
-
-.stats-source > .icon {
-    width: 18px;
-    height: 18px;
-    color: #a6c3ef;
-    flex: none;
-}
-
 .stats-source-copy {
     display: grid;
     gap: 3px;
@@ -1071,7 +1042,7 @@ html:has(#app.home),
 }
 
 .stats-source-copy > small {
-    color: #b4bfd3;
+    color: #c4c3d1;
     font-size: 13px;
 }
 
@@ -1142,48 +1113,14 @@ html:has(#app.home),
     font: italic 800 7px/1 Arial, sans-serif;
 }
 
-.analytics-overview .stats-summary,
-.analytics-overview .stats-empty {
-    background: linear-gradient(155deg, #344661, #26334a);
-    border: 1px solid #566989;
-    border-radius: 20px;
-}
-
-.analytics-overview .stats-summary {
-    min-height: 332px;
-}
-
-.analytics-overview .summary-arrow {
-    border-radius: 14px;
-}
-
-.analytics-overview .summary-arrow.expense {
-    background: #ac501a;
-}
-
-.analytics-overview .summary-arrow.income {
-    background: #087e5c;
-}
-
-.analytics-overview .stats-dots {
-    padding-block: 20px;
-}
-
-.analytics-overview .stats-tabs {
-    background: #222e43;
-    border-color: #43516b;
-}
-
-.analytics-overview .stats-tabs .selected {
-    background: #a6c3ef;
-    color: #15233b;
-}
-
 .stats-empty {
     display: grid;
     justify-items: center;
     align-content: center;
-    min-height: 344px;
+    min-height: 369px;
+    background: linear-gradient(160deg, #626278, #46465d);
+    border: 1px solid #ffffff16;
+    border-radius: 18px;
     padding: 24px 20px;
     text-align: center;
 }
@@ -1204,42 +1141,9 @@ html:has(#app.home),
 .stats-empty p {
     max-width: 28ch;
     margin: 8px 0 0;
-    color: #c4d0e4;
+    color: #c4c3d1;
     font-size: 14px;
     line-height: 1.45;
-}
-
-#modal[data-kind=sheet]:has(.stats-source-options) {
-    padding: 18px 16px calc(18px + var(--safe-bottom, 0px));
-    border: 1px solid #566989;
-    border-bottom: 0;
-    background: #252f45;
-}
-
-#modal[data-kind=sheet]:has(.stats-source-options) .modal-head {
-    margin-bottom: 8px;
-}
-
-#modal[data-kind=sheet] .stats-source-options label {
-    border-radius: 0;
-    border-top: 1px solid #465671;
-    padding-inline: 4px;
-    cursor: pointer;
-}
-
-#modal[data-kind=sheet] .stats-source-options input:checked {
-    background-color: #30669e;
-    border-color: #83b8f0;
-}
-
-#modal[data-kind=sheet]:has(.stats-source-options) #form > .primary {
-    background: #a6c3ef;
-    color: #15233b;
-    border-radius: 12px;
-}
-
-#modal[data-kind=sheet]:has(.stats-source-options)::backdrop {
-    background: #080d19a6;
 }
 
 @supports (transition-behavior: allow-discrete) and (overlay: auto) {
