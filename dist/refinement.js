@@ -165,19 +165,15 @@ function cardIndicatorMarkers(index){
  return Array.from({length:last-first+1},(_,offset)=>{
   const position=first+offset;
   const current=position===index?' class="selected"':'';
-  return position===total
-   ? `<svg class="indicator-plus${position===index?' selected':''}" viewBox="0 0 9 9" aria-hidden="true"><path d="M4.5 1.25v6.5M1.25 4.5h6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`
-   : `<i${current}></i>`;
+  if(position!==last)return `<i${current}></i>`;
+  return `<i class="indicator-end${position===total?' indicator-add':''}${position===index?' selected':''}"><svg class="indicator-plus" viewBox="0 0 9 9" aria-hidden="true"><path d="M4.5 1.25v6.5M1.25 4.5h6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></i>`;
  }).join('');
 }
 function updateCardIndicator(indicator,index){
  if(!indicator||indicator.dataset.index===String(index))return;
- if(firstCardIndicator(Number(indicator.dataset.index))!==firstCardIndicator(index)){
-  indicator.innerHTML=cardIndicatorMarkers(index);
-  indicator.dataset.index=index;
-  return;
- }
- const next=indicator.children[index-firstCardIndicator(index)];
+ const first=firstCardIndicator(index);
+ indicator.lastElementChild?.classList.toggle('indicator-add',first+indicator.children.length-1===allCards().length);
+ const next=indicator.children[index-first];
  const current=indicator.querySelector('.selected');
  if(next!==current){
   current?.classList.remove('selected');
