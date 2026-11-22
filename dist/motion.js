@@ -231,10 +231,34 @@ function sideUnderlayOffset(x, width) {
 
 let pairedSideMotion = null;
 let nativeHomeOpening = null;
+let homeNavigationTap = null;
+const homeNavigationControl = '#app.home :is([data-action="nav"],[data-action="tx"],[data-action="transfer"],[data-action="iban"],[data-action="show-card"],[data-action="open-card"],[data-action="topup"])';
+document.addEventListener('pointerdown',event=>{
+ const control=event.target.closest(homeNavigationControl);
+ homeNavigationTap=event.isPrimary&&event.button===0&&control
+  ?{control,id:event.pointerId,x:event.clientX,y:event.clientY,scroll:pageScrollY(),touch:event.pointerType==='touch'}
+  :null;
+},{capture:true,passive:true});
+document.addEventListener('pointermove',event=>{
+ const tap=homeNavigationTap;
+ if(tap?.id===event.pointerId&&Math.hypot(event.clientX-tap.x,event.clientY-tap.y)>7)homeNavigationTap=null;
+},{capture:true,passive:true});
+document.addEventListener('pointercancel',()=>{homeNavigationTap=null},{capture:true,passive:true});
+document.addEventListener('mousedown',event=>{
+ // Prevent the synthetic mouse event from scrolling Home to focus the tapped button.
+ if((homeNavigationTap?.touch||event.sourceCapabilities?.firesTouchEvents)&&event.target.closest(homeNavigationControl))event.preventDefault();
+},true);
+document.addEventListener('click',event=>{
+ const tap=homeNavigationTap;
+ homeNavigationTap=null;
+ if(!tap||!event.detail||!tap.control.contains(event.target)||route.page!=='home')return;
+ const drift=pageScrollY()-tap.scroll;
+ if(drift&&Math.abs(drift)<=4)pageScrollTo({top:tap.scroll,behavior:'instant'});
+},true);
 function openSidePageOverPaintedHome(snapshot) {
  const root=document.documentElement;
  const scrollHost=$('#pwa-scroll')||$('#app');
- if(navigator.vendor!=='Apple Computer, Inc.'||typeof document.startViewTransition!=='function')return false;
+ if((navigator.vendor!=='Apple Computer, Inc.'&&!navigator.standalone)||typeof document.startViewTransition!=='function')return false;
  const destination=route;
  const duration=quickSidePages.has(destination.page)?quickSideDuration:pageMotionDuration;
  root.dataset.paintedHomeOpening='';
@@ -242,13 +266,13 @@ function openSidePageOverPaintedHome(snapshot) {
  const transition=document.startViewTransition(()=>{
   if(route!==destination)return;
   renderWithHomeBackdrop(snapshot);
-  scrollHost.style.viewTransitionName='opening-page';
+  scrollHost.dataset.paintedHomeForeground='';
  });
  nativeHomeOpening=transition;
  const cleanup=()=>{
   if(nativeHomeOpening!==transition)return;
   nativeHomeOpening=null;
-  scrollHost.style.viewTransitionName='';
+  delete scrollHost.dataset.paintedHomeForeground;
   delete root.dataset.paintedHomeOpening;
   root.style.removeProperty('--painted-home-duration');
  };

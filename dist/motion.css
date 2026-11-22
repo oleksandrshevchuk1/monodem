@@ -74,6 +74,8 @@ body:has(.side-return-underlay) #nav,body:has(.all-cards-backdrop):has(.all-card
 #app.cashback{will-change:transform;box-shadow:none;overflow-anchor:none}
 
 /* Safari keeps the already painted Home frame while the live page slides over it. */
+html[data-painted-home-opening] :is(#screen,#nav,#app,#pwa-scroll) { view-transition-name: none !important; }
+html[data-painted-home-opening] [data-painted-home-foreground]:is(#app,#pwa-scroll) { view-transition-name: opening-page !important; }
 html[data-painted-home-opening]::view-transition-group(root),
 html[data-painted-home-opening]::view-transition-group(opening-page),
 html[data-painted-home-opening]::view-transition-old(root) {
