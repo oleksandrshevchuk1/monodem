@@ -2,4 +2,4 @@
 .has-glass-history #app{z-index:36}.has-glass-history #app.history{background:transparent!important}.has-glass-history #app.history #screen{min-height:100dvh}.glass-history-image{transform-origin:center top}
 .side-history-compact{position:fixed;top:0;left:50%;transform:translateX(-50%);width:min(430px,100%);height:98px;padding-top:45px;z-index:44;opacity:0;pointer-events:none;background:linear-gradient(#202326e8,#202326b0);backdrop-filter:blur(12px);display:flex;justify-content:center;align-items:center}.side-history-compact h2{font-size:14px;font-weight:600;line-height:20px}.side-history-compact button{position:absolute;top:51px;width:30px;height:30px;display:grid;place-items:center;pointer-events:auto}.side-history-compact [data-action=history-favorites]{right:44px}.side-history-compact [data-action=history-search]{right:8px}.side-history-compact .icon{width:22px;height:22px}
 
-.glass-history-backdrop.glass-history-return{z-index:40;background:transparent}
+.glass-history-backdrop.glass-history-live-home{z-index:40;background:transparent}

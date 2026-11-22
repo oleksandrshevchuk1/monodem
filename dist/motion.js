@@ -721,7 +721,7 @@ render=function(){
   const backdrop=openingHomeBackdrop;
   const destination=backdrop?.firstElementChild || document.createDocumentFragment();
   destination.replaceChildren(...nodes);
-  if(backdrop && !backdrop.preserveArtwork){
+  if(backdrop?.preserveArtwork===false){
    const card=[...destination.querySelectorAll('.card-face')].find(face=>face.dataset.id===state.activeCard);
    card?.classList.add('opening-card-source');
   }
