@@ -125,6 +125,11 @@ function statsContent(){
   <div class="stats-dots"><button class="${statsKind==='expense'?'selected':''}" data-action="stats-kind" data-kind="expense" aria-label="Витрати"></button><button class="${statsKind==='income'?'selected':''}" data-action="stats-kind" data-kind="income" aria-label="Надходження"></button></div>
   ${statsTabs()}<div id="stats-group-list">${statsGroupRows()}</div>`;
 }
+function statsSourceLabel(){
+ const card=statsCards?.length===1?allCards().find(c=>c.id===statsCards[0]):null;
+ const title=card?.account||(statsCards&&statsCards.length>1?statsCards.length+' картки':'Усі картки');
+ return `${statsCardThumbnail(card)}${statsSourceCopy(card,title)}<span class="vertical-dots" aria-hidden="true">⋮</span>`;
+}
 let statisticsVisit,seenStatisticsSummaries=new Set();
 analytics=function(){
  if(statisticsVisit!==route){
@@ -132,17 +137,14 @@ analytics=function(){
   seenStatisticsSummaries.clear();
   statsKind='expense';
  }
- const cards=allCards();
- const card=statsCards?.length===1?cards.find(c=>c.id===statsCards[0]):null;
- const title=card?.account||(statsCards&&statsCards.length>1?statsCards.length+' картки':'Усі картки');
  return `<div class="stats-page analytics-overview">
   <div class="stats-toolbar"><button data-action="back" aria-label="Назад">${icon('arrow-left')}</button><button data-action="nav" data-page="capital" aria-label="Капітал">${capitalIcon()}</button></div>
   <h1>Статистика</h1><button class="stats-period" data-action="stats-period">${esc(periodLabel())}${icon('calendar')}</button>
-  <button class="stats-source" data-action="stats-source" aria-haspopup="dialog">${statsCardThumbnail(card)}${statsSourceCopy(card,title)}<span class="vertical-dots" aria-hidden="true">⋮</span></button>
+  <button class="stats-source" data-action="stats-source" aria-haspopup="dialog">${statsSourceLabel()}</button>
   <div class="stats-content">${statsContent()}</div>
  </div>`;
 };
-function capitalPage(){const cards=allCards().filter(c=>!statsCards||statsCards.includes(c.id)),total=cards.reduce((n,c)=>n+cardBalance(c),0)+state.jars.reduce((n,j)=>n+j.amount,0)+state.deposits.reduce((n,d)=>n+d.amount,0);return `<div class="capital-page"><div class="stats-toolbar"><button data-action="nav" data-page="analytics" aria-label="Назад">${icon('arrow-left')}</button></div><h1>Капітал</h1><section class="capital-total"><span class="capital-symbol">${icon('wallet')}</span><span class="currency-badge">UAH</span><p>Сума</p><strong>${displayMoney(total)} ₴</strong><div class="capital-note">Ваш капітал складається з ${cards.length+state.jars.length+state.deposits.length} джерел</div></section><div class="capital-sources">${cards.map(c=>`<button data-action="capital-card" data-id="${c.id}"><span class="stats-mini-card">${cardArtwork(c)}</span><small>${esc(c.account)}</small><strong>${displayMoney(cardBalance(c))} ₴</strong></button>`).join('')}${state.jars.map(j=>`<div><span class="capital-symbol">${uiIcon('jar-native')}</span><small>${esc(j.name)}</small><strong>${displayMoney(j.amount)} ₴</strong></div>`).join('')}${state.deposits.map(d=>`<div><span class="capital-symbol">${uiIcon('deposit-native')}</span><small>${esc(d.name)}</small><strong>${displayMoney(d.amount)} ₴</strong></div>`).join('')}</div></div>`}
+function capitalPage(){const cards=allCards().filter(c=>!statsCards||statsCards.includes(c.id)),total=cards.reduce((n,c)=>n+cardBalance(c),0)+state.jars.reduce((n,j)=>n+j.amount,0)+state.deposits.reduce((n,d)=>n+d.amount,0);return `<div class="capital-page"><div class="stats-toolbar"><button data-action="back" aria-label="Назад">${icon('arrow-left')}</button></div><h1>Капітал</h1><section class="capital-total"><span class="capital-symbol">${icon('wallet')}</span><span class="currency-badge">UAH</span><p>Сума</p><strong>${displayMoney(total)} ₴</strong><div class="capital-note">Ваш капітал складається з ${cards.length+state.jars.length+state.deposits.length} джерел</div></section><div class="capital-sources">${cards.map(c=>`<button data-action="capital-card" data-id="${c.id}"><span class="stats-mini-card">${cardArtwork(c)}</span><small>${esc(c.account)}</small><strong>${displayMoney(cardBalance(c))} ₴</strong></button>`).join('')}${state.jars.map(j=>`<div><span class="capital-symbol">${uiIcon('jar-native')}</span><small>${esc(j.name)}</small><strong>${displayMoney(j.amount)} ₴</strong></div>`).join('')}${state.deposits.map(d=>`<div><span class="capital-symbol">${uiIcon('deposit-native')}</span><small>${esc(d.name)}</small><strong>${displayMoney(d.amount)} ₴</strong></div>`).join('')}</div></div>`}
 function statsBreakdownPage(){
  const income=route.id==='income';
  statsKind=income?'income':'expense';
@@ -235,11 +237,36 @@ $('#form').addEventListener('submit',event=>{
   return;
  }
  closeStatsSource(dialog,()=>{
-  statsCards=ids.length===allCards().length?null:ids;
-  render();
+  const current=statsCards||allCards().map(card=>card.id);
+  if(ids.length!==current.length||ids.some(id=>!current.includes(id))){
+   statsCards=ids.length===allCards().length?null:ids;
+   updateStatsSource();
+  }
   $('.analytics-overview .stats-source')?.focus({preventScroll:true});
  });
 },true);
+function updateStatsSource(){
+ const overview=$('.analytics-overview');
+ if(!overview)return;
+ overview.querySelector('.stats-source').innerHTML=statsSourceLabel();
+ const content=overview.querySelector('.stats-content');
+ const track=content.querySelector('#stats-carousel');
+ const populated=statsTransactions('expense').length||statsTransactions('income').length;
+ if(track&&populated){
+  const template=document.createElement('template');
+  for(const summary of track.children){
+   template.innerHTML=summaryCard(summary.dataset.kind);
+   const next=template.content.firstElementChild;
+   summary.dataset.total=next.dataset.total;
+   summary.replaceChildren(...next.childNodes);
+  }
+  updateStatsGroups();
+ }else if(Boolean(track)!==Boolean(populated)){
+  content.innerHTML=statsContent();
+  initStats();
+ }
+ fitMonetaryLabels(content);
+}
 actions['stats-kind']=b=>statsController?.go(b.dataset.kind);
 actions['stats-tab']=b=>{statsTab=b.dataset.tab;updateStatsGroups()};
 actions['stats-breakdown']=b=>{
@@ -269,7 +296,7 @@ function initStats(){
  if(!track){statsController=null;return}
  const cards=[...track.querySelectorAll('.stats-summary')];
  const buttons=[...document.querySelectorAll('.stats-dots button')];
- let indicator=-1,listMotion=null,settleTimer;
+ let indicator=-1,settleTimer;
  const position=index=>Math.min(track.scrollWidth-track.clientWidth,cards[index].offsetLeft-cards[0].offsetLeft);
  const nearest=x=>Math.abs(x-position(0))<=Math.abs(x-position(1))?0:1;
  const dots=index=>{
@@ -286,34 +313,32 @@ function initStats(){
   statsKind=kind;
   animateFirstStatsSummary(cards[index]);
   updateStatsGroups();
-  const list=$('#stats-group-list');
-  listMotion?.cancel();
-  if(list&&!shouldReduceMotion())listMotion=list.animate([{opacity:.65},{opacity:1}],{duration:180,easing:'ease-out'});
  };
  const go=kind=>{
   const index=kind==='income'?1:0;
-  const instant=shouldReduceMotion();
-  track.classList.remove('stats-mouse-drag');
   const target=position(index);
-  const alreadyThere=Math.abs(track.scrollLeft-target)<1;
+  const instant=shouldReduceMotion();
+  track.classList.remove('stats-dragging');
   track.scrollTo({left:target,behavior:instant?'instant':'smooth'});
-  if(instant||alreadyThere)select(index);
+  if(instant||Math.abs(track.scrollLeft-target)<1)select(index);
  };
  const initial=statsKind==='income'?1:0;
  track.scrollLeft=position(initial);
  dots(initial);
- requestAnimationFrame(()=>{if(track.isConnected)animateFirstStatsSummary(cards[initial])});
+ fitMonetaryLabels(track);
+ animateFirstStatsSummary(cards[initial]);
  track.tabIndex=0;
  track.setAttribute('aria-label','Доходи та витрати: гортайте ліворуч або праворуч');
  bindHorizontalGesture(track,{
   read:()=>-track.scrollLeft,
   write:x=>{track.scrollLeft=-x},
-  cancel:()=>track.classList.add('stats-mouse-drag'),
-  settle:(v,cancelled)=>go(nearest(track.scrollLeft-(cancelled?0:v*.12))?'income':'expense')
+  cancel:()=>track.classList.add('stats-dragging'),
+  settle:(v,cancelled)=>go(nearest(track.scrollLeft-(cancelled?0:v*.12))?'income':'expense'),
+  mouseOnly:true
  });
- // Leave the summary and list layout alone while native scrolling is in flight.
+ // Touch and trackpad scrolling use native momentum and snapping.
  const commitScroll=()=>{
-  if(track.classList.contains('stats-mouse-drag'))return;
+  if(track.classList.contains('stats-dragging'))return;
   select(nearest(track.scrollLeft));
  };
  const hasScrollEnd='onscrollend' in track;
@@ -447,7 +472,7 @@ function bindHorizontalGesture(element,{read,write,settle,cancel,mouseOnly=false
  const flush=()=>{cancelAnimationFrame(frame);frame=0;if(start&&dragging)write(pending)};
  if(element.classList.contains('card-carousel'))bindCardTouchAxis(element);
  element.addEventListener('pointerdown',e=>{if(e.button!==0||start||(mouseOnly&&e.pointerType!=='mouse'))return;if(element.classList.contains('card-carousel')&&(e.clientX-$('#app').getBoundingClientRect().left<=28||document.body.classList.contains('has-glass-history')))return;if(element.classList.contains('home-content')&&(e.target.closest('.operation-panel')||e.clientX-element.getBoundingClientRect().left<=28))return;start={x:e.clientX,y:e.clientY,base:read(),id:e.pointerId};dragging=false;vertical=false;samples=[{x:e.clientX,time:performance.now()}]});
- element.addEventListener('pointermove',e=>{if(!start||e.pointerId!==start.id||vertical)return;const dx=e.clientX-start.x,dy=e.clientY-start.y;if(!dragging&&Math.abs(dy)>8&&Math.abs(dy)>Math.abs(dx)){vertical=true;return}if(!dragging&&Math.abs(dx)>14&&Math.abs(dx)>Math.abs(dy)*1.6){cancel();start.base=read()-(element.classList.contains('card-carousel')?Math.sign(dx)*14:0);dragging=true;element.setPointerCapture(e.pointerId)}if(!dragging)return;const time=performance.now();samples.push({x:e.clientX,time});samples=samples.filter(p=>time-p.time<100);pending=start.base+dx;if(!frame)frame=requestAnimationFrame(()=>{frame=0;if(start&&dragging)write(pending)})});
+ element.addEventListener('pointermove',e=>{if(!start||e.pointerId!==start.id||vertical)return;const dx=e.clientX-start.x,dy=e.clientY-start.y;if(!dragging&&Math.abs(dy)>8&&Math.abs(dy)>Math.abs(dx)){vertical=true;return}if(!dragging&&Math.abs(dx)>14&&Math.abs(dx)>Math.abs(dy)*1.6){cancel();start.base=read()-(element.matches('.card-carousel, .stats-carousel')?Math.sign(dx)*14:0);dragging=true;element.setPointerCapture(e.pointerId)}if(!dragging)return;const time=performance.now();samples.push({x:e.clientX,time});samples=samples.filter(p=>time-p.time<100);pending=start.base+dx;if(!frame)frame=requestAnimationFrame(()=>{frame=0;if(start&&dragging)write(pending)})});
  const end=e=>{if(!start||e.pointerId!==start.id)return;flush();const moved=dragging,first=samples[0],last=samples.at(-1),v=e.type==='pointercancel'?0:last&&first&&performance.now()-last.time<80&&last.time>first.time?(last.x-first.x)/(last.time-first.time)*1000:0;start=null;dragging=false;vertical=false;if(element.hasPointerCapture(e.pointerId))element.releasePointerCapture(e.pointerId);if(moved){element.addEventListener('click',stopClick,{once:true,capture:true});setTimeout(()=>element.removeEventListener('click',stopClick,true),0);settle(v,e.type==='pointercancel'||e.type==='lostpointercapture')}};
  element.addEventListener('pointerup',end);element.addEventListener('pointercancel',end);element.addEventListener('lostpointercapture',e=>{if(start&&e.target===element&&!element.hasPointerCapture(e.pointerId))end(e)})
 }
@@ -512,7 +537,21 @@ function fitMonetaryLabels(root=$('#screen')){
   }
  }
 }
-function animateSummaryValue(el,from,to,kind){if(from===to||shouldReduceMotion())return;const available=el.clientWidth,style=getComputedStyle(el),canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');ctx.font=style.font;const label=n=>(kind==='expense'?'−':'')+displayMoney(n)+' ₴',width=Math.max(ctx.measureText(label(from)).width,ctx.measureText(label(to)).width);el.style.fontSize=Math.max(24,Math.min(parseFloat(style.fontSize),parseFloat(style.fontSize)*available/width))+'px';el.dataset.numberMotion='1';const start=performance.now();const step=now=>{if(!el.isConnected)return;const t=Math.min(1,(now-start)/240),n=from+(to-from)*(1-Math.pow(1-t,3));el.textContent=label(n);if(t<1)requestAnimationFrame(step);else{el.textContent=label(to);delete el.dataset.numberMotion}};requestAnimationFrame(step)}
+function animateSummaryValue(el,from,to,kind){
+ if(!el||from===to||shouldReduceMotion())return;
+ const label=value=>(kind==='expense'?'−':'')+displayMoney(value)+' ₴';
+ el.dataset.numberMotion='1';
+ el.textContent=label(from);
+ const start=performance.now();
+ const tick=now=>{
+  if(!el.isConnected)return;
+  const progress=Math.min(1,(now-start)/420);
+  el.textContent=label(from+(to-from)*(progress*progress*(3-2*progress)));
+  if(progress<1)requestAnimationFrame(tick);
+  else delete el.dataset.numberMotion;
+ };
+ requestAnimationFrame(tick);
+}
 const beforeAmountRender=render;
 render=function(){beforeAmountRender();fitMonetaryLabels()};
 document.fonts.ready.then(()=>fitMonetaryLabels());

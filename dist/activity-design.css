@@ -1150,3 +1150,11 @@ html[data-motion="reduced"] #modal:has(.stats-source-options)::backdrop {
         animation: none;
     }
 }
+
+
+/* Let the statistics scroll host pass horizontal touch gestures to its carousel. */
+html:has(#app.analytics),
+body:has(#app.analytics),
+.pwa-scroll:has(#app.analytics) {
+    touch-action: pan-x pan-y;
+}
