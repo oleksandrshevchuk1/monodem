@@ -11,6 +11,8 @@
  window.dismissLaunchSplash=async()=>{
   const layer=document.querySelector('#launch-splash'),run=generation;if(!layer||exit)return;
   await document.fonts.ready;await new Promise(resolve=>setTimeout(resolve,Math.max(0,600-(performance.now()-visibleSince))));
+  // Give the ready screen a paint under the splash before fading the cover.
+  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
   if(!layer.isConnected||exit||run!==generation)return;
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const animation=layer.animate([{opacity:1},{opacity:0}],{duration:reduce?120:280,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});exit=animation;

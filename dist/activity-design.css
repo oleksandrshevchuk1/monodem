@@ -622,8 +622,21 @@ body:not(.has-glass-history) #app.history #screen {
 .reference-control-glyph {
   display: inline-block;
   flex: none;
-  background: url("assets/reference/home-control-sprite.png")
-    var(--glyph-position) var(--glyph-row, 0%) / 1200% 300% no-repeat;
+}
+
+.reference-control-glyph > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.reference-control-glyph > img + img,
+:is(#nav, .transition-nav) .tab.active .reference-control-glyph > img:first-child {
+  display: none;
+}
+
+:is(#nav, .transition-nav) .tab.active .reference-control-glyph > img + img {
+  display: block;
 }
 
 .home-top {
@@ -678,13 +691,8 @@ body:not(.has-glass-history) #app.history #screen {
 }
 
 :is(#nav, .transition-nav) .tab .reference-control-glyph {
-  --glyph-row: 50%;
   transform: none;
   transition: none;
-}
-
-:is(#nav, .transition-nav) .tab.active .reference-control-glyph {
-  --glyph-row: 100%;
 }
 
 #nav .tab {

@@ -1,6 +1,7 @@
 'use strict';
-const readyControlSprite=new Image();
-readyControlSprite.src='assets/reference/home-control-sprite.png';
+const readyControlImages=Object.values(referenceControlImages).flat().map(src=>{
+ const image=new Image();image.src=src;return image;
+});
 const readyCharacterImages=['character-cutout-v49','character-background-v49'].map(name=>{const img=new Image();img.src='assets/reference/'+name+'.png';return img});
 const rasterGlyphs=new Set(['cat-fill','gift-fill','chart-bar-fill','credit-card-fill','receipt-fill','stack-fill','gear','lock-key']);
 const fallbackIconBeforeCatalog=icon;
@@ -45,13 +46,13 @@ function updateInstalledViewport(){
 }
 window.addEventListener('resize',updateInstalledViewport,{passive:true});window.visualViewport?.addEventListener('resize',updateInstalledViewport,{passive:true});window.addEventListener('pageshow',()=>requestAnimationFrame(updateInstalledViewport));document.addEventListener('DOMContentLoaded',()=>requestAnimationFrame(updateInstalledViewport));
 // Show only the ready entry screen (or ready admin), never a transient loading row.
-let stableGlyphsReady=false;Promise.all([readyControlSprite,...readyReferenceImages,...readyAssetImages,...readyCharacterImages].map(img=>img.decode().catch(()=>{}))).then(()=>{stableGlyphsReady=true;releaseStableBoot()});
+let stableGlyphsReady=false;Promise.all([...readyControlImages,...readyReferenceImages,...readyAssetImages,...readyCharacterImages].map(img=>img.decode().catch(()=>{}))).then(()=>{stableGlyphsReady=true;releaseStableBoot()});
 let stableBootReleasePending=false;
 function releaseStableBoot(){
  if(loading||!stableGlyphsReady||stableBootReleasePending||document.documentElement.dataset.runtimeReady!=='true'||!document.documentElement.classList.contains('booting'))return;
  const entry=document.querySelector('.entry-overlay');if(!adminMode&&entry&&entry.dataset.ready!=='true')return;
  const images=[...document.querySelectorAll('#app img,#nav img,.entry-overlay img')].filter(image=>{const r=image.getBoundingClientRect();return r.width>0&&r.height>0&&r.right>0&&r.left<innerWidth&&r.bottom>0&&r.top<innerHeight});
- stableBootReleasePending=true;Promise.all(images.map(image=>image.decode().catch(()=>{}))).then(()=>{stableBootReleasePending=false;if(loading)return;document.documentElement.classList.remove('booting');bootObserver.disconnect();window.dismissLaunchSplash?.()});
+ stableBootReleasePending=true;Promise.all([document.fonts.ready,...images.map(image=>image.decode().catch(()=>{}))]).then(()=>{stableBootReleasePending=false;if(loading)return;document.documentElement.classList.remove('booting');bootObserver.disconnect();window.dismissLaunchSplash?.()});
 }
 const bootObserver=new MutationObserver(releaseStableBoot);bootObserver.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['data-ready']});document.addEventListener('DOMContentLoaded',()=>setTimeout(releaseStableBoot,0));
 

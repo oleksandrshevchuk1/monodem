@@ -19,12 +19,9 @@ const drawings={
 let uiIcon=n=>drawings[n]?`<svg class="icon" viewBox="0 0 28 28" aria-hidden="true" fill="currentColor">${drawings[n]}</svg>`:icon(n);
 function cardArtwork(c){return `<div class="bank-card ${(c.color?c.color==='white':c.id==='white')?'is-white':''}"><div class="bank-card-front"><div class="card-brand">monobank<small>Universal Bank</small></div><span class="card-holder">${esc(c.holder||state.holder)}</span><span class="visa">VISA</span></div><div class="bank-card-back"><div class="magstripe"></div><div class="card-back-number">${esc(c.card)}</div><span class="back-caption"></span></div></div>`}
 function cardBalance(c){return c.opening+state.transactions.filter(t=>(t.cardId||'main')===c.id).reduce((n,t)=>n+t.amount,0)}
-const referenceControlIndices={
- chat:0,gift:1,appearance:2,analytics:3,transfer:4,iban:5,payments:6,
- home:7,credit:8,jars:9,more:10,market:11
-};
 function referenceControlGlyph(name){
- return `<span class="icon reference-control-glyph" style="--glyph-position:${referenceControlIndices[name]/11*100}%" aria-hidden="true"></span>`;
+ const images=referenceControlImages[name].map(src=>`<img src="${src}" alt="" decoding="sync" draggable="false">`);
+ return `<span class="icon reference-control-glyph" aria-hidden="true">${images.join('')}</span>`;
 }
 nav=function(){const p=route.page,selected=p==='credit'?'credit':['jars','deposit','jar'].includes(p)?'jars':['more','support','appearance','contacts','regular','about'].includes(p)?'more':p==='market'?'market':'home';return `<div class="tabs-main">${[['home','Картки'],['credit','Кредити'],['jars','Накопичення'],['more','Ще']].map(([p,l])=>`<button class="tab ${selected===p?'active':''}" data-action="nav" data-page="${p}" ${selected===p?'aria-current="page"':''}>${referenceControlGlyph(p)}<span>${l}</span></button>`).join('')}</div><button class="tab market-tab ${selected==='market'?'active':''}" data-action="nav" data-page="market">${referenceControlGlyph('market')}<span>Маркет</span></button>`};
 rows=function(items){return items.length?items.map(t=>`<button class="transaction" data-action="tx" data-id="${t.id}"><span class="transaction-icon ${t.amount>0?'income':t.category==='Кафе та ресторани'?'coffee':'shop'}">${t.logo?`<img class="merchant-logo" src="${esc(t.logo)}" alt="">`:icon(t.icon||(t.amount>0?'arrow-square-in':t.category==='Кафе та ресторани'?'coffee-fill':'credit-card-fill'))}</span><span class="tx-content"><strong>${esc(t.title)}</strong>${route.page!=='home'?`<small>${esc(t.note||t.category||'Переказ')}</small>`:''}</span><span class="tx-amount ${t.amount>0?'green':''}">${t.amount>0?'+':'−'}${displayMoney(Math.abs(t.amount))} ₴</span></button>`).join(''):empty('Поки немає операцій','Тут з’явиться історія демонстраційних платежів.')};
