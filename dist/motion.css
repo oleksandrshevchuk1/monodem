@@ -77,7 +77,6 @@ body:has(.side-return-underlay) #nav,body:has(.all-cards-backdrop):has(.all-card
  grid-template-columns: minmax(0,1fr);
  grid-template-rows: repeat(4,auto) var(--swipe-statement-row,auto);
 }
-:is(#app,.side-page-snapshot).home .home-content { will-change: transform; }
 .pwa-scroll:has(> #app.home, > .side-page-snapshot.home) { overflow-anchor: none; }
 .home-content > :is(.home-balance,.open-card-intro) { grid-area: 1 / 1; }
 .home-content > .card-carousel { grid-area: 2 / 1; }

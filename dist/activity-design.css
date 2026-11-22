@@ -317,17 +317,16 @@ body:has(#app.card .expanded-card .is-white),
   z-index: 70;
   width: 56px;
   height: 36px;
-  opacity: 1;
+  opacity: 0;
   translate: 0 58px;
-  filter: blur(5px);
-  transition: translate 220ms var(--ease-out), filter 220ms var(--ease-out);
+  transition: translate 420ms ease-in-out, opacity 420ms ease-in-out;
   pointer-events: none;
   perspective: none;
 }
 
 .card-scroll-barrier > .card-header-mini.visible {
   translate: 0 0;
-  filter: blur(0);
+  opacity: 1;
   pointer-events: auto;
 }
 
@@ -638,7 +637,7 @@ body:not(.has-glass-history) #app.history #screen {
 :is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).history .transaction .tx-content strong,
 :is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).home .operation-panel .transaction .tx-content strong {
   font-size: clamp(14px, 4.1vw, 16px);
-  font-weight: 400;
+  font-weight: 500;
 }
 
 :is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).history .transaction .tx-amount,
