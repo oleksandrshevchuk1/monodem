@@ -60,14 +60,13 @@ prepareSwipe=function(){
   if(index<0||index>allCards().length)continue;
   const content=accountPreviewCache.get(index)||buildAccountPreview(index);
   accountPreviewCache.delete(index);
-  const preview=document.createElement('div');
-  preview.className='account-swipe-preview';
-  preview.inert=true;
-  preview.append(content);
-  preview.style.translate=`${cardPixel((index-layer.index)*layer.width)}px 0 0`;
-  layer.pages.push({node:preview,index});
+  content.classList.add('account-swipe-preview');
+  content.inert=true;
+  content.style.translate=`${cardPixel((index-layer.index)*layer.width)}px 0 0`;
+  layer.pages.push({node:content,index});
  }
- pane.append(...layer.pages.map(page=>page.node));
+ // Keep previews beside the live account so the destination can stay mounted.
+ pane.after(...layer.pages.map(page=>page.node));
  for(const {node} of layer.pages){
   fitMonetaryLabels(node);
  }
@@ -86,7 +85,9 @@ moveHomeSwipe=function(distance,rubber=true){
 };
 cleanupSwipe=function(){
  if(swipeLayers){
-  swipeLayers.pages?.forEach(page=>page.node.remove());
+  swipeLayers.pages?.forEach(({node})=>{
+   if(node.classList.contains('account-swipe-preview'))node.remove();
+  });
   swipeLayers.movingContent?.forEach(element=>element.style.removeProperty('translate'));
  }
  cleanupAccountSwipe();

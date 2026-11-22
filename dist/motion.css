@@ -73,7 +73,7 @@ body:has(.side-return-underlay) #nav,body:has(.all-cards-backdrop):has(.all-card
 /* Move the stationary home card and its selector as part of one surface. */
 .side-page-snapshot.home :is(.card-track,.selector-label,.selector-dots){will-change:auto}
 
-.account-swipe-preview {
+#screen > .account-swipe-preview {
  position: absolute;
  inset: 0 auto auto 0;
  width: 100%;
@@ -82,7 +82,6 @@ body:has(.side-return-underlay) #nav,body:has(.all-cards-backdrop):has(.all-card
  contain: layout;
  will-change: translate;
 }
-.account-swipe-preview > .home-content { width: 100%; }
 /* Keep the painted layers through the existing gesture and animation handoff. */
 #app.home .home-top, #app.limits,
 #nav .tab :is(.reference-control-glyph,.icon) { will-change: transform; }

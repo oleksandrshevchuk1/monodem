@@ -217,15 +217,29 @@ function finishCardSelection(index){
  if(!newCardSelected)state.activeCard=cards[index].id;
  const pane=$('.home-content');
  if(route.page==='home'&&pane){
-  const animatedPreview=swipeLayers?.pages?.find(page=>page.index===index)?.node.firstElementChild;
+  const animatedPreview=swipeLayers?.pages?.find(page=>page.index===index)?.node;
   const preview=animatedPreview||accountPreviewCache.get(index)||buildAccountPreview(index);
   let balanceChanged=false;
-  if(animatedPreview||wasNew!==newCardSelected){
-   // Hand off the same painted blocks that arrived in the last swipe frame.
-   for(const selector of [homeAccountIntro,'.home-actions']){
-    const current=[...pane.children].find(child=>child.matches(selector));
-    current.replaceWith(preview.querySelector(selector));
+  if(animatedPreview){
+   // Move only the shared carousel, selector and footer. The arriving blocks stay in place.
+   for(const selector of ['.card-carousel','.card-selector']){
+    const slot=preview.querySelector(selector),shared=pane.querySelector(selector);
+    if(preview.moveBefore){
+     preview.moveBefore(shared,slot);
+     slot.remove();
+    }else slot.replaceWith(shared);
    }
+   for(const child of [...pane.children]){
+    if(!child.matches(homeAccountIntro+',.home-actions,.operation-panel,.account-swipe-preview'))preview.append(child);
+   }
+   pane.remove();
+   preview.style.removeProperty('top');
+   preview.style.removeProperty('translate');
+   preview.classList.remove('account-swipe-preview');
+   preview.inert=false;
+  }else if(wasNew!==newCardSelected){
+   pane.querySelector(homeAccountIntro).replaceWith(preview.querySelector(homeAccountIntro));
+   pane.querySelector(':scope > .home-actions').replaceWith(preview.querySelector('.home-actions'));
   }else if(!newCardSelected){
    const balanceLabel=pane.querySelector(':scope > .home-balance strong');
    const nextBalance=preview.querySelector('.home-balance strong');
@@ -233,9 +247,9 @@ function finishCardSelection(index){
    balanceChanged=balanceLabel.textContent!==amount;
    if(balanceChanged)balanceLabel.textContent=amount;
   }
-  pane.querySelector(':scope > .operation-panel').replaceWith(preview.querySelector('.operation-panel'));
+  if(!animatedPreview)pane.querySelector(':scope > .operation-panel').replaceWith(preview.querySelector('.operation-panel'));
   accountPreviewCache.delete(index);
-  pane.classList.toggle('new-card-selected',newCardSelected);
+  (animatedPreview||pane).classList.toggle('new-card-selected',newCardSelected);
   refreshSelectedCard();
   setCarouselPosition(index);
   cleanupSwipe();
