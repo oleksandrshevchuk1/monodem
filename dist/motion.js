@@ -293,7 +293,7 @@ function animateSideSurfaces(app, preview, from, to, duration) {
   {transform: translateX(sideUnderlayOffset(from, width))},
   {transform: translateX(sideUnderlayOffset(to, width))}
  ], timing);
- if (enteringDetail) playAfterFirstPaint(...[foreground, background].filter(Boolean));
+ if (from === width && to === 0) playAfterFirstPaint(...[foreground, background].filter(Boolean));
  const motion = {
   finished: foreground.finished,
   finish() {
@@ -518,6 +518,7 @@ paint = function(direction) {
   const entrance = parallax
    ? animateSideSurfaces(app, snapshot, width, 0, options.duration)
    : app.animate(poses, options);
+  if (!parallax && snapshot.classList.contains('home')) playAfterFirstPaint(entrance);
   trackSideMotion(entrance, snapshot);
   return;
  }
