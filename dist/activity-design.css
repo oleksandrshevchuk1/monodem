@@ -643,7 +643,7 @@ body:not(.has-glass-history) #app.history #screen {
 :is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).history .transaction .tx-amount,
 :is(#app, .demo-transition-surface, .history-side-sheet, .soft-operations-layer).home .operation-panel .transaction .tx-amount {
   font-size: clamp(15px, 4.35vw, 17px);
-  font-weight: 400;
+  font-weight: 500;
 }
 
 .bank-reference-detail .reference-operation-body > .receipt-link {
