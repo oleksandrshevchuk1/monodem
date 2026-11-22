@@ -104,7 +104,7 @@ function statsCardThumbnail(card){
  const tone=white?'light':'dark';
  return `<svg class="stats-card-thumbnail stats-card-thumbnail--${tone}${stacked?' stats-card-thumbnail--stack':''}" viewBox="0 0 48 36" aria-hidden="true" focusable="false">
   ${stacked?'<rect x="3.5" y="8.5" width="42" height="25" rx="6" fill="#c0c7d6"/><path d="M9 32h30" stroke="#eef1f7" stroke-linecap="round"/>':''}
-  <rect class="stats-card-face" x="1.5" y="2.5" width="44" height="29" rx="6"/>
+  <rect class="stats-card-face" x="1.5" y="2.5" width="44" height="29" rx="6" stroke-width="1"/>
   <path class="stats-card-gloss" d="M2 10a7 7 0 0 1 7-7h29l-12 10H2Z"/>
   <path class="stats-card-details" d="M7.5 8h7m3 0h5.5M7.5 25h11" fill="none" stroke-width="1.7" stroke-linecap="round"/>
   <text x="40.5" y="26.5" text-anchor="end" fill="currentColor" font-family="Arial, sans-serif" font-size="6.7" font-style="italic" font-weight="800">VISA</text>
@@ -125,7 +125,13 @@ function statsContent(){
   <div class="stats-dots"><button class="${statsKind==='expense'?'selected':''}" data-action="stats-kind" data-kind="expense" aria-label="Витрати"></button><button class="${statsKind==='income'?'selected':''}" data-action="stats-kind" data-kind="income" aria-label="Надходження"></button></div>
   ${statsTabs()}<div id="stats-group-list">${statsGroupRows()}</div>`;
 }
+let statisticsVisit,seenStatisticsSummaries=new Set();
 analytics=function(){
+ if(statisticsVisit!==route){
+  statisticsVisit=route;
+  seenStatisticsSummaries.clear();
+  statsKind='expense';
+ }
  const cards=allCards();
  const card=statsCards?.length===1?cards.find(c=>c.id===statsCards[0]):null;
  const title=card?.account||(statsCards&&statsCards.length>1?statsCards.length+' картки':'Усі картки');
@@ -161,7 +167,63 @@ actions['stats-source']=()=>{
   ${statsSourceCopy(card,card.account)}
   <input type="checkbox" name="cards" value="${esc(card.id)}" ${!statsCards||statsCards.includes(card.id)?'checked':''}>
  </label>`).join('')}</div>`,()=>{});
+ const dialog=$('#modal');
+ if(!shouldReduceMotion())animateStatsSource(dialog,false);
 };
+let statsSourceMotion;
+function animateStatsSource(dialog,closing){
+ const current=statsSourceMotion?getComputedStyle(dialog).transform:null;
+ statsSourceMotion?.cancel();
+ const shown='translateY(0)',hidden='translateY(100%)';
+ dialog.classList.toggle('stats-source-closing',closing);
+ const animation=dialog.animate(
+  {transform:[current||(closing?shown:hidden),closing?hidden:shown]},
+  {duration:360,easing:getComputedStyle(dialog).getPropertyValue('--ease-drawer').trim()||'ease-out',fill:'both'}
+ );
+ statsSourceMotion=animation;
+ animation.finished.then(()=>{
+  if(statsSourceMotion===animation){
+   statsSourceMotion=null;
+   animation.cancel();
+  }
+ }).catch(()=>{});
+ return animation.finished;
+}
+function closeStatsSource(dialog,afterClose){
+ if(dialog.classList.contains('stats-source-closing'))return;
+ const finish=()=>{
+  dialog.close();
+  dialog.classList.remove('stats-source-closing');
+  afterClose?.();
+ };
+ if(shouldReduceMotion()){finish();return}
+ animateStatsSource(dialog,true).then(finish,()=>{dialog.classList.remove('stats-source-closing')});
+}
+const statsSourceDialog=$('#modal');
+statsSourceDialog.addEventListener('cancel',event=>{
+ if(!statsSourceDialog.querySelector('.stats-source-options'))return;
+ event.preventDefault();
+ closeStatsSource(statsSourceDialog);
+});
+statsSourceDialog.addEventListener('keydown',event=>{
+ if(event.key!=='Escape'||!statsSourceDialog.querySelector('.stats-source-options'))return;
+ event.preventDefault();
+ closeStatsSource(statsSourceDialog);
+});
+statsSourceDialog.addEventListener('click',event=>{
+ if(!statsSourceDialog.querySelector('.stats-source-options'))return;
+ const rect=statsSourceDialog.getBoundingClientRect();
+ const outside=event.target===statsSourceDialog&&(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom);
+ if(!outside&&!event.target.closest('#close'))return;
+ event.stopImmediatePropagation();
+ closeStatsSource(statsSourceDialog);
+},true);
+statsSourceDialog.addEventListener('close',()=>{
+ if(statsSourceDialog.open)return;
+ statsSourceMotion?.cancel();
+ statsSourceMotion=null;
+ statsSourceDialog.classList.remove('stats-source-closing');
+});
 $('#form').addEventListener('submit',event=>{
  const dialog=$('#modal');
  if(!dialog.open||!dialog.querySelector('.stats-source-options'))return;
@@ -172,17 +234,11 @@ $('#form').addEventListener('submit',event=>{
   $('#error').textContent='Оберіть хоча б одну картку';
   return;
  }
- statsCards=ids.length===allCards().length?null:ids;
- dialog.close();
- render();
- const source=$('.analytics-overview .stats-source');
- source?.focus({preventScroll:true});
- if(!shouldReduceMotion()){
-  $('.analytics-overview .stats-content')?.animate(
-   [{opacity:.55,transform:'translateY(6px)'},{opacity:1,transform:'translateY(0)'}],
-   {duration:200,easing:'ease-out'}
-  );
- }
+ closeStatsSource(dialog,()=>{
+  statsCards=ids.length===allCards().length?null:ids;
+  render();
+  $('.analytics-overview .stats-source')?.focus({preventScroll:true});
+ });
 },true);
 actions['stats-kind']=b=>statsController?.go(b.dataset.kind);
 actions['stats-tab']=b=>{statsTab=b.dataset.tab;updateStatsGroups()};
@@ -202,6 +258,12 @@ modal=function(...args){delete $('#modal').dataset.kind;basicModal(...args)};
 function statsMetricIcon(tag){return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${tag?'<circle cx="12" cy="12" r="10" fill="currentColor"/><path d="m10 7-2 10m8-10-2 10M7 10h11M6 14h11" fill="none" stroke="#616176" stroke-width="1.7"/>':'<path fill="currentColor" fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20ZM7 7h4v4H7Zm6 0h4v4h-4Zm-6 6h4v4H7Zm6 0h4v4h-4Z"/>'}</svg>`}
 function statsArrow(income){return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${income?'M18 6 6 18M6 8v10h10':'M6 18 18 6M8 6h10v10'}"/></svg>`}
 function capitalIcon(){return `<svg class="icon" viewBox="0 0 28 28" aria-hidden="true" fill="currentColor"><ellipse cx="10" cy="6" rx="6" ry="3"/><path d="M4 9c3 2.4 9 2.4 12 0v4c-3 2.5-9 2.5-12 0Zm0 7c3 2.4 9 2.4 12 0v4c-3 2.5-9 2.5-12 0Z"/><ellipse cx="21" cy="13" rx="5" ry="2.5"/><path d="M16 16c3 2 7 2 10 0v4c-3 2-7 2-10 0Zm0 7c3 2 7 2 10 0v2c-3 2-7 2-10 0Z"/></svg>`}
+function animateFirstStatsSummary(summary){
+ const kind=summary.dataset.kind;
+ if(seenStatisticsSummaries.has(kind))return;
+ seenStatisticsSummaries.add(kind);
+ animateSummaryValue(summary.querySelector(':scope>strong'),0,Number(summary.dataset.total),kind);
+}
 function initStats(){
  const track=$('#stats-carousel');
  if(!track){statsController=null;return}
@@ -222,6 +284,7 @@ function initStats(){
   const kind=index?'income':'expense';
   if(kind===statsKind)return;
   statsKind=kind;
+  animateFirstStatsSummary(cards[index]);
   updateStatsGroups();
   const list=$('#stats-group-list');
   listMotion?.cancel();
@@ -239,6 +302,7 @@ function initStats(){
  const initial=statsKind==='income'?1:0;
  track.scrollLeft=position(initial);
  dots(initial);
+ requestAnimationFrame(()=>{if(track.isConnected)animateFirstStatsSummary(cards[initial])});
  track.tabIndex=0;
  track.setAttribute('aria-label','Доходи та витрати: гортайте ліворуч або праворуч');
  bindHorizontalGesture(track,{
@@ -450,7 +514,7 @@ function fitMonetaryLabels(root=$('#screen')){
 }
 function animateSummaryValue(el,from,to,kind){if(from===to||shouldReduceMotion())return;const available=el.clientWidth,style=getComputedStyle(el),canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');ctx.font=style.font;const label=n=>(kind==='expense'?'−':'')+displayMoney(n)+' ₴',width=Math.max(ctx.measureText(label(from)).width,ctx.measureText(label(to)).width);el.style.fontSize=Math.max(24,Math.min(parseFloat(style.fontSize),parseFloat(style.fontSize)*available/width))+'px';el.dataset.numberMotion='1';const start=performance.now();const step=now=>{if(!el.isConnected)return;const t=Math.min(1,(now-start)/240),n=from+(to-from)*(1-Math.pow(1-t,3));el.textContent=label(n);if(t<1)requestAnimationFrame(step);else{el.textContent=label(to);delete el.dataset.numberMotion}};requestAnimationFrame(step)}
 const beforeAmountRender=render;
-render=function(){const previous=route.page==='analytics'?new Map([...document.querySelectorAll('.stats-summary')].map(x=>[x.dataset.kind,Number(x.dataset.total)])):null;beforeAmountRender();fitMonetaryLabels();if(previous?.size)requestAnimationFrame(()=>{if(route.page==='analytics')document.querySelectorAll('.stats-summary').forEach(x=>{if(previous.has(x.dataset.kind))animateSummaryValue(x.querySelector(':scope>strong'),previous.get(x.dataset.kind),Number(x.dataset.total),x.dataset.kind)})});};
+render=function(){beforeAmountRender();fitMonetaryLabels()};
 document.fonts.ready.then(()=>fitMonetaryLabels());
 
 render();

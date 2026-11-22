@@ -1080,7 +1080,7 @@ html:has(#app.home),
 
 .stats-card-thumbnail--light .stats-card-face {
     fill: #eceef3;
-    stroke: #fafaff;
+    stroke: #c5c9d4;
 }
 
 .stats-card-thumbnail--light .stats-card-gloss {
@@ -1124,48 +1124,29 @@ html:has(#app.home),
     line-height: 1.45;
 }
 
-@supports (transition-behavior: allow-discrete) and (overlay: auto) {
-    #modal[data-kind=sheet]:has(.stats-source-options) {
-        transform: translateY(100%);
-        animation: none;
-        transition: transform 240ms var(--ease-drawer), display 240ms allow-discrete, overlay 240ms allow-discrete;
-    }
-
-    #modal[data-kind=sheet]:has(.stats-source-options)[open] {
-        transform: translateY(0);
-    }
-
-    #modal[data-kind=sheet]:has(.stats-source-options)::backdrop {
-        animation: none;
-        opacity: 0;
-        transition: opacity 240ms ease-out, display 240ms allow-discrete, overlay 240ms allow-discrete;
-    }
-
-    #modal[data-kind=sheet]:has(.stats-source-options)[open]::backdrop {
-        opacity: 1;
-    }
-
-    @starting-style {
-        #modal[data-kind=sheet]:has(.stats-source-options)[open] {
-            transform: translateY(100%);
-        }
-
-        #modal[data-kind=sheet]:has(.stats-source-options)[open]::backdrop {
-            opacity: 0;
-        }
-    }
+#modal[data-kind=sheet]:has(.stats-source-options)[open] {
+    animation: none;
 }
 
-html[data-motion="reduced"] #modal:has(.stats-source-options),
+#modal[data-kind=sheet]:has(.stats-source-options)::backdrop {
+    animation: veil-in 360ms var(--ease-drawer);
+}
+
+#modal[data-kind=sheet].stats-source-closing::backdrop {
+    animation: stats-source-veil-out 360ms var(--ease-drawer) both;
+}
+
+@keyframes stats-source-veil-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
 html[data-motion="reduced"] #modal:has(.stats-source-options)::backdrop {
     animation: none;
-    transition: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    html:not([data-motion="full"]) #modal:has(.stats-source-options),
     html:not([data-motion="full"]) #modal:has(.stats-source-options)::backdrop {
         animation: none;
-        transition: none;
     }
 }
