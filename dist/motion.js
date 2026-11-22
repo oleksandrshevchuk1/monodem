@@ -47,14 +47,14 @@ expandTransition=function(from,to,opening){
   requestAnimationFrame(()=>{if(softCardSession!==session)return;to.style.opacity='';node.remove();softCardSession=null;delete document.documentElement.dataset.gesture;restoreOperationsNav()});
  }).catch(()=>{})
 };
-// Keep the balance and payment shortcuts fixed while the card and statement slide.
+// The card and its account content follow the same gesture.
 const accountPreviewCache=new Map();let previewIdleTask=0;
 const prepareAccountSwipe=prepareSwipe,moveAccountSwipe=moveHomeSwipe,cleanupAccountSwipe=cleanupSwipe;
 prepareSwipe=function(){
  const layer=prepareAccountSwipe();
  if(layer.pages||shouldReduceMotion())return layer;
  const pane=$('.home-content');
- layer.statement=pane.querySelector(':scope > .operation-panel');
+ layer.movingContent=[...pane.children].filter(el=>el.matches(homeAccountIntro+',.home-actions,.operation-panel'));
  layer.pages=[];
  for(const index of [layer.index-1,layer.index+1]){
   if(index<0||index>allCards().length)continue;
@@ -68,6 +68,9 @@ prepareSwipe=function(){
   layer.pages.push({node:preview,index});
  }
  pane.append(...layer.pages.map(page=>page.node));
+ for(const {node} of layer.pages){
+  fitMonetaryLabels(node);
+ }
  const top=pane.querySelector(homeAccountIntro).getBoundingClientRect().top;
  const offsets=layer.pages.map(({node})=>top-node.querySelector(homeAccountIntro).getBoundingClientRect().top);
  layer.pages.forEach(({node},index)=>node.style.top=offsets[index]+'px');
@@ -77,13 +80,14 @@ moveHomeSwipe=function(distance,rubber=true){
  moveAccountSwipe(distance,rubber);
  const layer=swipeLayers;
  if(!layer.pages)return;
- layer.statement.style.translate=`${cardPixel(layer.dx)}px`;
+ const translation=`${cardPixel(layer.dx)}px`;
+ for(const element of layer.movingContent)element.style.translate=translation;
  for(const {node,index} of layer.pages)node.style.translate=`${cardPixel((index-layer.index)*layer.width+layer.dx)}px`;
 };
 cleanupSwipe=function(){
  if(swipeLayers){
   swipeLayers.pages?.forEach(page=>page.node.remove());
-  swipeLayers.statement?.style.removeProperty('translate');
+  swipeLayers.movingContent?.forEach(element=>element.style.removeProperty('translate'));
  }
  cleanupAccountSwipe();
 };
@@ -157,29 +161,23 @@ const slidingTransferPages = new Set(['detail', ...quickPaymentPages]);
 const mainTabs = ['home', 'credit', 'jars', 'more', 'market'];
 const tabFeedback = new WeakMap();
 const tabBar = $('#nav');
-function animateTabPress(tab) {
- const glyph = tab?.querySelector('.reference-control-glyph,.icon');
- if (!glyph || shouldReduceMotion()) return;
- const previous = tabFeedback.get(glyph);
- const current = previous?.playState === 'running' ? getComputedStyle(glyph).transform : 'none';
- previous?.cancel();
- tabFeedback.set(glyph, glyph.animate([
-  {transform: current, easing: slideEase},
-  {transform: 'scale(.86)', offset: .32, easing: slideEase},
-  {transform: 'none'}
- ], {duration: 240}));
-}
-
-tabBar.addEventListener('pointerdown', event => {
- if (event.button === 0) animateTabPress(event.target.closest('.tabs-main .tab'));
-}, {passive: true});
-
 tabBar.addEventListener('click', event => {
- const tab = event.target.closest('.market-tab,.market-mini-tabs button');
- if (!tab || !event.detail) return;
- const page = tab.dataset.section === 'bank' ? 'home' : 'market';
+ const tab = event.target.closest('button[data-page],button[data-section]');
+ if (!tab || !event.detail || shouldReduceMotion()) return;
+ const page = tab.dataset.page || (tab.dataset.section === 'bank' ? 'home' : 'market');
+ // Market can replace the bar while the delegated navigation click is handled.
  requestAnimationFrame(() => {
-  if (route.page === page) animateTabPress(tabBar.querySelector('.tab.active,.market-mini-tabs .selected'));
+  if (route.page !== page) return;
+  const selected = tabBar.querySelector('.tab.active,.market-mini-tabs .selected');
+  const glyph = selected?.querySelector('.reference-control-glyph,.icon');
+  if (!glyph) return;
+  const previous = tabFeedback.get(glyph);
+  const pose = previous?.playState === 'running' ? getComputedStyle(glyph).scale : '.84';
+  previous?.cancel();
+  tabFeedback.set(glyph, glyph.animate(
+   [{scale: pose}, {scale: '1'}],
+   {duration: 160, easing: slideEase}
+  ));
  });
 });
 const slideEase = 'cubic-bezier(.32,.72,0,1)';

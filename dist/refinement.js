@@ -225,9 +225,11 @@ function finishCardSelection(index){
    pane.querySelector(':scope > .home-actions').replaceWith(preview.querySelector('.home-actions'));
   }else if(!newCardSelected){
    const balanceLabel=pane.querySelector(':scope > .home-balance strong');
-   const amount=preview.querySelector('.home-balance strong').textContent;
+   const nextBalance=preview.querySelector('.home-balance strong');
+   const amount=nextBalance.textContent;
    balanceChanged=balanceLabel.textContent!==amount;
    if(balanceChanged)balanceLabel.textContent=amount;
+   if(animatedPreview)balanceLabel.style.fontSize=nextBalance.style.fontSize;
   }
   pane.querySelector(':scope > .operation-panel').replaceWith(preview.querySelector('.operation-panel'));
   accountPreviewCache.delete(index);
@@ -235,7 +237,7 @@ function finishCardSelection(index){
   refreshSelectedCard();
   setCarouselPosition(index);
   cleanupSwipe();
-  if(balanceChanged||(wasNew&&!newCardSelected))fitMonetaryLabels(pane);
+  if(!animatedPreview&&(balanceChanged||(wasNew&&!newCardSelected)))fitMonetaryLabels(pane);
   scheduleAccountPreviews();
  }else cleanupSwipe();
 }

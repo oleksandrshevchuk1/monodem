@@ -678,36 +678,17 @@ body:not(.has-glass-history) #app.history #screen {
 }
 
 :is(#nav, .transition-nav) .tab .reference-control-glyph {
-  position: relative;
   --glyph-row: 50%;
   transform: none;
   transition: none;
 }
 
-:is(#nav, .transition-nav) .tab .reference-control-glyph::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: url("assets/reference/home-control-sprite.png")
-    var(--glyph-position) 100% / 1200% 300% no-repeat;
-  opacity: 0;
-  transition: opacity 120ms var(--ease-out);
-}
-
-:is(#nav, .transition-nav) .tab.active .reference-control-glyph::after {
-  opacity: 1;
+:is(#nav, .transition-nav) .tab.active .reference-control-glyph {
+  --glyph-row: 100%;
 }
 
 #nav .tab {
   -webkit-tap-highlight-color: transparent;
-  transition: color 120ms var(--ease-out);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  #nav .tab,
-  #nav .tab .reference-control-glyph::after {
-    transition: none;
-  }
 }
 
 .home-useful .exchange-rates,
