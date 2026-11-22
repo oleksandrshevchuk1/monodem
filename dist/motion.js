@@ -54,25 +54,23 @@ prepareSwipe=function(){
  const layer=prepareAccountSwipe();
  if(layer.pages||shouldReduceMotion())return layer;
  const pane=$('.home-content');
- layer.movingContent=[...pane.children].filter(el=>el.matches(homeAccountIntro+',.home-actions,.operation-panel'));
+ const slots=[homeAccountIntro,'.home-actions','.operation-panel'];
+ layer.movingContent=slots.map(selector=>pane.querySelector(selector));
  layer.pages=[];
  for(const index of [layer.index-1,layer.index+1]){
   if(index<0||index>allCards().length)continue;
   const content=accountPreviewCache.get(index)||buildAccountPreview(index);
   accountPreviewCache.delete(index);
-  content.classList.add('account-swipe-preview');
-  content.inert=true;
-  content.style.translate=`${cardPixel((index-layer.index)*layer.width)}px 0 0`;
-  layer.pages.push({node:content,index});
+  const blocks=slots.map(selector=>content.querySelector(selector));
+  for(const block of blocks){
+   block.classList.add('account-swipe-preview');
+   block.inert=true;
+   block.style.translate=`${cardPixel((index-layer.index)*layer.width)}px 0 0`;
+  }
+  pane.append(...blocks);
+  fitMonetaryLabels(blocks[0]);
+  layer.pages.push({blocks,index});
  }
- // Keep previews beside the live account so the destination can stay mounted.
- pane.after(...layer.pages.map(page=>page.node));
- for(const {node} of layer.pages){
-  fitMonetaryLabels(node);
- }
- const top=pane.querySelector(homeAccountIntro).getBoundingClientRect().top;
- const offsets=layer.pages.map(({node})=>top-node.querySelector(homeAccountIntro).getBoundingClientRect().top);
- layer.pages.forEach(({node},index)=>node.style.top=offsets[index]+'px');
  return layer;
 };
 moveHomeSwipe=function(distance,rubber=true){
@@ -81,13 +79,16 @@ moveHomeSwipe=function(distance,rubber=true){
  if(!layer.pages)return;
  const translation=`${cardPixel(layer.dx)}px 0 0`;
  for(const element of layer.movingContent)element.style.translate=translation;
- for(const {node,index} of layer.pages)node.style.translate=`${cardPixel((index-layer.index)*layer.width+layer.dx)}px 0 0`;
+ for(const {blocks,index} of layer.pages){
+  const offset=`${cardPixel((index-layer.index)*layer.width+layer.dx)}px 0 0`;
+  for(const block of blocks)block.style.translate=offset;
+ }
 };
 cleanupSwipe=function(){
  if(swipeLayers){
-  swipeLayers.pages?.forEach(({node})=>{
-   if(node.classList.contains('account-swipe-preview'))node.remove();
-  });
+  for(const {blocks} of swipeLayers.pages||[]){
+   for(const block of blocks)if(block.classList.contains('account-swipe-preview'))block.remove();
+  }
   swipeLayers.movingContent?.forEach(element=>element.style.removeProperty('translate'));
  }
  cleanupAccountSwipe();

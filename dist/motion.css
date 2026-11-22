@@ -73,19 +73,25 @@ body:has(.side-return-underlay) #nav,body:has(.all-cards-backdrop):has(.all-card
 /* Move the stationary home card and its selector as part of one surface. */
 .side-page-snapshot.home :is(.card-track,.selector-label,.selector-dots){will-change:auto}
 
-#screen > .account-swipe-preview {
+/* Live and incoming account blocks share the same fixed row starts. */
+.home-content {
+ display: grid;
+ grid-template-columns: minmax(0,1fr);
+}
+.home-content > :is(.home-balance,.open-card-intro) { grid-area: 1 / 1; }
+.home-content > .card-carousel { grid-area: 2 / 1; }
+.home-content > .card-selector { grid-area: 3 / 1; }
+.home-content > .home-actions { grid-area: 4 / 1; }
+.home-content > .operation-panel { grid-area: 5 / 1; }
+.home-content > .account-swipe-preview {
  position: absolute;
- inset: 0 auto auto 0;
- width: 100%;
+ inset: 0 0 auto;
  pointer-events: none;
  z-index: 2;
- contain: layout;
- will-change: translate;
 }
 /* Keep the painted layers through the existing gesture and animation handoff. */
 #app.home .home-top, #app.limits,
 #nav .tab :is(.reference-control-glyph,.icon) { will-change: transform; }
-.account-swipe-preview :is(.card-carousel,.card-selector) { visibility: hidden; }
 .home-content > :is(.home-balance,.open-card-intro,.home-actions,.operation-panel) {
  translate: 0 0 0;
  will-change: translate;

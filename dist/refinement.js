@@ -211,49 +211,32 @@ function refreshSelectedCard(){
 }
 function finishCardSelection(index){
  const cards=allCards();
- const wasNew=newCardSelected;
  newCardSelected=index===cards.length;
  carouselIndex=index;
  if(!newCardSelected)state.activeCard=cards[index].id;
  const pane=$('.home-content');
  if(route.page==='home'&&pane){
-  const animatedPreview=swipeLayers?.pages?.find(page=>page.index===index)?.node;
-  const preview=animatedPreview||accountPreviewCache.get(index)||buildAccountPreview(index);
-  let balanceChanged=false;
-  if(animatedPreview){
-   // Move only the shared carousel, selector and footer. The arriving blocks stay in place.
-   for(const selector of ['.card-carousel','.card-selector']){
-    const slot=preview.querySelector(selector),shared=pane.querySelector(selector);
-    if(preview.moveBefore){
-     preview.moveBefore(shared,slot);
-     slot.remove();
-    }else slot.replaceWith(shared);
+  const incoming=swipeLayers?.pages?.find(page=>page.index===index)?.blocks;
+  if(incoming){
+   // The destination is already painted in these rows. Only remove the outgoing blocks.
+   swipeLayers.movingContent.forEach(block=>block.remove());
+   for(const block of incoming){
+    block.style.removeProperty('translate');
+    block.classList.remove('account-swipe-preview');
+    block.inert=false;
    }
-   for(const child of [...pane.children]){
-    if(!child.matches(homeAccountIntro+',.home-actions,.operation-panel,.account-swipe-preview'))preview.append(child);
+  }else{
+   const preview=accountPreviewCache.get(index)||buildAccountPreview(index);
+   for(const selector of ['.operation-panel','.home-actions',homeAccountIntro]){
+    pane.querySelector(selector).replaceWith(preview.querySelector(selector));
    }
-   pane.remove();
-   preview.style.removeProperty('top');
-   preview.style.removeProperty('translate');
-   preview.classList.remove('account-swipe-preview');
-   preview.inert=false;
-  }else if(wasNew!==newCardSelected){
-   pane.querySelector(homeAccountIntro).replaceWith(preview.querySelector(homeAccountIntro));
-   pane.querySelector(':scope > .home-actions').replaceWith(preview.querySelector('.home-actions'));
-  }else if(!newCardSelected){
-   const balanceLabel=pane.querySelector(':scope > .home-balance strong');
-   const nextBalance=preview.querySelector('.home-balance strong');
-   const amount=nextBalance.textContent;
-   balanceChanged=balanceLabel.textContent!==amount;
-   if(balanceChanged)balanceLabel.textContent=amount;
+   fitMonetaryLabels(pane);
   }
-  if(!animatedPreview)pane.querySelector(':scope > .operation-panel').replaceWith(preview.querySelector('.operation-panel'));
   accountPreviewCache.delete(index);
-  (animatedPreview||pane).classList.toggle('new-card-selected',newCardSelected);
+  pane.classList.toggle('new-card-selected',newCardSelected);
   refreshSelectedCard();
-  setCarouselPosition(index);
+  if(!incoming)setCarouselPosition(index);
   cleanupSwipe();
-  if(!animatedPreview&&(balanceChanged||(wasNew&&!newCardSelected)))fitMonetaryLabels(pane);
   scheduleAccountPreviews();
  }else cleanupSwipe();
 }
