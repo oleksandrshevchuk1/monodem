@@ -671,12 +671,43 @@ body:not(.has-glass-history) #app.history #screen {
   translate: 0 7px;
 }
 
-:is(#nav, .transition-nav) .tab:not(.active) .reference-control-glyph {
-  --glyph-row: 50%;
+:is(#nav, .transition-nav) .tabs-main {
+  background-color: #2b2b2b;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
-:is(#nav, .transition-nav) .tab.active .reference-control-glyph {
-  --glyph-row: 100%;
+:is(#nav, .transition-nav) .tab .reference-control-glyph {
+  position: relative;
+  --glyph-row: 50%;
+  transform: none;
+  transition: none;
+}
+
+:is(#nav, .transition-nav) .tab .reference-control-glyph::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("assets/reference/home-control-sprite.png")
+    var(--glyph-position) 100% / 1200% 300% no-repeat;
+  opacity: 0;
+  transition: opacity 120ms var(--ease-out);
+}
+
+:is(#nav, .transition-nav) .tab.active .reference-control-glyph::after {
+  opacity: 1;
+}
+
+#nav .tab {
+  -webkit-tap-highlight-color: transparent;
+  transition: color 120ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #nav .tab,
+  #nav .tab .reference-control-glyph::after {
+    transition: none;
+  }
 }
 
 .home-useful .exchange-rates,
@@ -957,7 +988,7 @@ html:has(#app.home),
 
 /* A press changes the surface without moving the label, glyph, or row. */
 :is(#app, #modal) :is(
-  button[data-action]:is(
+  button[data-action]:not([data-action="save-contact"]):is(
     .service-row, .menu-row, .transaction, .compact-card, .payment-settings,
     .stats-source, .new-card-cta, .increase-limit, .useful-small-grid > *,
     .useful-wide-grid > *, .settings-group > *, .summary-metrics > *
@@ -969,7 +1000,7 @@ html:has(#app.home),
 }
 
 :is(#app, #modal) :is(
-  button[data-action]:is(
+  button[data-action]:not([data-action="save-contact"]):is(
     .service-row, .menu-row, .transaction, .compact-card, .payment-settings,
     .stats-source, .new-card-cta, .increase-limit, .useful-small-grid > *,
     .useful-wide-grid > *, .settings-group > *, .summary-metrics > *
@@ -978,4 +1009,8 @@ html:has(#app.home),
 ):active {
   background-color: #ffffff24;
   transition-duration: 55ms;
+}
+
+#app [data-action="save-contact"] {
+  -webkit-tap-highlight-color: transparent;
 }

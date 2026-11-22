@@ -211,6 +211,7 @@ function refreshSelectedCard(){
 }
 function finishCardSelection(index){
  const cards=allCards();
+ const wasNew=newCardSelected;
  newCardSelected=index===cards.length;
  carouselIndex=index;
  if(!newCardSelected)state.activeCard=cards[index].id;
@@ -218,15 +219,23 @@ function finishCardSelection(index){
  if(route.page==='home'&&pane){
   const animatedPreview=swipeLayers?.pages?.find(page=>page.index===index)?.node.firstElementChild;
   const preview=animatedPreview||accountPreviewCache.get(index)||buildAccountPreview(index);
-  for(const slot of [homeAccountIntro,'.home-actions','.operation-panel']){
-   pane.querySelector(slot).replaceWith(preview.querySelector(slot));
+  let balanceChanged=false;
+  if(wasNew!==newCardSelected){
+   pane.querySelector(homeAccountIntro).replaceWith(preview.querySelector(homeAccountIntro));
+   pane.querySelector(':scope > .home-actions').replaceWith(preview.querySelector('.home-actions'));
+  }else if(!newCardSelected){
+   const balanceLabel=pane.querySelector(':scope > .home-balance strong');
+   const amount=preview.querySelector('.home-balance strong').textContent;
+   balanceChanged=balanceLabel.textContent!==amount;
+   if(balanceChanged)balanceLabel.textContent=amount;
   }
+  pane.querySelector(':scope > .operation-panel').replaceWith(preview.querySelector('.operation-panel'));
   accountPreviewCache.delete(index);
   pane.classList.toggle('new-card-selected',newCardSelected);
   refreshSelectedCard();
   setCarouselPosition(index);
-  if(!animatedPreview)fitMonetaryLabels(pane);
   cleanupSwipe();
+  if(balanceChanged||(wasNew&&!newCardSelected))fitMonetaryLabels(pane);
   scheduleAccountPreviews();
  }else cleanupSwipe();
 }
