@@ -220,16 +220,18 @@ function finishCardSelection(index){
   const animatedPreview=swipeLayers?.pages?.find(page=>page.index===index)?.node.firstElementChild;
   const preview=animatedPreview||accountPreviewCache.get(index)||buildAccountPreview(index);
   let balanceChanged=false;
-  if(wasNew!==newCardSelected){
-   pane.querySelector(homeAccountIntro).replaceWith(preview.querySelector(homeAccountIntro));
-   pane.querySelector(':scope > .home-actions').replaceWith(preview.querySelector('.home-actions'));
+  if(animatedPreview||wasNew!==newCardSelected){
+   // Hand off the same painted blocks that arrived in the last swipe frame.
+   for(const selector of [homeAccountIntro,'.home-actions']){
+    const current=[...pane.children].find(child=>child.matches(selector));
+    current.replaceWith(preview.querySelector(selector));
+   }
   }else if(!newCardSelected){
    const balanceLabel=pane.querySelector(':scope > .home-balance strong');
    const nextBalance=preview.querySelector('.home-balance strong');
    const amount=nextBalance.textContent;
    balanceChanged=balanceLabel.textContent!==amount;
    if(balanceChanged)balanceLabel.textContent=amount;
-   if(animatedPreview)balanceLabel.style.fontSize=nextBalance.style.fontSize;
   }
   pane.querySelector(':scope > .operation-panel').replaceWith(preview.querySelector('.operation-panel'));
   accountPreviewCache.delete(index);

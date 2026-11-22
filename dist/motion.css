@@ -85,9 +85,9 @@ body:has(.side-return-underlay) #nav,body:has(.all-cards-backdrop):has(.all-card
 .account-swipe-preview > .home-content { width: 100%; }
 /* Keep the painted layers through the existing gesture and animation handoff. */
 #app.home .home-top, #app.limits,
-#nav .tab :is(.reference-control-glyph,.icon),
-#app.home .home-content > .home-actions { will-change: transform; }
+#nav .tab :is(.reference-control-glyph,.icon) { will-change: transform; }
 .account-swipe-preview :is(.card-carousel,.card-selector) { visibility: hidden; }
 .home-content > :is(.home-balance,.open-card-intro,.home-actions,.operation-panel) {
- translate: 0 0;
+ translate: 0 0 0;
+ will-change: translate;
 }

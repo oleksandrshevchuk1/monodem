@@ -64,7 +64,7 @@ prepareSwipe=function(){
   preview.className='account-swipe-preview';
   preview.inert=true;
   preview.append(content);
-  preview.style.translate=`${cardPixel((index-layer.index)*layer.width)}px`;
+  preview.style.translate=`${cardPixel((index-layer.index)*layer.width)}px 0 0`;
   layer.pages.push({node:preview,index});
  }
  pane.append(...layer.pages.map(page=>page.node));
@@ -80,9 +80,9 @@ moveHomeSwipe=function(distance,rubber=true){
  moveAccountSwipe(distance,rubber);
  const layer=swipeLayers;
  if(!layer.pages)return;
- const translation=`${cardPixel(layer.dx)}px`;
+ const translation=`${cardPixel(layer.dx)}px 0 0`;
  for(const element of layer.movingContent)element.style.translate=translation;
- for(const {node,index} of layer.pages)node.style.translate=`${cardPixel((index-layer.index)*layer.width+layer.dx)}px`;
+ for(const {node,index} of layer.pages)node.style.translate=`${cardPixel((index-layer.index)*layer.width+layer.dx)}px 0 0`;
 };
 cleanupSwipe=function(){
  if(swipeLayers){
@@ -634,7 +634,8 @@ function buildAccountPreview(index){
   const content=staging.firstElementChild;
   prepareVisibleGlyphs(content);
   for(const image of content.querySelectorAll('img')){
-   if(image.complete)continue;
+   image.loading='eager';
+   image.decoding='sync';
    image.decode().catch(()=>{});
   }
   return content;
