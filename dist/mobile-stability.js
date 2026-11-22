@@ -1,9 +1,11 @@
 'use strict';
+const readyControlSprite=new Image();
+readyControlSprite.src='assets/reference/home-control-sprite.png';
 const readyCharacterImages=['character-cutout-v49','character-background-v49'].map(name=>{const img=new Image();img.src='assets/reference/'+name+'.png';return img});
 const rasterGlyphs=new Set(['cat-fill','gift-fill','chart-bar-fill','credit-card-fill','receipt-fill','stack-fill','gear','lock-key']);
 const fallbackIconBeforeCatalog=icon;
 icon=name=>embeddedIconMarkup[name]||fallbackIconBeforeCatalog(name);
-referenceImage=(name,cls='')=>`<img class="${cls}" src="${embeddedReferenceImages[name]||'assets/reference/'+name+'.png'}" alt="" draggable="false">`;
+referenceImage=(name,cls='')=>`<img class="${cls}" src="${embeddedReferenceImages[name]||'assets/reference/'+name+'.png'}" alt="" draggable="false" decoding="sync">`;
 const cardArtworkBeforeEmbedded=cardArtwork;cardArtwork=function(card){return cardArtworkBeforeEmbedded(card).replace(/src="assets\/reference\/(card-brand|visa)\.png"/g,(_,name)=>'src="'+embeddedReferenceImages[name]+'"')};
 function prepareVisibleGlyphs(root=document){root.querySelectorAll(root===document?'#app img[src],#nav img[src],#modal img[src]':'img[src]').forEach(img=>{const source=img.getAttribute('src');if(embeddedAssetImages[source]){img.src=embeddedAssetImages[source];img.loading='eager';img.decoding='sync'}});root.querySelectorAll(root===document?'#app img[src^="assets/reference/"],#nav img[src^="assets/reference/"]':'img[src^="assets/reference/"]').forEach(image=>{const name=image.getAttribute('src').split('/').at(-1).replace(/\.png$/,'');if(embeddedReferenceImages[name]){image.src=embeddedReferenceImages[name];image.loading='eager'}});root.querySelectorAll(root===document?'#app img.icon[src^="assets/icons/"],#nav img.icon[src^="assets/icons/"]':'img.icon[src^="assets/icons/"]').forEach(image=>{const name=image.getAttribute('src').split('/').at(-1).replace(/\.svg$/,'');if(!embeddedIconMarkup[name])return;const template=document.createElement('template');template.innerHTML=embeddedIconMarkup[name];const svg=template.content.firstElementChild;svg.setAttribute('class',image.className);svg.style.cssText=image.style.cssText;image.replaceWith(svg)})}
 // Preserve the complete account-page swipe from the recorded interaction.
@@ -43,7 +45,7 @@ function updateInstalledViewport(){
 }
 window.addEventListener('resize',updateInstalledViewport,{passive:true});window.visualViewport?.addEventListener('resize',updateInstalledViewport,{passive:true});window.addEventListener('pageshow',()=>requestAnimationFrame(updateInstalledViewport));document.addEventListener('DOMContentLoaded',()=>requestAnimationFrame(updateInstalledViewport));
 // Show only the ready entry screen (or ready admin), never a transient loading row.
-let stableGlyphsReady=false;Promise.all([...readyReferenceImages,...readyAssetImages,...readyCharacterImages].map(img=>img.decode().catch(()=>{}))).then(()=>{stableGlyphsReady=true;releaseStableBoot()});
+let stableGlyphsReady=false;Promise.all([readyControlSprite,...readyReferenceImages,...readyAssetImages,...readyCharacterImages].map(img=>img.decode().catch(()=>{}))).then(()=>{stableGlyphsReady=true;releaseStableBoot()});
 let stableBootReleasePending=false;
 function releaseStableBoot(){
  if(loading||!stableGlyphsReady||stableBootReleasePending||document.documentElement.dataset.runtimeReady!=='true'||!document.documentElement.classList.contains('booting'))return;

@@ -83,6 +83,8 @@ body:has(.side-return-underlay) #nav,body:has(.all-cards-backdrop):has(.all-card
  will-change: translate;
 }
 .account-swipe-preview > .home-content { width: 100%; }
+.account-swipe-preview.shared-home-actions .home-actions { visibility: hidden; }
+#app.home .home-top { will-change: transform; }
 .account-swipe-preview :is(.card-carousel,.card-selector) { visibility: hidden; }
 .home-content > :is(.home-balance,.open-card-intro,.home-actions,.operation-panel) {
  translate: 0 0;

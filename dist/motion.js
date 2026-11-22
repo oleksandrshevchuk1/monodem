@@ -54,7 +54,8 @@ prepareSwipe=function(){
  const layer=prepareAccountSwipe();
  if(layer.pages||shouldReduceMotion())return layer;
  const pane=$('.home-content');
- layer.movingContent=[...pane.children].filter(el=>el.matches(homeAccountIntro+',.home-actions,.operation-panel'));
+ layer.movingContent=[...pane.children].filter(el=>el.matches(homeAccountIntro+',.operation-panel'));
+ layer.actions=pane.querySelector(':scope > .home-actions');
  layer.pages=[];
  for(const index of [layer.index-1,layer.index+1]){
   if(index<0||index>allCards().length)continue;
@@ -63,6 +64,7 @@ prepareSwipe=function(){
   const preview=document.createElement('div');
   preview.className='account-swipe-preview';
   preview.inert=true;
+  preview.classList.toggle('shared-home-actions',!newCardSelected&&index<layer.cards.length);
   preview.append(content);
   preview.style.translate=`${cardPixel((index-layer.index)*layer.width)}px`;
   layer.pages.push({node:preview,index});
@@ -82,12 +84,15 @@ moveHomeSwipe=function(distance,rubber=true){
  if(!layer.pages)return;
  const translation=`${cardPixel(layer.dx)}px`;
  for(const element of layer.movingContent)element.style.translate=translation;
+ const slidesToNewCard=layer.index===layer.cards.length-1&&layer.dx<0;
+ layer.actions.style.translate=newCardSelected||slidesToNewCard?translation:'';
  for(const {node,index} of layer.pages)node.style.translate=`${cardPixel((index-layer.index)*layer.width+layer.dx)}px`;
 };
 cleanupSwipe=function(){
  if(swipeLayers){
   swipeLayers.pages?.forEach(page=>page.node.remove());
   swipeLayers.movingContent?.forEach(element=>element.style.removeProperty('translate'));
+  swipeLayers.actions?.style.removeProperty('translate');
  }
  cleanupAccountSwipe();
 };
@@ -157,7 +162,8 @@ document.addEventListener('pointerdown',event=>{
 document.addEventListener('click',event=>{if(event.detail&&performance.now()<sideReturnClickUntil){event.preventDefault();event.stopImmediatePropagation()}},true);
 const sidePages = new Set(['limits','abroad','detail']), paintWithOperations = paint;
 const quickPaymentPages = new Set(['transfer', 'transferAmount', 'transferArchive', 'iban', 'payments']);
-const slidingTransferPages = new Set(['detail', ...quickPaymentPages]);
+const quickSidePages = new Set([...quickPaymentPages, 'analytics', 'appearance', 'limits', 'abroad']);
+const slidingSidePages = new Set(['detail', ...quickSidePages]);
 const mainTabs = ['home', 'credit', 'jars', 'more', 'market'];
 const tabFeedback = new WeakMap();
 const tabBar = $('#nav');
@@ -169,12 +175,11 @@ tabBar.addEventListener('click', event => {
  requestAnimationFrame(() => {
   if (route.page !== page) return;
   const selected = tabBar.querySelector('.tab.active,.market-mini-tabs .selected');
-  const glyph = selected?.querySelector('.reference-control-glyph,.icon');
-  if (!glyph) return;
-  const previous = tabFeedback.get(glyph);
-  const pose = previous?.playState === 'running' ? getComputedStyle(glyph).scale : '.84';
+  if (!selected) return;
+  const previous = tabFeedback.get(selected);
+  const pose = previous?.playState === 'running' ? getComputedStyle(selected).scale : '.96';
   previous?.cancel();
-  tabFeedback.set(glyph, glyph.animate(
+  tabFeedback.set(selected, selected.animate(
    [{scale: pose}, {scale: '1'}],
    {duration: 160, easing: slideEase}
   ));
@@ -217,7 +222,7 @@ function sideUnderlayOffset(x, width) {
 
 let pairedSideMotion = null;
 function animateSideSurfaces(app, preview, from, to, duration) {
- const width = app.clientWidth;
+ const width = app.offsetWidth;
  const enteringDetail = from === width && to === 0 && !!app.querySelector('.operation-boundary-slot');
  if (enteringDetail && !pageScrollY()) app.classList.add('operation-entry-frame');
  placeSideSurfaces(app, preview, from, width);
@@ -262,6 +267,9 @@ function finishSideEntrance() {
 function freezePageSurface() {
  const app = $('#app'), surface = captureBankSurface(true), source = $('#screen');
  const copy = surface.firstElementChild;
+ const frame = getComputedStyle(app);
+ surface.style.borderLeft = frame.borderLeft;
+ surface.style.borderRight = frame.borderRight;
  copy.style.paddingBottom = getComputedStyle(source).paddingBottom;
  surface.classList.remove('bank-surface-transition');
  surface.classList.add('side-page-snapshot');
@@ -299,7 +307,7 @@ function freezePageSurface() {
  if (nav) {
   const rect = $('#nav').getBoundingClientRect();
   Object.assign(nav.style, {
-   position: 'absolute', left: (rect.left - parseFloat(surface.style.left)) + 'px',
+   position: 'absolute', left: (rect.left - parseFloat(surface.style.left) - parseFloat(frame.borderLeftWidth)) + 'px',
    top: (rect.top - parseFloat(surface.style.top)) + 'px', bottom: 'auto',
    width: rect.width + 'px', transform: 'none'
   });
@@ -357,7 +365,7 @@ paint = function(direction) {
   sideEntrance.adoptBackDestination();
   return;
  }
- if (direction === 'back' && fromSide && slidingTransferPages.has(fromSide)) {
+ if (direction === 'back' && fromSide && slidingSidePages.has(fromSide)) {
   const source = sideSourceForPage(route.page);
   if (source) {
    startLiveSideExit(source, render);
@@ -379,8 +387,8 @@ paint = function(direction) {
   app.style.transform = '';
   render();
 
-  const width = app.clientWidth;
-  const parallax = slidingTransferPages.has(fromSide);
+  const width = app.offsetWidth;
+  const parallax = slidingSidePages.has(fromSide);
   const options = {duration: pageMotionDuration, easing: slideEase, fill: 'both'};
   const exit = snapshot.animate([{transform: translateX(dx)}, {transform: translateX(width)}], options);
   exit.isRouteExit = true;
@@ -413,15 +421,14 @@ paint = function(direction) {
   render();
   app.style.zIndex = '41';
 
-  const width = app.clientWidth;
-  const parallax = slidingTransferPages.has(route.page);
-  const duration = quickPaymentPages.has(route.page) ? 270 : pageMotionDuration;
+  const width = app.offsetWidth;
+  const parallax = slidingSidePages.has(route.page);
+  const duration = quickSidePages.has(route.page) ? 270 : pageMotionDuration;
   const options = {duration, easing: slideEase, fill: 'both'};
   const poses = [{transform: translateX(width)}, {transform: translateX(0)}];
   const entrance = parallax
    ? animateSideSurfaces(app, snapshot, width, 0, options.duration)
    : app.animate(poses, options);
-  if (route.page === 'limits') playAfterFirstPaint(entrance);
   trackSideMotion(entrance, snapshot);
   return;
  }
@@ -469,7 +476,7 @@ function resetSideSwipe() {
 function startLiveSideExit(source, commit) {
  const app = $('#app');
  let page = route;
- const width = app.clientWidth;
+ const width = app.offsetWidth;
  const x = sidePageX(app);
  const preview = sideSwipeLayer?.sourceSurface === source ? sideSwipeLayer : makeSideReturnLayer(source);
  if (sideSwipeLayer !== preview) sideSwipeLayer?.remove();
@@ -478,7 +485,7 @@ function startLiveSideExit(source, commit) {
  app.style.transform = '';
  app.style.zIndex = '41';
 
- const duration = quickPaymentPages.has(page.page) ? 270 : 350;
+ const duration = quickSidePages.has(page.page) ? 270 : 350;
  const exit = animateSideSurfaces(app, preview, x, width, Math.max(160, duration * (1 - x / width)));
  exit.isRouteExit = true;
  trackSideMotion(exit, null, preview);
@@ -503,7 +510,7 @@ const backBeforeLiveSideReturn = back;
 back = function() {
  if (sideEntrance?.isRouteExit) return;
  const source = sideSourceForPage(route.page === 'detail' ? returnRoute.page : 'home');
- if (!slidingTransferPages.has(route.page) || !source || shouldReduceMotion() || $('#modal').open) {
+ if (!slidingSidePages.has(route.page) || !source || shouldReduceMotion() || $('#modal').open) {
   return backBeforeLiveSideReturn();
  }
  startLiveSideExit(source, () => {
@@ -533,7 +540,7 @@ function bindSideReturn() {
   if (!sideSwipeLayer) {
    if (dx <= 10 || dx <= Math.abs(dy) * 1.65) return false;
    const destination = route.page === 'detail' ? returnRoute.page : 'home';
-   const source = slidingTransferPages.has(route.page) ? sideSourceForPage(destination) : sideSnapshot;
+   const source = slidingSidePages.has(route.page) ? sideSourceForPage(destination) : sideSnapshot;
    if (!source) return false;
    origin = sidePageX(app);
    finishSideEntrance();
@@ -541,9 +548,9 @@ function bindSideReturn() {
    app.style.zIndex = '41';
    document.documentElement.dataset.routeMotion = 'active';
   }
-  x = Math.min(app.clientWidth, Math.max(0, origin + dx));
-  if (slidingTransferPages.has(route.page)) {
-   placeSideSurfaces(app, sideSwipeLayer, x, app.clientWidth);
+  x = Math.min(app.offsetWidth, Math.max(0, origin + dx));
+  if (slidingSidePages.has(route.page)) {
+   placeSideSurfaces(app, sideSwipeLayer, x, app.offsetWidth);
    app.classList.add('paired-side-motion');
   } else app.style.transform = translateX(x);
   return true;
@@ -553,7 +560,7 @@ function bindSideReturn() {
   start = null;
   if (!sideSwipeLayer) return;
   suppressSideReturnClick();
-  if (!cancelled && x > app.clientWidth * .23) {
+  if (!cancelled && x > app.offsetWidth * .23) {
    back();
    if (sideSwipeLayer) resetSideSwipe();
    return;
@@ -562,7 +569,7 @@ function bindSideReturn() {
   sideSwipeLayer = null;
   app.style.transform = '';
   const options = {duration: 220, easing: slideEase, fill: 'both'};
-  const settle = slidingTransferPages.has(route.page)
+  const settle = slidingSidePages.has(route.page)
    ? animateSideSurfaces(app, layer, x, 0, options.duration)
    : app.animate([{transform: translateX(x)}, {transform: translateX(0)}], options);
   trackSideMotion(settle, null, layer);
