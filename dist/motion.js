@@ -682,7 +682,28 @@ for (const page of ['analytics', 'capital', 'statbreakdown', 'statcategory']) si
 // The source card and action icons keep their DOM identity across the handoff.
 let retainedHome=null;
 const renderBeforeHomeRetention=render;
-render=function(){const app=$('#app'),screen=$('#screen');if(!adminMode&&route.page!=='home'&&app.classList.contains('home')&&screen.querySelector('.home-content')&&!swipeLayers){const fragment=document.createDocumentFragment();while(screen.firstChild)fragment.append(screen.firstChild);retainedHome={fragment,revision:serverRevision,card:state.activeCard,newCard:newCardSelected}}const restore=!adminMode&&route.page==='home'&&retainedHome&&retainedHome.revision===serverRevision&&retainedHome.card===state.activeCard&&retainedHome.newCard===newCardSelected;renderBeforeHomeRetention();if(restore){screen.replaceChildren(retainedHome.fragment);retainedHome=null;scheduleAccountPreviews()}else if(route.page==='home')retainedHome=null};
+render=function(){
+ const app=$('#app'),screen=$('#screen');
+ if(!adminMode&&route.page!=='home'&&app.classList.contains('home')&&screen.querySelector('.home-content')&&!swipeLayers){
+  const fragment=document.createDocumentFragment();
+  while(screen.firstChild)fragment.append(screen.firstChild);
+  retainedHome={fragment,revision:serverRevision,card:state.activeCard,newCard:newCardSelected};
+ }
+ const restore=!adminMode&&route.page==='home'&&retainedHome&&retainedHome.revision===serverRevision&&retainedHome.card===state.activeCard&&retainedHome.newCard===newCardSelected;
+ if(!restore){
+  if(route.page==='home')retainedHome=null;
+  renderBeforeHomeRetention();
+  return;
+ }
+ const scroll=pendingRouteScroll??pageScrollY();
+ // Restore the scroll only once the retained Home rows are back in the document.
+ pendingRouteScroll=null;
+ renderBeforeHomeRetention();
+ screen.replaceChildren(retainedHome.fragment);
+ retainedHome=null;
+ pageScrollTo({top:scroll,behavior:'instant'});
+ scheduleAccountPreviews();
+};
 render();
 // The edge history is a separate all-accounts screen, not the selected-card statement.
 function operationDateHeading(date){const d=new Date(date+'T12:00:00'),todayDate=new Date(today()+'T12:00:00'),yesterday=new Date(todayDate);yesterday.setDate(yesterday.getDate()-1);return date===today()?'Сьогодні':d.toDateString()===yesterday.toDateString()?'Вчора':d.toLocaleDateString('uk-UA',{day:'numeric',month:'long',...(d.getFullYear()===todayDate.getFullYear()?{}:{year:'numeric'})})}

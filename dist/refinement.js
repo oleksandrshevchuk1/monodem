@@ -343,7 +343,12 @@ function initStats(){
  };
  const hasScrollEnd='onscrollend' in track;
  track.addEventListener('scroll',()=>{
-  dots(nearest(track.scrollLeft));
+  const offset=track.scrollLeft;
+  const index=nearest(offset);
+  dots(index);
+  const incoming=1-initial;
+  const distance=Math.abs(position(incoming)-position(initial));
+  if(distance&&Math.abs(offset-position(initial))>=distance*.18)animateFirstStatsSummary(cards[incoming]);
   if(!hasScrollEnd){
    clearTimeout(settleTimer);
    settleTimer=setTimeout(commitScroll,120);

@@ -1158,3 +1158,9 @@ body:has(#app.analytics),
 .pwa-scroll:has(#app.analytics) {
     touch-action: pan-x pan-y;
 }
+
+
+/* Navigation restores Home's scroll position explicitly after reattaching its rows. */
+#app.home {
+    overflow-anchor: none;
+}
