@@ -136,7 +136,75 @@ modal=function(...args){delete $('#modal').dataset.kind;basicModal(...args)};
 function statsMetricIcon(tag){return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${tag?'<circle cx="12" cy="12" r="10" fill="currentColor"/><path d="m10 7-2 10m8-10-2 10M7 10h11M6 14h11" fill="none" stroke="#616176" stroke-width="1.7"/>':'<path fill="currentColor" fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20ZM7 7h4v4H7Zm6 0h4v4h-4Zm-6 6h4v4H7Zm6 0h4v4h-4Z"/>'}</svg>`}
 function statsArrow(income){return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${income?'M18 6 6 18M6 8v10h10':'M6 18 18 6M8 6h10v10'}"/></svg>`}
 function capitalIcon(){return `<svg class="icon" viewBox="0 0 28 28" aria-hidden="true" fill="currentColor"><ellipse cx="10" cy="6" rx="6" ry="3"/><path d="M4 9c3 2.4 9 2.4 12 0v4c-3 2.5-9 2.5-12 0Zm0 7c3 2.4 9 2.4 12 0v4c-3 2.5-9 2.5-12 0Z"/><ellipse cx="21" cy="13" rx="5" ry="2.5"/><path d="M16 16c3 2 7 2 10 0v4c-3 2-7 2-10 0Zm0 7c3 2 7 2 10 0v2c-3 2-7 2-10 0Z"/></svg>`}
-function initStats(){const track=$('#stats-carousel');if(!track)return;const cards=[...track.querySelectorAll('.stats-summary')],positions=cards.map(x=>x.offsetLeft-cards[0].offsetLeft);let motion=null,wheelTimer;const nearest=x=>Math.abs(x-positions[0])<=Math.abs(x-positions[1])?0:1;const dots=index=>document.querySelectorAll('.stats-dots button').forEach((b,i)=>b.classList.toggle('selected',i===index));const select=index=>{const previous=statsKind;statsKind=index?'income':'expense';if(previous!==statsKind){const summary=cards[index];animateSummaryValue(summary.querySelector(':scope>strong'),0,Number(summary.dataset.total),statsKind)}dots(index);updateStatsGroups();const list=$('#stats-group-list');if(list&&!shouldReduceMotion())list.animate([{opacity:.2},{opacity:1}],{duration:180,easing:'ease-out'})};const go=(kind,velocity=0)=>{motion?.cancel();const index=kind==='income'?1:0,target=Math.min(track.scrollWidth-track.clientWidth,positions[index]);select(index);if(shouldReduceMotion()){track.scrollLeft=target;return}motion=physicalSettle(()=>track.scrollLeft,x=>track.scrollLeft=x,target,velocity,()=>{})};track.scrollLeft=positions[statsKind==='income'?1:0];track.tabIndex=0;track.setAttribute('aria-label','Доходи та витрати: гортайте ліворуч або праворуч');bindHorizontalGesture(track,{read:()=>-track.scrollLeft,write:x=>track.scrollLeft=-x,cancel:()=>motion?.cancel(),settle:v=>go(nearest(track.scrollLeft-v*.12)?'income':'expense',-v)});track.addEventListener('scroll',()=>dots(nearest(track.scrollLeft)),{passive:true});track.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();go(e.key==='ArrowRight'?'income':'expense')}});track.addEventListener('wheel',e=>{if(Math.abs(e.deltaX)>Math.abs(e.deltaY)){e.preventDefault();motion?.cancel();track.scrollLeft+=e.deltaX;clearTimeout(wheelTimer);wheelTimer=setTimeout(()=>go(nearest(track.scrollLeft)?'income':'expense'),90)}},{passive:false});statsController={go,cancel:()=>motion?.cancel()}}
+function initStats(){
+ const track=$('#stats-carousel');
+ if(!track)return;
+ statsController?.cancel();
+ const cards=[...track.querySelectorAll('.stats-summary')];
+ const buttons=[...document.querySelectorAll('.stats-dots button')];
+ let motion=null,wheelTimer,indicator=-1,listMotion=null;
+ const position=index=>Math.min(track.scrollWidth-track.clientWidth,cards[index].offsetLeft-cards[0].offsetLeft);
+ const nearest=x=>Math.abs(x-position(0))<=Math.abs(x-position(1))?0:1;
+ const dots=index=>{
+  if(indicator===index)return;
+  buttons[indicator]?.classList.remove('selected');
+  buttons[index]?.classList.add('selected');
+  indicator=index;
+ };
+ const cancel=()=>{
+  motion?.cancel();
+  clearTimeout(wheelTimer);
+ };
+ const select=index=>{
+  if(!track.isConnected)return;
+  dots(index);
+  const kind=index?'income':'expense';
+  if(kind===statsKind)return;
+  statsKind=kind;
+  const summary=cards[index];
+  animateSummaryValue(summary.querySelector(':scope>strong'),0,Number(summary.dataset.total),kind);
+  updateStatsGroups();
+  const list=$('#stats-group-list');
+  listMotion?.cancel();
+  if(list&&!shouldReduceMotion())listMotion=list.animate([{opacity:.2},{opacity:1}],{duration:180,easing:'ease-out'});
+ };
+ const go=kind=>{
+  cancel();
+  const index=kind==='income'?1:0,target=position(index);
+  if(shouldReduceMotion()||Math.abs(track.scrollLeft-target)<1){
+   track.scrollLeft=target;
+   select(index);
+   return;
+  }
+  motion=settleCardStrip(()=>track.scrollLeft,x=>{track.scrollLeft=x},target,()=>select(index));
+ };
+ const initial=statsKind==='income'?1:0;
+ track.scrollLeft=position(initial);
+ dots(initial);
+ track.tabIndex=0;
+ track.setAttribute('aria-label','Доходи та витрати: гортайте ліворуч або праворуч');
+ bindHorizontalGesture(track,{
+  read:()=>-track.scrollLeft,
+  write:x=>{track.scrollLeft=-x},
+  cancel,
+  settle:(v,cancelled)=>go(nearest(track.scrollLeft-(cancelled?0:v*.12))?'income':'expense')
+ });
+ track.addEventListener('scroll',()=>dots(nearest(track.scrollLeft)),{passive:true});
+ track.addEventListener('keydown',e=>{
+  if(!['ArrowLeft','ArrowRight'].includes(e.key))return;
+  e.preventDefault();
+  go(e.key==='ArrowRight'?'income':'expense');
+ });
+ track.addEventListener('wheel',e=>{
+  if(Math.abs(e.deltaX)<=Math.abs(e.deltaY))return;
+  e.preventDefault();
+  cancel();
+  track.scrollLeft+=e.deltaX;
+  wheelTimer=setTimeout(()=>go(nearest(track.scrollLeft)?'income':'expense'),90);
+ },{passive:false});
+ statsController={go,cancel};
+}
+
 
 function bindRefresh(){}
 
@@ -166,7 +234,7 @@ function cardIndicatorMarkers(index){
   const position=first+offset;
   const current=position===index?' class="selected"':'';
   if(position!==last)return `<i${current}></i>`;
-  return `<i class="indicator-end${position===total?' indicator-add':''}${position===index?' selected':''}"><svg class="indicator-plus" viewBox="0 0 9 9" aria-hidden="true"><path d="M4.5 1.25v6.5M1.25 4.5h6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></i>`;
+  return `<i class="indicator-end${position===total?' indicator-add':''}${position===index?' selected':''}"><span class="indicator-plus" aria-hidden="true"></span></i>`;
  }).join('');
 }
 function updateCardIndicator(indicator,index){
@@ -237,7 +305,6 @@ function finishCardSelection(index){
  }else cleanupSwipe();
 }
 
-function physicalSettle(read,write,target,velocity,complete){let frame,cancelled=false;const from=read(),omega=2*Math.PI/.4,offset=from-target,start=performance.now();const tick=now=>{if(cancelled)return;const t=(now-start)/1000,term=velocity+omega*offset,decay=Math.exp(-omega*t),position=target+(offset+term*t)*decay,speed=(velocity-omega*term*t)*decay;write(position);if(t<1.2&&(Math.abs(position-target)>.05||Math.abs(speed)>.5))frame=requestAnimationFrame(tick);else{write(target);complete()}};frame=requestAnimationFrame(tick);return {cancel(){cancelled=true;cancelAnimationFrame(frame)},finish(){cancelled=true;cancelAnimationFrame(frame);write(target)}}}
 slideCardTo=function(index){if(document.body.classList.contains('has-glass-history'))return;const l=prepareSwipe();index=Math.max(0,Math.min(allCards().length,index));const target=(l.index-index)*l.width;cardSlideAnimation?.cancel();const done=()=>index===l.index?cleanupSwipe():finishCardSelection(index);if(shouldReduceMotion()){moveHomeSwipe(target,false);done();return}cardSlideAnimation=settleCardStrip(()=>l.dx,x=>moveHomeSwipe(x,false),target,done)};
 function bindHorizontalGesture(element,{read,write,settle,cancel}){
  let start=null,dragging=false,vertical=false,samples=[],frame=0,pending=0;

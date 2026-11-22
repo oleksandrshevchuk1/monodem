@@ -979,6 +979,9 @@ html:has(#app.home),
   display: none;
   width: 9px;
   height: 9px;
+  background:
+    linear-gradient(currentColor,currentColor) center / 7px 2px no-repeat,
+    linear-gradient(currentColor,currentColor) center / 2px 7px no-repeat;
 }
 
 .selector-dots .indicator-add::before { display: none; }

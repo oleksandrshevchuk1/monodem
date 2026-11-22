@@ -55,6 +55,9 @@ prepareSwipe=function(){
  if(layer.pages||shouldReduceMotion())return layer;
  const pane=$('.home-content');
  const slots=[homeAccountIntro,'.home-actions','.operation-panel'];
+ // The statement shares its standing layout during the swipe; its length may differ by card.
+ layer.pane=pane;
+ pane.style.setProperty('--swipe-statement-row',getComputedStyle(pane).gridTemplateRows.split(' ')[4]);
  layer.movingContent=slots.map(selector=>pane.querySelector(selector));
  layer.pages=[];
  for(const index of [layer.index-1,layer.index+1]){
@@ -90,6 +93,7 @@ cleanupSwipe=function(){
    for(const block of blocks)if(block.classList.contains('account-swipe-preview'))block.remove();
   }
   swipeLayers.movingContent?.forEach(element=>element.style.removeProperty('translate'));
+  swipeLayers.pane?.style.removeProperty('--swipe-statement-row');
  }
  cleanupAccountSwipe();
 };
