@@ -98,8 +98,17 @@ function statsCategoryArt(group){
 function statsGroupRows(){const total=statsTotal(statsKind);return statsGroups().map((g,i)=>{const art=statsCategoryArt(g);return `<button class="stats-category" data-action="stats-category" data-category="${esc(g.name)}"><span class="stats-category-icon tone-${i%4} ${art.kind}">${art.glyph}</span><span><strong>${esc(g.name)}</strong><small>${g.count} транзакцій</small></span><span class="stats-category-amount ${statsKind==='income'?'green':''}">${statsKind==='expense'?'−':''}${displayMoney(g.total)} ₴<small>${total&&g.total&&g.total/total<.01?'&lt; 1':total?Math.round(g.total/total*100):0}%</small></span></button>`}).join('')||empty('Немає операцій','Оберіть інший період або картки.')}
 function statsTabs(){return `<div class="stats-tabs"><button data-action="stats-tab" data-tab="categories" class="${statsTab==='categories'?'selected':''}">Категорії</button><button data-action="stats-tab" data-tab="tags" class="${statsTab==='tags'?'selected':''}">Теги</button></div>`}
 function summaryCard(kind){const tx=statsTransactions(kind),count=new Set(tx.map(t=>t.category||'Інше')).size,total=statsTotal(kind),income=kind==='income';return `<section class="stats-summary" data-kind="${kind}" data-total="${total}"><span class="summary-arrow ${income?'income':'expense'}">${statsArrow(income)}</span><span class="currency-badge">UAH</span><h2>${income?'Надходження':'Витрати'}</h2><strong>${income?'':'−'}${displayMoney(total)} ₴</strong><div class="summary-count">${icon('receipt')}Усього ви зробили ${tx.length} транзакцій</div><div class="summary-metrics"><button data-action="stats-breakdown" data-tab="categories">${statsMetricIcon(false)}<strong>${count}</strong><span>Категорії</span></button><button data-action="stats-breakdown" data-tab="tags">${statsMetricIcon(true)}<strong>${new Set(tx.filter(t=>t.tag).map(t=>t.tag)).size}</strong><span>Тегів</span></button></div></section>`}
-function statsCardThumbnail(kind){
- return `<span class="stats-card-thumbnail stats-card-thumbnail--${kind}" aria-hidden="true"><span class="stats-card-face"><i></i><b>VISA</b></span></span>`;
+function statsCardThumbnail(card){
+ const stacked=!card;
+ const white=card&&cardWhite(card);
+ const tone=white?'light':'dark';
+ return `<svg class="stats-card-thumbnail stats-card-thumbnail--${tone}${stacked?' stats-card-thumbnail--stack':''}" viewBox="0 0 48 36" aria-hidden="true" focusable="false">
+  ${stacked?'<rect x="3.5" y="8.5" width="42" height="25" rx="6" fill="#c0c7d6"/><path d="M9 32h30" stroke="#eef1f7" stroke-linecap="round"/>':''}
+  <rect class="stats-card-face" x="1.5" y="2.5" width="44" height="29" rx="6"/>
+  <path class="stats-card-gloss" d="M2 10a7 7 0 0 1 7-7h29l-12 10H2Z"/>
+  <path class="stats-card-details" d="M7.5 8h7m3 0h5.5M7.5 25h11" fill="none" stroke-width="1.7" stroke-linecap="round"/>
+  <text x="40.5" y="26.5" text-anchor="end" fill="currentColor" font-family="Arial, sans-serif" font-size="6.7" font-style="italic" font-weight="800">VISA</text>
+ </svg>`;
 }
 function statsSourceCopy(card, title){
  return `<span class="stats-source-copy"><strong>${esc(title)}</strong>${card?`<small>${displayMoney(cardBalance(card))} ₴</small>`:''}</span>`;
@@ -123,7 +132,7 @@ analytics=function(){
  return `<div class="stats-page analytics-overview">
   <div class="stats-toolbar"><button data-action="back" aria-label="Назад">${icon('arrow-left')}</button><button data-action="nav" data-page="capital" aria-label="Капітал">${capitalIcon()}</button></div>
   <h1>Статистика</h1><button class="stats-period" data-action="stats-period">${esc(periodLabel())}${icon('calendar')}</button>
-  <button class="stats-source" data-action="stats-source" aria-haspopup="dialog">${statsCardThumbnail(card?(card.id==='white'?'white':'dark'):'stack')}${statsSourceCopy(card,title)}<span class="vertical-dots" aria-hidden="true">⋮</span></button>
+  <button class="stats-source" data-action="stats-source" aria-haspopup="dialog">${statsCardThumbnail(card)}${statsSourceCopy(card,title)}<span class="vertical-dots" aria-hidden="true">⋮</span></button>
   <div class="stats-content">${statsContent()}</div>
  </div>`;
 };
@@ -148,7 +157,7 @@ function bottomSheet(title,html,fn,cta='Показати'){modal(title,html,fn,c
 actions['stats-source']=()=>{
  const cards=allCards();
  bottomSheet('Джерело',`<div class="source-options stats-source-options">${cards.map(card=>`<label>
-  ${statsCardThumbnail(card.id==='white'?'white':'dark')}
+  ${statsCardThumbnail(card)}
   ${statsSourceCopy(card,card.account)}
   <input type="checkbox" name="cards" value="${esc(card.id)}" ${!statsCards||statsCards.includes(card.id)?'checked':''}>
  </label>`).join('')}</div>`,()=>{});
@@ -198,7 +207,7 @@ function initStats(){
  if(!track){statsController=null;return}
  const cards=[...track.querySelectorAll('.stats-summary')];
  const buttons=[...document.querySelectorAll('.stats-dots button')];
- let indicator=-1,listMotion=null;
+ let indicator=-1,listMotion=null,settleTimer;
  const position=index=>Math.min(track.scrollWidth-track.clientWidth,cards[index].offsetLeft-cards[0].offsetLeft);
  const nearest=x=>Math.abs(x-position(0))<=Math.abs(x-position(1))?0:1;
  const dots=index=>{
@@ -213,19 +222,19 @@ function initStats(){
   const kind=index?'income':'expense';
   if(kind===statsKind)return;
   statsKind=kind;
-  const summary=cards[index];
-  animateSummaryValue(summary.querySelector(':scope>strong'),0,Number(summary.dataset.total),kind);
   updateStatsGroups();
   const list=$('#stats-group-list');
   listMotion?.cancel();
-  if(list&&!shouldReduceMotion())listMotion=list.animate([{opacity:.2},{opacity:1}],{duration:180,easing:'ease-out'});
+  if(list&&!shouldReduceMotion())listMotion=list.animate([{opacity:.65},{opacity:1}],{duration:180,easing:'ease-out'});
  };
  const go=kind=>{
   const index=kind==='income'?1:0;
   const instant=shouldReduceMotion();
   track.classList.remove('stats-mouse-drag');
-  track.scrollTo({left:position(index),behavior:instant?'instant':'smooth'});
-  if(instant)select(index);
+  const target=position(index);
+  const alreadyThere=Math.abs(track.scrollLeft-target)<1;
+  track.scrollTo({left:target,behavior:instant?'instant':'smooth'});
+  if(instant||alreadyThere)select(index);
  };
  const initial=statsKind==='income'?1:0;
  track.scrollLeft=position(initial);
@@ -236,11 +245,22 @@ function initStats(){
   read:()=>-track.scrollLeft,
   write:x=>{track.scrollLeft=-x},
   cancel:()=>track.classList.add('stats-mouse-drag'),
-  settle:(v,cancelled)=>go(nearest(track.scrollLeft-(cancelled?0:v*.12))?'income':'expense'),
-  mouseOnly:true
+  settle:(v,cancelled)=>go(nearest(track.scrollLeft-(cancelled?0:v*.12))?'income':'expense')
  });
- // Native touch and trackpad scrolling keep running as the active summary updates.
- track.addEventListener('scroll',()=>select(nearest(track.scrollLeft)),{passive:true});
+ // Leave the summary and list layout alone while native scrolling is in flight.
+ const commitScroll=()=>{
+  if(track.classList.contains('stats-mouse-drag'))return;
+  select(nearest(track.scrollLeft));
+ };
+ const hasScrollEnd='onscrollend' in track;
+ track.addEventListener('scroll',()=>{
+  dots(nearest(track.scrollLeft));
+  if(!hasScrollEnd){
+   clearTimeout(settleTimer);
+   settleTimer=setTimeout(commitScroll,120);
+  }
+ },{passive:true});
+ if(hasScrollEnd)track.addEventListener('scrollend',commitScroll);
  track.addEventListener('keydown',e=>{
   if(!['ArrowLeft','ArrowRight'].includes(e.key))return;
   e.preventDefault();
