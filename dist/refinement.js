@@ -370,12 +370,35 @@ const experienceRender=render;
 render=function(){if(!adminMode&&['capital','statcategory','statbreakdown','openCard','service'].includes(route.page)){defaults();$('#app').className=route.page;$('#nav').hidden=true;$('#screen').innerHTML=({capital:capitalPage,statcategory:statsCategoryPage,statbreakdown:statsBreakdownPage,openCard:openCardPage,service:servicePage})[route.page]()}else{experienceRender();if(!adminMode){if(['cards','analytics'].includes(route.page))$('#nav').hidden=true;if(route.page==='home'){bindRefresh();$('#app').classList.toggle('new-card-theme',newCardSelected);$('#app').classList.toggle('white-active',!newCardSelected&&cardWhite(activeCard()))}if(route.page==='analytics')initStats();if(route.page==='card'){let p;$('.expanded-card')?.addEventListener('pointerdown',e=>p={x:e.clientX,y:e.clientY});$('.expanded-card')?.addEventListener('pointerup',e=>{if(p&&Math.abs(e.clientX-p.x)>40&&Math.abs(e.clientY-p.y)<50){actions['flip-card']();e.currentTarget.addEventListener('click',e=>{e.stopPropagation();e.preventDefault()},{once:true,capture:true})}p=null})}}}};
 // The carousel and indicator share the same drag position.
 let swipeLayers=null,cardSelectorTimer,cardSelectorVisibleUntil=0;
+const cardSelectorFades=new WeakMap();
+function fadeCardSelector(selector,showDots){
+ if(!selector)return;
+ const parts=[selector.querySelector('.selector-label'),selector.querySelector('.selector-dots')];
+ if(parts.some(part=>!part))return;
+ const previous=cardSelectorFades.get(selector)||[];
+ const from=parts.map(part=>Number(getComputedStyle(part).opacity));
+ previous.forEach(animation=>animation.cancel());
+ selector.classList.toggle('show-card-indicator',showDots);
+ if(shouldReduceMotion())return;
+ const dots=showDots||selector.parentElement?.classList.contains('new-card-selected');
+ const target=[dots?0:1,dots?1:0];
+ const animations=parts.map((part,index)=>part.animate(
+  {opacity:[from[index],target[index]]},
+  {duration:360,easing:'ease-in-out',fill:'both'}
+ ));
+ cardSelectorFades.set(selector,animations);
+ Promise.all(animations.map(animation=>animation.finished)).then(()=>{
+  if(cardSelectorFades.get(selector)!==animations)return;
+  cardSelectorFades.delete(selector);
+  animations.forEach(animation=>animation.cancel());
+ }).catch(()=>{});
+}
 function prepareSwipe(){if(swipeLayers)return swipeLayers;const app=$('#app'),track=$('.card-track'),cards=allCards(),index=newCardSelected?cards.length:Math.max(0,cards.findIndex(c=>c.id===state.activeCard)),background=document.createElement('div');background.className='swipe-gradient';app.prepend(background);
  const selector=$('.card-selector');
  clearTimeout(cardSelectorTimer);
  if(!shouldReduceMotion()&&selector){
   cardSelectorVisibleUntil=Infinity;
-  selector.classList.add('show-card-indicator');
+  fadeCardSelector(selector,true);
  }
  swipeLayers={track,cards,selector,indicator:selector?.querySelector('.selector-dots'),width:track.getBoundingClientRect().width,slideWidth:track.firstElementChild.getBoundingClientRect().width,index,background,dx:0,theme:null};
  document.documentElement.dataset.gesture='active';app.classList.add('card-gesture-active');return swipeLayers}
@@ -434,8 +457,9 @@ function cleanupSwipe(){
   cardSelectorVisibleUntil=performance.now()+delay;
   cardSelectorTimer=setTimeout(()=>{
    cardSelectorVisibleUntil=0;
-   selector.classList.remove('show-card-indicator');
-   $('#app .card-selector')?.classList.remove('show-card-indicator');
+   const live=$('#app .card-selector');
+   if(selector!==live)selector.classList.remove('show-card-indicator');
+   fadeCardSelector(live,false);
   },delay);
  }
  delete document.documentElement.dataset.gesture;
