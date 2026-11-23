@@ -993,7 +993,7 @@ html:has(#app.home),
 .compact-card[aria-current="true"] { box-shadow: inset 0 0 0 2px #a0b6f5; }
 .new-card-sticker { display: inline-block; width: 22px; text-align: center; }
 
-#app.home :is(.home-top button, .home-actions button, .card-selector) {
+#app.home button[data-action] {
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -1001,7 +1001,7 @@ html:has(#app.home),
   transition: opacity 140ms var(--ease-out);
 }
 
-#app.home :is(.home-top button, .home-actions button):active {
+#app.home .home-top [data-action=profile-sheet]:active {
   opacity: .72;
 }
 

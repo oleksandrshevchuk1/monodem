@@ -98,25 +98,97 @@ cleanupSwipe=function(){
  cleanupAccountSwipe();
 };
 // Operations rise over the frozen home surface and dissolve back into it on pull-down.
-let operationsHome=null,operationsScene=null,operationsEntrance=null,operationsNavMotion=null,historyTouchCleanup=null;
-function freezeHome(){const snapshot=captureBankSurface(true),source=$('#screen'),copy=snapshot.firstElementChild;copy.removeAttribute('id');copy.classList.add('transition-screen');copy.style.paddingBottom=getComputedStyle(source).paddingBottom;copy.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));snapshot.firstElementChild.replaceWith(copy);snapshot.querySelectorAll('.transition-nav').forEach(el=>el.remove());snapshot.classList.remove('bank-surface-transition');snapshot.classList.add('operations-home-underlay');snapshot.style.height=Math.max(innerHeight,$('#app').offsetHeight)+'px';return snapshot}
+let operationsHome=null,operationsScene=null,operationsNavMotion=null,historyTouchCleanup=null;
+function freezeHome(){
+ const snapshot=freezePageSurface();
+ snapshot.classList.add('operations-home-underlay');
+ snapshot.querySelector('.transition-nav')?.remove();
+ return snapshot;
+}
 function operationsNav(from,to,duration){const nav=$('#nav');operationsNavMotion?.cancel();nav.hidden=false;nav.style.zIndex='46';nav.style.opacity=String(to);if(shouldReduceMotion())return;operationsNavMotion=nav.animate([{opacity:from},{opacity:to}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'})}
 function restoreOperationsNav(){operationsNavMotion?.cancel();operationsNavMotion=null;const nav=$('#nav');nav.style.opacity='';nav.style.zIndex='';nav.hidden=route.page==='history'||['card','detail','analytics','limits','abroad'].includes(route.page)}
-function endOperationsEntrance(){const scene=operationsScene;if(scene?.phase!=='opening')return;scene.motion.cancel();if(route.page==='history')$('#screen').append(scene.page);scene.page.style.marginTop='';scene.layer.remove();scene.home?.remove();operationsScene=null;delete document.documentElement.dataset.gesture;restoreOperationsNav()}
-function makeOperationsLayer(page){const rect=$('#app').getBoundingClientRect(),layer=document.createElement('div');layer.className='history-gesture-drawer soft-operations-layer history';Object.assign(layer.style,{left:rect.left+'px',width:rect.width+'px',height:innerHeight+'px',overflow:'hidden'});layer.append(page);document.body.append(layer);return layer}
+function endOperationsEntrance(){
+ const scene=operationsScene;
+ if(scene?.phase!=='opening')return;
+ operationsScene=null;
+ scene.motion.cancel();
+ scene.home?.remove();
+ $('#app').classList.remove('operations-opening');
+ delete document.documentElement.dataset.gesture;
+ restoreOperationsNav();
+}
+function makeOperationsLayer(page){
+ const rect=$('#app').getBoundingClientRect();
+ const layer=document.createElement('div');
+ layer.className='history-gesture-drawer soft-operations-layer history';
+ Object.assign(layer.style,{left:rect.left+'px',width:rect.width+'px',height:innerHeight+'px',overflow:'hidden'});
+ layer.append(page);
+ document.body.append(layer);
+ return layer;
+}
+function captureOperationsExit(page){
+ const origin=page.getBoundingClientRect();
+ const transform=getComputedStyle(page).transform;
+ const offset=transform==='none'?0:new DOMMatrixReadOnly(transform).m42;
+ const layer=makeOperationsLayer(page);
+ page.style.transform='none';
+ page.style.width=origin.width+'px';
+ const placed=page.getBoundingClientRect();
+ page.style.marginTop=(origin.top-offset-placed.top)+'px';
+ page.style.marginLeft=(origin.left-placed.left)+'px';
+ return {layer,offset};
+}
 const paintBeforeOperations=paint;
-paint=function(direction){if(route.page!=='history'||skipPageMotion||shouldReduceMotion())return paintBeforeOperations(direction);pageTransition?.skipTransition();pageAnimation?.cancel();if(operationsScene?.phase==='closing')operationsScene.finish();endOperationsEntrance();if($('#app').classList.contains('home'))operationsHome=freezeHome();render();const page=$('.all-operations-page');if(!page)return;const layer=makeOperationsLayer(page),home=operationsHome?.cloneNode(true),scene={phase:'opening',page,layer,home,y:0};operationsScene=scene;document.documentElement.dataset.gesture='active';if(home){document.body.append(home);home.animate([{opacity:1,filter:'blur(0px)'},{opacity:0,filter:'blur(4px)'}],{duration:300,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'})}operationsNav(1,0,300);scene.motion=layer.animate([{transform:'translate3d(0,180px,0)',opacity:0,filter:'blur(3px)'},{transform:'translate3d(0,0,0)',opacity:1,filter:'blur(0px)'}],{duration:320,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});operationsEntrance=scene.motion;scene.motion.finished.then(()=>{if(operationsScene===scene)endOperationsEntrance()}).catch(()=>{})};
+paint=function(direction){
+ if(route.page!=='history'||skipPageMotion||shouldReduceMotion())return paintBeforeOperations(direction);
+ pageTransition?.skipTransition();
+ pageAnimation?.cancel();
+ if(operationsScene?.phase==='closing')operationsScene.finish();
+ endOperationsEntrance();
+ const app=$('#app');
+ const fromHome=app.classList.contains('home');
+ if(fromHome)operationsHome=freezeHome();
+ const home=fromHome?operationsHome.cloneNode(true):null;
+ if(home)mountHomeOpeningSurface(home);
+ render();
+ const page=$('#screen .all-operations-page');
+ if(!page){home?.remove();return}
+ app.classList.add('operations-opening');
+ document.documentElement.dataset.gesture='active';
+ const easing='cubic-bezier(.23,1,.32,1)';
+ const backgroundTiming={duration:300,easing,fill:'both'};
+ const background=home?.animate([{opacity:1,filter:'blur(0px)'},{opacity:0,filter:'blur(4px)'}],backgroundTiming);
+ const homeTravel=home?.querySelector('.home-content')?.animate(
+  [{transform:'translate3d(0,0,0)'},{transform:'translate3d(0,-160px,0)'}],backgroundTiming
+ );
+ operationsNav(1,0,300);
+ const motion=page.animate([
+  {transform:'translate3d(0,180px,0)',opacity:0,filter:'blur(3px)'},
+  {transform:'translate3d(0,0,0)',opacity:1,filter:'blur(0px)'}
+ ],{duration:320,easing,fill:'both'});
+ const scene={phase:'opening',page,home,motion};
+ operationsScene=scene;
+ playAfterFirstPaint(...[motion,background,homeTravel,operationsNavMotion].filter(Boolean));
+ motion.finished.then(()=>{if(operationsScene===scene)endOperationsEntrance()}).catch(()=>{});
+};
 const backBeforeSoftOperations=back;
 back=function(){
  if(route.page!=='history')return backBeforeSoftOperations();
+ const page=$('#screen .all-operations-page');
+ const opening=operationsScene?.phase==='opening' ? operationsScene : null;
+ const pose=opening&&page ? getComputedStyle(page) : null;
+ const transform=pose?.transform;
+ const opacity=pose?.opacity ?? 1;
+ const filter=pose?.filter ?? 'blur(0px)';
+ const homeOpacity=opening?.home ? getComputedStyle(opening.home).opacity : .3;
+ const navOpacity=opening ? Number(getComputedStyle($('#nav')).opacity) : 0;
  endOperationsEntrance();
- const page=$('.all-operations-page');
  if(!page||shouldReduceMotion())return backBeforeHistory();
 
- const scroll=pageScrollY();
+ if(transform)page.style.transform=transform;
  if(page.contains(document.activeElement))document.activeElement.blur();
- const layer=makeOperationsLayer(page);
- page.style.marginTop=-scroll+'px';
+ const {layer,offset}=captureOperationsExit(page);
+ layer.classList.add('operations-dissolving');
  layer.inert=true;
  document.documentElement.dataset.gesture='active';
  skipPageMotion=true;
@@ -124,7 +196,7 @@ back=function(){
 
  const duration=340;
  const timing={duration,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'};
- const homeFade=$('#app').animate([{opacity:.3},{opacity:1}],timing);
+ const homeFade=$('#app').animate([{opacity:homeOpacity},{opacity:1}],timing);
  const scene={phase:'closing',layer,motion:null,finish:null};
  operationsScene=scene;
  scene.finish=()=>{
@@ -136,10 +208,10 @@ back=function(){
   delete document.documentElement.dataset.gesture;
   restoreOperationsNav();
  };
- operationsNav(0,1,duration);
+ operationsNav(navOpacity,1,duration);
  scene.motion=layer.animate([
-  {transform:'translate3d(0,0,0)',opacity:1,filter:'blur(0px)'},
-  {transform:'translate3d(0,180px,0)',opacity:0,filter:'blur(8px)'}
+  {transform:`translate3d(0,${offset}px,0)`,opacity,filter,'--edge-feather':'0px'},
+  {transform:`translate3d(0,${Math.max(180,offset+150)}px,0)`,opacity:0,filter:'blur(8px)','--edge-feather':'300px'}
  ],timing);
  scene.motion.finished.then(scene.finish,scene.finish);
 };
@@ -233,11 +305,11 @@ function sideUnderlayOffset(x, width) {
 let pairedSideMotion = null;
 let nativeHomeOpening = null;
 let homeNavigationTap = null;
-const homeNavigationControl = '#app.home :is([data-action="nav"],[data-action="tx"],[data-action="transfer"],[data-action="iban"],[data-action="show-card"],[data-action="open-card"],[data-action="topup"])';
+const homeNavigationControl = '#app.home button[data-action], #nav button[data-page]';
 document.addEventListener('pointerdown',event=>{
  const control=event.target.closest(homeNavigationControl);
  homeNavigationTap=event.isPrimary&&event.button===0&&control
-  ?{control,id:event.pointerId,x:event.clientX,y:event.clientY,scroll:pageScrollY(),touch:event.pointerType==='touch'}
+  ?{control,id:event.pointerId,x:event.clientX,y:event.clientY,scroll:pageScrollY()}
   :null;
 },{capture:true,passive:true});
 document.addEventListener('pointermove',event=>{
@@ -246,8 +318,8 @@ document.addEventListener('pointermove',event=>{
 },{capture:true,passive:true});
 document.addEventListener('pointercancel',()=>{homeNavigationTap=null},{capture:true,passive:true});
 document.addEventListener('mousedown',event=>{
- // Prevent the synthetic mouse event from scrolling Home to focus the tapped button.
- if((homeNavigationTap?.touch||event.sourceCapabilities?.firesTouchEvents)&&event.target.closest(homeNavigationControl))event.preventDefault();
+ // Pointer navigation must not scroll the outgoing screen to focus its trigger.
+ if(route.page==='home'&&event.button===0&&event.target.closest(homeNavigationControl))event.preventDefault();
 },true);
 document.addEventListener('click',event=>{
  const tap=homeNavigationTap;
@@ -813,12 +885,35 @@ render=function(){
    });
   }
   const destination=backdrop?.firstElementChild || document.createDocumentFragment();
+  const liveSelector=homeContent.querySelector('.card-selector');
+  const frozenSelector=destination.querySelector('.frozen-card-selector');
+  let restoreSelector;
+  if(liveSelector&&frozenSelector){
+   const parts=[liveSelector,...liveSelector.querySelectorAll('.selector-label,.selector-dots,.selector-dots > *')];
+   const frozen=[frozenSelector,...frozenSelector.querySelectorAll('.selector-label,.selector-dots,.selector-dots > *')];
+   const styles=parts.map(part=>part.getAttribute('style'));
+   parts.forEach((part,index)=>{
+    const saved=frozen[index]?.style;
+    if(!saved)return;
+    for(const property of ['inlineSize','blockSize','opacity','filter']){
+     if(saved[property])part.style[property]=saved[property];
+    }
+   });
+   liveSelector.classList.add('frozen-card-selector');
+   restoreSelector=()=>{
+    liveSelector.classList.remove('frozen-card-selector');
+    parts.forEach((part,index)=>{
+     if(styles[index]===null)part.removeAttribute('style');
+     else part.setAttribute('style',styles[index]);
+    });
+   };
+  }
   destination.replaceChildren(...nodes);
   if(backdrop?.preserveArtwork===false){
    const card=[...destination.querySelectorAll('.card-face')].find(face=>face.dataset.id===state.activeCard);
    card?.classList.add('opening-card-source');
   }
-  retainedHome={nodes,revision:serverRevision,card:state.activeCard,newCard:newCardSelected};
+  retainedHome={nodes,restoreSelector,revision:serverRevision,card:state.activeCard,newCard:newCardSelected};
  }
  const restore=!adminMode&&route.page==='home'&&retainedHome&&retainedHome.revision===serverRevision&&retainedHome.card===state.activeCard&&retainedHome.newCard===newCardSelected;
  if(!restore){
@@ -832,6 +927,7 @@ render=function(){
  pendingRouteScroll=null;
  renderBeforeHomeRetention();
  screen.replaceChildren(...retainedHome.nodes);
+ retainedHome.restoreSelector?.();
  screen.querySelector('.opening-card-source')?.classList.remove('opening-card-source');
  retainedHome=null;
  pageScrollTo({top:scroll,behavior:'instant'});

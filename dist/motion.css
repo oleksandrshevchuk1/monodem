@@ -120,3 +120,20 @@ html[data-painted-home-opening]::view-transition-new(opening-page) {
  translate: 0 0 0;
  will-change: translate;
 }
+
+/* Keep the statement header in its final layout throughout the entrance. */
+#app.history.operations-opening,
+body:not(.has-glass-history) #app.history.operations-opening #screen {
+ background: transparent !important;
+}
+#app.history.operations-opening { z-index: 41; }
+#app.history.operations-opening .all-operations-page {
+ background: #121212;
+}
+.soft-operations-layer.history.operations-dissolving {
+ background: transparent !important;
+ transition: none;
+}
+.soft-operations-layer.history.operations-dissolving .all-operations-page {
+ background: #121212 !important;
+}
