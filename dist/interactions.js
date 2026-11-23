@@ -119,7 +119,7 @@ actions['history-search']=()=>{const search=$('.history-search');search.hidden=!
 
 const priorInteractionsRender=render;
 
-render=function(){document.documentElement.dataset.motion=motionMode();if(loading){priorInteractionsRender();return}if(!adminMode&&['transfer','transferAmount','appSettings'].includes(route.page)){defaults();$('#app').className=route.page;$('#nav').hidden=true;$('#screen').innerHTML=route.page==='appSettings'?appSettingsPage():route.page==='transfer'?transferPage():transferAmountPage();bindTransfer()}else priorInteractionsRender();if(!adminMode&&route.page==='home')bindOperationsGesture();if(!adminMode&&route.page==='card')bindCardCollapse();if(!adminMode&&route.page==='history')bindHistoryDismiss();if(!adminMode&&route.page==='detail'){const t=currentTx();$('#app').classList.toggle('is-mono-operation',!!t&&operationBank(t)==='mono');$('#app').classList.toggle('is-other-bank-operation',!!t&&operationBank(t)==='other')}if(route.page==='history')$('#nav').hidden=true};
+render=function(){syncMotionPreference();if(loading){priorInteractionsRender();return}if(!adminMode&&['transfer','transferAmount','appSettings'].includes(route.page)){defaults();$('#app').className=route.page;$('#nav').hidden=true;$('#screen').innerHTML=route.page==='appSettings'?appSettingsPage():route.page==='transfer'?transferPage():transferAmountPage();bindTransfer()}else priorInteractionsRender();if(!adminMode&&route.page==='home')bindOperationsGesture();if(!adminMode&&route.page==='card')bindCardCollapse();if(!adminMode&&route.page==='history')bindHistoryDismiss();if(!adminMode&&route.page==='detail'){const t=currentTx();$('#app').classList.toggle('is-mono-operation',!!t&&operationBank(t)==='mono');$('#app').classList.toggle('is-other-bank-operation',!!t&&operationBank(t)==='other')}if(route.page==='history')$('#nav').hidden=true};
 
 
 
@@ -131,7 +131,7 @@ actions['app-settings']=()=>navigate('appSettings');
 
 function appSettingsPage(){const motion=motionMode();return toolbar('')+`<div class="page native-settings"><h1>Налаштування застосунку</h1><section class="native-group">${button('motion-settings','Анімації','stack-fill',motion==='full'?'Повні анімації':motion==='reduced'?'Зменшено рух':'Як у системі')}${button('haptic-settings','Тактильний відгук','device-mobile',state.haptics?'Увімкнено':'Вимкнено')}${button('avatar','Фото профілю','image')}${button('theme-settings','Тема застосунку','cat-fill','Темна')}${button('language-settings','Мова','users','Українська')}</section><section class="native-group">${button('nav','Про застосунок','question','','data-page="about"')}</section></div>`}
 
-actions['motion-settings']=()=>modal('Анімації',select('Режим руху','motion',[['full','Повні анімації'],['system','Як у системі'],['reduced','Зменшити рух']],motionMode())+'<p class="form-note">Системне зменшення руху завжди враховується.</p>',f=>{state.motionPreference=f.get('motion');document.documentElement.dataset.motion=state.motionPreference});
+actions['motion-settings']=()=>modal('Анімації',select('Режим руху','motion',[['full','Повні анімації'],['system','Як у системі'],['reduced','Зменшити рух']],motionMode())+'<p class="form-note">Системне зменшення руху завжди враховується.</p>',f=>{state.motionPreference=f.get('motion');syncMotionPreference()});
 
 actions['haptic-settings']=()=>change(()=>{state.haptics=!state.haptics;if(state.haptics&&navigator.vibrate)navigator.vibrate(12)});
 

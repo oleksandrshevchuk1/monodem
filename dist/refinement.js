@@ -185,7 +185,7 @@ function animateStatsSource(dialog,closing){
  );
  statsSourceMotion=animation;
  animation.finished.then(()=>{
-  if(statsSourceMotion===animation){
+  if(!closing&&statsSourceMotion===animation){
    statsSourceMotion=null;
    animation.cancel();
   }
@@ -195,7 +195,9 @@ function animateStatsSource(dialog,closing){
 function closeStatsSource(dialog,afterClose){
  if(dialog.classList.contains('stats-source-closing'))return;
  const finish=()=>{
-  dialog.close();
+  HTMLDialogElement.prototype.close.call(dialog);
+  statsSourceMotion?.cancel();
+  statsSourceMotion=null;
   dialog.classList.remove('stats-source-closing');
   afterClose?.();
  };

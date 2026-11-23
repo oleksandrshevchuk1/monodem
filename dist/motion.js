@@ -114,6 +114,7 @@ back=function(){
  if(!page||shouldReduceMotion())return backBeforeHistory();
 
  const scroll=pageScrollY();
+ if(page.contains(document.activeElement))document.activeElement.blur();
  const layer=makeOperationsLayer(page);
  page.style.marginTop=-scroll+'px';
  layer.inert=true;
@@ -121,16 +122,16 @@ back=function(){
  skipPageMotion=true;
  backBeforeHistory();
 
- const duration=320;
- const app=$('#app');
- const homeMotion=app.animate([{transform:'translate3d(0,-160px,0)',opacity:.3},{transform:'translate3d(0,0,0)',opacity:1}],{duration,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});
+ const duration=340;
+ const timing={duration,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'};
+ const homeFade=$('#app').animate([{opacity:.3},{opacity:1}],timing);
  const scene={phase:'closing',layer,motion:null,finish:null};
  operationsScene=scene;
  scene.finish=()=>{
   if(operationsScene!==scene)return;
   operationsScene=null;
   layer.remove();
-  homeMotion.cancel();
+  homeFade.cancel();
   scene.motion?.cancel();
   delete document.documentElement.dataset.gesture;
   restoreOperationsNav();
@@ -139,7 +140,7 @@ back=function(){
  scene.motion=layer.animate([
   {transform:'translate3d(0,0,0)',opacity:1,filter:'blur(0px)'},
   {transform:'translate3d(0,180px,0)',opacity:0,filter:'blur(8px)'}
- ],{duration,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});
+ ],timing);
  scene.motion.finished.then(scene.finish,scene.finish);
 };
 actions.back=()=>back();

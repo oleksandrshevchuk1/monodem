@@ -63,7 +63,7 @@ animatedDialog.close=function(value){
  const motion=this.animate([{transform:fromTransform,opacity:fromOpacity},{transform:'translateY(100%)',opacity:0}],{duration:180,easing:'cubic-bezier(.23,1,.32,1)',fill:'both'});
  const exit={motion,value};dialogExit=exit;const settle=()=>{if(dialogExit===exit)finishDialogExit()};motion.finished.then(settle,settle);
 };
-animatedDialog.addEventListener('cancel',event=>{event.preventDefault();animatedDialog.close()});
+animatedDialog.addEventListener('cancel',event=>{if(event.defaultPrevented)return;event.preventDefault();animatedDialog.close()});
 const modalBeforeAnimatedExit=modal;modal=function(...args){finishDialogExit();modalBeforeAnimatedExit(...args);prepareVisibleGlyphs()};
 
 const backBeforeExitGuard=back;back=function(){if(sideEntrance?.isRouteExit)return;return backBeforeExitGuard()};actions.back=()=>back();

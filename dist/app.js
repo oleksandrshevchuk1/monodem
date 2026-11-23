@@ -10,7 +10,13 @@ const adminMode=/^\/admin(?:\/|\.html$)/.test(location.pathname);
 const initialHash=location.hash.slice(1).split('/');
 let route={page:initialHash[0]||'home',id:initialHash[1]},db,submit,showNumber=false,fileURL,loading=true,returnRoute={page:'home'},fileReturn={page:'files'};
 function motionMode(){return state.motionPreference||'full'}
-function shouldReduceMotion(){const mode=motionMode();return mode==='reduced'||(mode==='system'&&matchMedia('(prefers-reduced-motion: reduce)').matches)}
+const systemReducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
+function shouldReduceMotion(){return motionMode()==='reduced'||systemReducedMotion.matches}
+function syncMotionPreference(){
+ document.documentElement.dataset.motion=shouldReduceMotion()?'reduced':motionMode();
+}
+systemReducedMotion.addEventListener('change',syncMotionPreference);
+syncMotionPreference();
 function compareTransactions(a,b){return ((b.date||'')+'T'+(b.time||'00:00')).localeCompare((a.date||'')+'T'+(a.time||'00:00'))||Number(b.createdAt||0)-Number(a.createdAt||0)||state.transactions.indexOf(b)-state.transactions.indexOf(a)}
 
 const mainCard=()=>({id:'main',account:state.account,card:state.card,opening:state.opening,holder:state.mainHolder||state.holder,color:state.mainColor||'black'}),allCards=()=>[mainCard(),...state.extraCards],activeCard=()=>allCards().find(c=>c.id===state.activeCard)||mainCard(),txFor=(id=activeCard().id)=>state.transactions.filter(t=>(t.cardId||'main')===id).sort(compareTransactions),balance=()=>activeCard().opening+txFor().reduce((s,t)=>s+t.amount,0),currentTx=()=>state.transactions.find(t=>t.id===route.id);
