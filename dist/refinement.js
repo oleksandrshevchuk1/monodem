@@ -548,6 +548,7 @@ function bindHorizontalGesture(element,{read,write,settle,cancel,mouseOnly=false
  element.addEventListener('pointermove',e=>{if(!start||e.pointerId!==start.id||vertical)return;const dx=e.clientX-start.x,dy=e.clientY-start.y;if(!dragging&&Math.abs(dy)>8&&Math.abs(dy)>Math.abs(dx)){vertical=true;return}if(!dragging&&Math.abs(dx)>14&&Math.abs(dx)>Math.abs(dy)*1.6){cancel();start.base=read()-(element.matches('.card-carousel, .stats-carousel')?Math.sign(dx)*14:0);dragging=true;element.setPointerCapture(e.pointerId)}if(!dragging)return;const time=performance.now();samples.push({x:e.clientX,time});samples=samples.filter(p=>time-p.time<100);pending=start.base+dx;if(!frame)frame=requestAnimationFrame(()=>{frame=0;if(start&&dragging)write(pending)})});
  const end=e=>{if(!start||e.pointerId!==start.id)return;flush();const moved=dragging,first=samples[0],last=samples.at(-1),v=e.type==='pointercancel'?0:last&&first&&performance.now()-last.time<80&&last.time>first.time?(last.x-first.x)/(last.time-first.time)*1000:0;start=null;dragging=false;vertical=false;if(element.hasPointerCapture(e.pointerId))element.releasePointerCapture(e.pointerId);if(moved){element.addEventListener('click',stopClick,{once:true,capture:true});setTimeout(()=>element.removeEventListener('click',stopClick,true),0);settle(v,e.type==='pointercancel'||e.type==='lostpointercapture')}};
  element.addEventListener('pointerup',end);element.addEventListener('pointercancel',end);element.addEventListener('lostpointercapture',e=>{if(start&&e.target===element&&!element.hasPointerCapture(e.pointerId))end(e)})
+ return ()=>dragging;
 }
 function bindCardTouchAxis(element){
  // Claim horizontal touch movement before the scroll host can move vertically.
@@ -568,7 +569,47 @@ function bindCardTouchAxis(element){
   if(touchAxis.locked&&event.cancelable)event.preventDefault();
  },{passive:false});
 }
-bindCardSwipe=function(){const pane=$('.card-carousel');if(!pane)return;carouselIndex=newCardSelected?allCards().length:allCards().findIndex(c=>c.id===activeCard().id);setCarouselPosition(carouselIndex);bindHorizontalGesture(pane,{read:()=>swipeLayers?.dx||0,write:x=>moveHomeSwipe(x),cancel:()=>cardSlideAnimation?.cancel(),settle:(v,cancelled)=>{const l=prepareSwipe(),projected=l.dx+v*.12;slideCardTo(l.index+(!cancelled&&Math.abs(projected)>l.width*.25?(projected<0?1:-1):0))}})};
+bindCardSwipe=function(){
+ const pane=$('.card-carousel');if(!pane)return;
+ carouselIndex=newCardSelected?allCards().length:allCards().findIndex(c=>c.id===activeCard().id);
+ setCarouselPosition(carouselIndex);
+ let wheelTimer=0,wheelFrame=0,wheelDelta=0;
+ const cancelWheel=()=>{
+  clearTimeout(wheelTimer);
+  cancelAnimationFrame(wheelFrame);
+  wheelFrame=0;
+  wheelDelta=0;
+ };
+ const isDragging=bindHorizontalGesture(pane,{
+  read:()=>swipeLayers?.dx||0,
+  write:x=>moveHomeSwipe(x),
+  cancel:()=>{cancelWheel();cardSlideAnimation?.cancel()},
+  settle:(velocity,cancelled)=>{
+   const layer=prepareSwipe(),projected=layer.dx+velocity*.12;
+   slideCardTo(layer.index+(!cancelled&&Math.abs(projected)>layer.width*.25?(projected<0?1:-1):0));
+  }
+ });
+ pane.addEventListener('wheel',event=>{
+  if(document.body.classList.contains('has-glass-history')||Math.abs(event.deltaX)<=Math.abs(event.deltaY)||event.target.closest('.operation-panel,.home-product-track'))return;
+  event.preventDefault();
+  if(isDragging())return;
+  cardSlideAnimation?.cancel();
+  const layer=prepareSwipe();
+  const flush=()=>{
+   cancelAnimationFrame(wheelFrame);
+   wheelFrame=0;
+   if(swipeLayers===layer&&wheelDelta)moveHomeSwipe(layer.dx-wheelDelta);
+   wheelDelta=0;
+  };
+  wheelDelta+=event.deltaX;
+  if(!wheelFrame)wheelFrame=requestAnimationFrame(flush);
+  clearTimeout(wheelTimer);
+  wheelTimer=setTimeout(()=>{
+   flush();
+   if(swipeLayers===layer)slideCardTo(layer.index+(Math.abs(layer.dx)>layer.width*.2?(layer.dx<0?1:-1):0));
+  },85);
+ },{passive:false});
+};
 
 function captureBankSurface(preserveArtwork=false){
  const app=$('#app'),rect=app.getBoundingClientRect(),surface=document.createElement('div');

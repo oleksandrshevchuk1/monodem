@@ -55,9 +55,6 @@ prepareSwipe=function(){
  if(layer.pages||shouldReduceMotion())return layer;
  const pane=$('.home-content');
  const slots=[homeAccountIntro,'.home-actions','.operation-panel'];
- // The statement shares its standing layout during the swipe; its length may differ by card.
- layer.pane=pane;
- pane.style.setProperty('--swipe-statement-row',getComputedStyle(pane).gridTemplateRows.split(' ')[4]);
  layer.movingContent=slots.map(selector=>pane.querySelector(selector));
  layer.pages=[];
  for(const index of [layer.index-1,layer.index+1]){
@@ -70,10 +67,10 @@ prepareSwipe=function(){
    block.inert=true;
    block.style.translate=`${cardPixel((index-layer.index)*layer.width)}px 0 0`;
   }
-  pane.append(...blocks);
-  fitMonetaryLabels(blocks[0]);
   layer.pages.push({blocks,index});
  }
+ pane.append(...layer.pages.flatMap(page=>page.blocks));
+ for(const {blocks} of layer.pages)fitMonetaryLabels(blocks[0]);
  return layer;
 };
 moveHomeSwipe=function(distance,rubber=true){
@@ -93,7 +90,6 @@ cleanupSwipe=function(){
    for(const block of blocks)if(block.classList.contains('account-swipe-preview'))block.remove();
   }
   swipeLayers.movingContent?.forEach(element=>element.style.removeProperty('translate'));
-  swipeLayers.pane?.style.removeProperty('--swipe-statement-row');
  }
  cleanupAccountSwipe();
 };
@@ -827,7 +823,6 @@ function scheduleAccountPreviews(){
  clearTimeout(previewIdleTask);
  previewIdleTask=setTimeout(()=>{if(!swipeLayers)prepareAccountPreviews()},40);
 }
-const bindAccountPointer=bindCardSwipe;bindCardSwipe=function(){bindAccountPointer();scheduleAccountPreviews();const pane=$('.card-carousel');if(!pane)return;let wheelTimer=0;pane.addEventListener('wheel',e=>{if(document.body.classList.contains('has-glass-history')||Math.abs(e.deltaX)<=Math.abs(e.deltaY)||e.target.closest('.operation-panel,.home-product-track'))return;e.preventDefault();cardSlideAnimation?.cancel();const layer=prepareSwipe();moveHomeSwipe(layer.dx-e.deltaX);clearTimeout(wheelTimer);wheelTimer=setTimeout(()=>{const l=swipeLayers;if(l!==layer)return;slideCardTo(l.index+(Math.abs(l.dx)>l.width*.2?(l.dx<0?1:-1):0))},85)},{passive:false})};
 // Favorite filtering is a visible toggle, not an invisible list mutation.
 let historyFavoritesActive=false;
 const historyBeforeFavoriteState=historyPage;historyPage=function(){const html=historyBeforeFavoriteState();return html.replace('data-action="history-favorites"',`aria-pressed="${historyFavoritesActive}" class="${historyFavoritesActive?'is-favorite':''}" data-action="history-favorites"`).replace(`${icon('star')}</button><button data-action="history-search"`,`${icon(historyFavoritesActive?'star-fill':'star')}</button><button data-action="history-search"`)};
