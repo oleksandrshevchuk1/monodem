@@ -76,20 +76,29 @@ prepareSwipe=function(){
  return layer;
 };
 moveHomeSwipe=function(distance,rubber=true){
+ const previous=swipeLayers?.dx;
  moveAccountSwipe(distance,rubber);
  const layer=swipeLayers;
- if(!layer.pages)return;
+ if(!layer.pages||previous===layer.dx)return;
  const translation=`${cardPixel(layer.dx)}px 0 0`;
  for(const element of layer.movingContent)element.style.translate=translation;
  for(const {blocks,index} of layer.pages){
-  const offset=`${cardPixel((index-layer.index)*layer.width+layer.dx)}px 0 0`;
-  for(const block of blocks)block.style.translate=offset;
+  const direction=index-layer.index;
+  const entering=direction*layer.dx<0;
+  const wasEntering=direction*previous<0;
+  if(!entering&&!wasEntering)continue;
+  const offset=`${cardPixel(direction*layer.width+(entering?layer.dx:0))}px 0 0`;
+  for(const block of blocks){
+   if(entering!==wasEntering)block.classList.toggle('swipe-preview-visible',entering);
+   block.style.translate=offset;
+  }
  }
 };
 cleanupSwipe=function(){
  if(swipeLayers){
   for(const {blocks,index,content} of swipeLayers.pages||[]){
    if(!blocks[0].classList.contains('account-swipe-preview'))continue;
+   for(const block of blocks)block.classList.remove('swipe-preview-visible');
    content.append(...blocks);
    accountPreviewCache.set(index,content);
   }
@@ -540,6 +549,7 @@ paint = function(direction) {
   frozen.replaceChildren(...$('#screen').childNodes);
   snapshot.style.left = (rect.x - dx) + 'px';
   snapshot.style.zIndex = 45;
+  snapshot.classList.add('closing-page-surface');
   document.body.append(snapshot);
   app.style.transform = '';
   render();

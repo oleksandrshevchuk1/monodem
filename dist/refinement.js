@@ -519,7 +519,7 @@ function finishCardSelection(index){
    swipeLayers.movingContent.forEach(block=>block.remove());
    for(const block of incoming){
     block.style.removeProperty('translate');
-    block.classList.remove('account-swipe-preview');
+    block.classList.remove('account-swipe-preview','swipe-preview-visible');
     block.inert=false;
    }
   }else{

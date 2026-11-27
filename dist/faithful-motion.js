@@ -190,6 +190,7 @@ expandTransition=function(from,to,opening){
  if(snapshot){
   snapshot.querySelectorAll('.expanded-card,.card-header-mini,.transition-nav').forEach(el=>el.style.setProperty('opacity','0','important'));
   snapshot.style.zIndex='37';snapshot.style.maxHeight=Math.max(0,innerHeight-parseFloat(snapshot.style.top))+'px';if(snapshot.classList.contains('home'))mountHomeOpeningSurface(snapshot);else document.body.append(snapshot);
+  if(!opening){snapshot.style.zIndex='40';snapshot.classList.add('closing-page-surface')}
   const fade=snapshot.animate([{opacity:1},{opacity:0}],{duration,easing:landingEase,fill:'both'});
   fade.finished.catch(()=>{});
  }

@@ -94,6 +94,11 @@ html[data-painted-home-opening]::view-transition-new(opening-page) {
 .frozen-card-selector :is(.selector-label,.selector-dots,.selector-dots > *){transition:none}
 .side-page-snapshot .opening-card-source{visibility:hidden}
 
+/* Keep live navigation above Home and below the outgoing surface. */
+body:has(> :is(.closing-page-surface,.history-side-sheet,.operations-dissolving,.history-edge-layer)) > #nav {
+ z-index: 38 !important;
+}
+
 /* Live and incoming account blocks share the same fixed row starts. */
 .home-content {
  display: grid;
@@ -113,6 +118,7 @@ html[data-painted-home-opening]::view-transition-new(opening-page) {
  z-index: 2;
 }
 .home-content > .operation-panel.account-swipe-preview { position: relative; inset: auto; }
+.home-content > .account-swipe-preview:not(.swipe-preview-visible) { visibility: hidden; will-change: auto; }
 /* Keep the painted layers through the existing gesture and animation handoff. */
 :is(#app,.side-page-snapshot).home .home-top, #app.limits,
 #nav .tab :is(.reference-control-glyph,.icon) { will-change: transform; }
