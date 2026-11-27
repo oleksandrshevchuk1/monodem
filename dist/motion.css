@@ -98,7 +98,7 @@ html[data-painted-home-opening]::view-transition-new(opening-page) {
 .home-content {
  display: grid;
  grid-template-columns: minmax(0,1fr);
- grid-template-rows: repeat(5,auto);
+ grid-template-rows: repeat(4,auto) var(--swipe-statement-row,auto);
 }
 .pwa-scroll:has(> #app.home, > .side-page-snapshot.home) { overflow-anchor: none; }
 .home-content > :is(.home-balance,.open-card-intro) { grid-area: 1 / 1; }
@@ -112,7 +112,7 @@ html[data-painted-home-opening]::view-transition-new(opening-page) {
  pointer-events: none;
  z-index: 2;
 }
-.home-content > .operation-panel.account-swipe-preview { position: absolute; }
+.home-content > .operation-panel.account-swipe-preview { position: relative; inset: auto; }
 /* Keep the painted layers through the existing gesture and animation handoff. */
 :is(#app,.side-page-snapshot).home .home-top, #app.limits,
 #nav .tab :is(.reference-control-glyph,.icon) { will-change: transform; }
