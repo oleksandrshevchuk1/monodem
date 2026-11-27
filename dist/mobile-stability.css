@@ -147,7 +147,7 @@ body.document-open .receipt-fit,body.document-open .receipt-document-stage{flex:
 .amount-entry-footer{transition:padding-bottom 220ms var(--ease-out)}
 .amount-entry-footer>.form-note{display:block;max-height:20px;overflow:hidden;transition:max-height 220ms var(--ease-out),margin 220ms var(--ease-out),opacity 160ms var(--ease-out)}
 .keyboard-open .amount-entry-footer>.form-note{display:block;max-height:0;margin:0;opacity:0}
-@media(prefers-reduced-motion:reduce){#app.transferAmount,.amount-entry-footer,.amount-entry-footer>.form-note{transition:none}}
+@media(prefers-reduced-motion:reduce){html:not([data-motion="full"]) #app.transferAmount,html:not([data-motion="full"]) .amount-entry-footer,html:not([data-motion="full"]) .amount-entry-footer>.form-note{transition:none}}
 
 #transfer-sum:focus-visible{outline:none}
 

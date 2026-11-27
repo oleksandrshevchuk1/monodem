@@ -11,9 +11,12 @@ const initialHash=location.hash.slice(1).split('/');
 let route={page:initialHash[0]||'home',id:initialHash[1]},db,submit,showNumber=false,fileURL,loading=true,returnRoute={page:'home'},fileReturn={page:'files'};
 function motionMode(){return state.motionPreference||'full'}
 const systemReducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
-function shouldReduceMotion(){return motionMode()==='reduced'||systemReducedMotion.matches}
+function shouldReduceMotion(){
+ const mode=motionMode();
+ return mode==='reduced'||(mode==='system'&&systemReducedMotion.matches);
+}
 function syncMotionPreference(){
- document.documentElement.dataset.motion=shouldReduceMotion()?'reduced':motionMode();
+ document.documentElement.dataset.motion=shouldReduceMotion()?'reduced':'full';
 }
 systemReducedMotion.addEventListener('change',syncMotionPreference);
 syncMotionPreference();

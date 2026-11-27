@@ -148,8 +148,7 @@ paint=function(direction){
  endOperationsEntrance();
  const app=$('#app');
  const fromHome=app.classList.contains('home');
- if(fromHome)operationsHome=freezeHome();
- const home=fromHome?operationsHome.cloneNode(true):null;
+ const home=fromHome?freezeHome():null;
  if(home)mountHomeOpeningSurface(home);
  const historyItems=orderedHistoryItems();
  renderHistoryStart(historyItems,render);
@@ -815,7 +814,7 @@ function buildAccountPreview(index){
   prepareVisibleGlyphs(content);
   for(const image of content.querySelectorAll('img')){
    image.loading='eager';
-   image.decoding='sync';
+   image.decoding='async';
    image.decode().catch(()=>{});
   }
   return content;

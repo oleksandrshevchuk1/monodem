@@ -4,7 +4,7 @@ let glassHistory=null,glassHistoryCleanup=null,glassHistoryChanging=false;
 // Navigation resets pageScrollY() before paint: retain the actual origin first.
 let pendingHomeHistory=null;
 const freezeBeforeHistoryOrigin=freezeHome;
-freezeHome=function(){return pendingHomeHistory?pendingHomeHistory.surface.cloneNode(true):freezeBeforeHistoryOrigin()};
+freezeHome=function(){return pendingHomeHistory?.surface||freezeBeforeHistoryOrigin()};
 const navigateBeforeHistoryOrigin=navigate;
 navigate=function(page,id){
  if(page==='history'&&historyPresentation==='drawer'&&route.page==='history'&&glassHistory)return;

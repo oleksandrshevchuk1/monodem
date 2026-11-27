@@ -131,7 +131,7 @@ actions['app-settings']=()=>navigate('appSettings');
 
 function appSettingsPage(){const motion=motionMode();return toolbar('')+`<div class="page native-settings"><h1>Налаштування застосунку</h1><section class="native-group">${button('motion-settings','Анімації','stack-fill',motion==='full'?'Повні анімації':motion==='reduced'?'Зменшено рух':'Як у системі')}${button('haptic-settings','Тактильний відгук','device-mobile',state.haptics?'Увімкнено':'Вимкнено')}${button('avatar','Фото профілю','image')}${button('theme-settings','Тема застосунку','cat-fill','Темна')}${button('language-settings','Мова','users','Українська')}</section><section class="native-group">${button('nav','Про застосунок','question','','data-page="about"')}</section></div>`}
 
-actions['motion-settings']=()=>modal('Анімації',select('Режим руху','motion',[['full','Повні анімації'],['system','Як у системі'],['reduced','Зменшити рух']],motionMode())+'<p class="form-note">Системне зменшення руху завжди враховується.</p>',f=>{state.motionPreference=f.get('motion');syncMotionPreference()});
+actions['motion-settings']=()=>modal('Анімації',select('Режим руху','motion',[['full','Повні анімації'],['system','Як у системі'],['reduced','Зменшити рух']],motionMode())+'<p class="form-note">Режим «Як у системі» використовує налаштування руху вашого пристрою.</p>',f=>{state.motionPreference=f.get('motion');syncMotionPreference()});
 
 actions['haptic-settings']=()=>change(()=>{state.haptics=!state.haptics;if(state.haptics&&navigator.vibrate)navigator.vibrate(12)});
 
