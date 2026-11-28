@@ -417,8 +417,6 @@ function animateCapturedHome(opening, page) {
 
 function animateSideSurfaces(app, preview, from, to, duration) {
  const width = app.clientWidth;
- const enteringDetail = from === width && to === 0 && !!app.querySelector('.operation-boundary-slot');
- if (enteringDetail && !pageScrollY()) app.classList.add('operation-entry-frame');
  placeSideSurfaces(app, preview, from, width);
  app.classList.add('paired-side-motion');
  const timing = {duration, easing: sideSlideEase, fill: 'both'};
@@ -441,7 +439,7 @@ function animateSideSurfaces(app, preview, from, to, duration) {
    pairedSideMotion = null;
    app.style.transform = '';
    preview.style.transform = '';
-   app.classList.remove('paired-side-motion','operation-entry-frame');
+   app.classList.remove('paired-side-motion');
   }
  };
  pairedSideMotion = motion;
@@ -461,35 +459,36 @@ const homeSurfaceRows = [
  '.home-top', '.home-content > .home-balance', '.home-content > .open-card-intro',
  '.home-content > .card-carousel', '.home-content > .card-selector',
  '.home-content > .home-actions', '.home-content > .operation-panel:not(.account-swipe-preview)',
- '.home-content > .reference-home-tools'
+ '.home-content > .reference-home-tools', '.transition-nav'
 ];
 
 function clearFrozenHomeOffsets(rows) {
  for (const row of rows) {
   row.style.translate = '';
-  row.removeAttribute('data-frozen-home-offset');
  }
 }
 
 function alignFrozenHomeRows(surface) {
- if (!surface.homeRowTops) return;
+ if (!surface.homeRowGeometry) return;
  const offset = window.visualViewport?.offsetTop ?? 0;
+ const rows = homeSurfaceRows.map(selector => surface.querySelector(selector));
  // Return previews clone an already aligned surface. Clear that compensation
  // before measuring in the new container.
  clearFrozenHomeOffsets(surface.querySelectorAll('[data-frozen-home-offset]'));
- const offsets = homeSurfaceRows.map((selector, index) => {
-  const row = surface.querySelector(selector);
-  const top = surface.homeRowTops[index];
-  return row && top != null ? [row, top - row.getBoundingClientRect().top + offset] : null;
+ rows.forEach((row, index) => {
+  const geometry = surface.homeRowGeometry[index];
+  if (!row || !geometry) return;
+  row.style.setProperty('--frozen-home-width', geometry.width + 'px');
+  row.style.setProperty('--frozen-home-height', geometry.height + 'px');
+  row.setAttribute('data-frozen-home-offset', '');
  });
- for (const entry of offsets) {
-  if (!entry) continue;
-  const [row, delta] = entry;
-  if (Math.abs(delta) >= .01) {
-   row.style.translate = '0 ' + delta + 'px';
-   row.setAttribute('data-frozen-home-offset', '');
-  }
- }
+ const offsets = rows.map((row, index) => {
+  const geometry = surface.homeRowGeometry[index];
+  return row && geometry ? geometry.top - row.getBoundingClientRect().top + offset : 0;
+ });
+ rows.forEach((row, index) => {
+  if (Math.abs(offsets[index]) >= .01) row.style.translate = '0 ' + offsets[index] + 'px';
+ });
 }
 
 function freezePageSurface(preserveArtwork = true) {
@@ -505,9 +504,11 @@ function freezePageSurface(preserveArtwork = true) {
  surface.classList.remove('paired-side-motion');
  if (surface.classList.contains('home')) {
   const viewportTop = window.visualViewport?.offsetTop ?? 0;
-  surface.homeRowTops = homeSurfaceRows.map(selector => {
-   const row = source.querySelector(selector);
-   return row ? row.getBoundingClientRect().top - viewportTop : null;
+  surface.homeRowGeometry = homeSurfaceRows.map(selector => {
+   const row = selector === '.transition-nav' ? $('#nav') : source.querySelector(selector);
+   if (!row || row.hidden) return null;
+   const {top, width, height} = row.getBoundingClientRect();
+   return {top: top - viewportTop, width, height};
   });
   const content = source.querySelector('.home-content');
   const frozenContent = copy.querySelector('.home-content');
@@ -573,7 +574,7 @@ function mountHomeOpeningSurface(surface) {
 
 function trackSideMotion(motion, snapshot, underlay, companion) {
  const app = $('#app');
- const home = snapshot?.homeRowTops ? snapshot : underlay?.homeRowTops ? underlay : null;
+ const home = snapshot?.homeRowGeometry ? snapshot : underlay?.homeRowGeometry ? underlay : null;
  const viewport = window.visualViewport;
  const alignHome = () => alignFrozenHomeRows(home);
  if (home && viewport) {
@@ -752,7 +753,7 @@ function makeSideReturnLayer(source) {
  layer.sourceSurface = source;
  layer.style.zIndex = '35';
  document.body.append(layer);
- layer.homeRowTops = source.homeRowTops;
+ layer.homeRowGeometry = source.homeRowGeometry;
  alignFrozenHomeRows(layer);
  return layer;
 }
@@ -1082,7 +1083,13 @@ render=function(){
  pendingRouteScroll=null;
  renderBeforeHomeRetention();
  screen.replaceChildren(...retainedHome.nodes);
- clearFrozenHomeOffsets(screen.querySelectorAll('[data-frozen-home-offset]'));
+ const frozenRows = screen.querySelectorAll('[data-frozen-home-offset]');
+ clearFrozenHomeOffsets(frozenRows);
+ for (const row of frozenRows) {
+  row.style.removeProperty('--frozen-home-width');
+  row.style.removeProperty('--frozen-home-height');
+  row.removeAttribute('data-frozen-home-offset');
+ }
  retainedHome.homeContent.style.gridTemplateRows = retainedHome.liveRows;
  retainedHome.restoreSelector?.();
  screen.querySelector('.opening-card-source')?.classList.remove('opening-card-source');
