@@ -99,31 +99,10 @@ const historyRowsBeforeMemo=operationHistoryRows;
 let historyRowsSource=null;const historyRowsCache=new Map();
 operationHistoryRows=function(items,allAccounts=false){if(historyRowsSource!==state.transactions){historyRowsSource=state.transactions;historyRowsCache.clear()}const key=String(allAccounts)+'|'+state.activeCard+'|'+items.map(tx=>[tx.id,tx.amount,tx.title,tx.note,tx.date,tx.time,tx.cardId,tx.bankId,tx.bankName,tx.favorite,tx.recipientAvatar?.length,tx.logo?.length].join(':')).join('|');if(historyRowsCache.has(key))return historyRowsCache.get(key);const html=historyRowsBeforeMemo(items,allAccounts);if(historyRowsCache.size>=8)historyRowsCache.clear();historyRowsCache.set(key,html);return html};
 const updateHistoryBeforeStableMarkup=updateOperationHistory;
-updateOperationHistory=function(){if(route.page==='history'&&glassHistoryChanging&&glassHistory?.sheet)return;const list=document.querySelector('#tx-list');if(historyStartItems&&list)return;const wasFilling=!!list?._historyFillToken;if(wasFilling)list._historyFillToken=null;const key=String(historyFavoritesActive)+'|'+JSON.stringify(historyReferenceFilter)+'|'+(document.querySelector('#search')?.value||'')+'|'+state.activeCard+'|'+historyPresentation+'|'+state.transactions.map(tx=>[tx.id,tx.amount,tx.title,tx.note,tx.favorite,tx.date,tx.cardId].join(':')).join('|');if(list?._historyKey===key)return;if(list&&!wasFilling&&list._historyKey===undefined&&!historyFavoritesActive&&historyReferenceFilter.direction==="all"&&!historyReferenceFilter.tag&&!historyReferenceFilter.start&&!historyReferenceFilter.end&&!document.querySelector("#search")?.value){list._historyKey=key;return}updateHistoryBeforeStableMarkup();if(list)list._historyKey=key};
+updateOperationHistory=function(){if(route.page==='history'&&glassHistoryChanging&&glassHistory?.sheet)return;const list=document.querySelector('#tx-list');const key=String(historyFavoritesActive)+'|'+JSON.stringify(historyReferenceFilter)+'|'+(document.querySelector('#search')?.value||'')+'|'+state.activeCard+'|'+historyPresentation+'|'+state.transactions.map(tx=>[tx.id,tx.amount,tx.title,tx.note,tx.favorite,tx.date,tx.cardId].join(':')).join('|');if(list?._historyKey===key)return;if(list&&list._historyKey===undefined&&!historyFavoritesActive&&historyReferenceFilter.direction==="all"&&!historyReferenceFilter.tag&&!historyReferenceFilter.start&&!historyReferenceFilter.end&&!document.querySelector("#search")?.value){list._historyKey=key;return}updateHistoryBeforeStableMarkup();if(list)list._historyKey=key};
 
 const historyBeforeViewportPreview=historyPage;
 historyPage=function(){if(route.page!=='history'||historyPresentation!=='drawer'||!glassHistoryChanging||!glassHistory?.sheet)return historyBeforeViewportPreview();return glassHistory.previewMarkup??historyBeforeViewportPreview()};
-function fillHistoryInChunks(scene,items=scene.historyItems){
- const list=document.querySelector('#tx-list');
- if(!list||list._historyKey!==undefined||!items||historyFavoritesActive||scene.historyFillList===list||items.length<=historyStartSize)return;
- scene.historyFillList=list;
- const all=historyPresentation==='drawer';
- const fillToken={};
- list._historyFillToken=fillToken;
- let offset=historyStartSize;
- const append=()=>{
-  if(route.page!=='history'||!list.isConnected||historyFavoritesActive||document.querySelector('#search')?.value||list._historyFillToken!==fillToken)return;
-  const batch=items.slice(offset,offset+historyStartSize);
-  let html=operationHistoryRows(batch,all);
-  if(items[offset-1]?.date===batch[0]?.date)html=html.replace(/^<h3 class="date-heading">[\s\S]*?<\/h3>/,'');
-  list.insertAdjacentHTML('beforeend',html);
-  offset+=batch.length;
-  if(offset<items.length)requestAnimationFrame(append);
-  else list._historyFillToken=null;
- };
- requestAnimationFrame(append);
-}
-
 const renderBeforeScrollAndWardrobe=render;render=function(){renderBeforeScrollAndWardrobe();if(pendingRouteScroll!==null){const scroll=pendingRouteScroll;pendingRouteScroll=null;pageScrollTo({top:scroll,behavior:'instant'})}if(route.page==='appearance'){const existing=document.querySelector('.character-reference-cover>img'),ready=readyCharacterImages[0];if(existing&&ready.complete&&ready.naturalWidth){ready.alt='Кіт у вишиванці';ready.className='wardrobe-character';ready.decoding='sync';existing.replaceWith(ready)}}};
 // The large decoded wardrobe artwork appears at full opacity, without a page clone.
 sidePages.add('appearance');

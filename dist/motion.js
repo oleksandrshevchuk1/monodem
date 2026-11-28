@@ -32,7 +32,7 @@ expandTransition=function(from,to,opening){
 
  const glint=node.querySelector('.card-glint');if(glint){glint.getAnimations().forEach(a=>a.cancel());const destinationGlint=to.querySelector('.card-glint'),endGlint=destinationGlint?getComputedStyle(destinationGlint):null;glint.animate([{opacity:from.glint?.opacity||.12,transform:from.glint?.transform||'translate3d(0,0,0)'},{opacity:.32,transform:'translate3d(2%,0,0)',offset:.5},{opacity:endGlint?.opacity||.12,transform:endGlint?.transform||'translate3d(0,0,0)'}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'forwards'})}
  const nav=$('#nav');operationsNav(opening?1:0,opening?0:1,duration);session.settings=[nav.getAnimations().at(-1)].filter(Boolean);
- const backdrop=session.backdrop;backdrop?.querySelectorAll('.transition-nav').forEach(el=>el.remove());if(backdrop){document.body.append(backdrop);backdrop.classList.add('soft-card-backdrop');backdrop.querySelectorAll('.card-face,.expanded-card').forEach(card=>card.style.visibility='hidden');backdrop.animate([{opacity:1,filter:'blur(0px)'},{opacity:0,filter:'blur(7px)'}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'}).finished.catch(()=>{}).finally(()=>backdrop.remove())}
+ const backdrop=session.backdrop;backdrop?.querySelectorAll('.transition-nav').forEach(el=>el.remove());if(backdrop){document.body.append(backdrop);backdrop.classList.add('soft-card-backdrop');backdrop.querySelectorAll('.card-face,.expanded-card').forEach(card=>card.style.visibility='hidden');backdrop.animate([{opacity:1},{opacity:0,filter:'blur(7px)'}],{duration,easing:'cubic-bezier(.32,.72,0,1)',fill:'both'}).finished.catch(()=>{}).finally(()=>backdrop.remove())}
  // Keep the actual 3D card outside a filtered ancestor: filtering flattens its faces.
  const settings=$('.card-settings');if(settings)for(const child of settings.children){if(child.matches('.expanded-card'))continue;session.settings.push(child.animate([{opacity:0},{opacity:1}],{duration,easing:'cubic-bezier(.32,.72,0,1)'}))}
  const start=oldPose||(opening?home:`translate3d(0,0,0) perspective(900px) rotateX(0deg) scale(${from.scale||1})`),end=opening?expanded:home;
@@ -158,9 +158,11 @@ paint=function(direction){
  const app=$('#app');
  const fromHome=app.classList.contains('home');
  const home=fromHome?freezeHome():null;
- if(home)mountHomeOpeningSurface(home);
- const historyItems=orderedHistoryItems();
- renderHistoryStart(historyItems,render);
+ if(home){
+  mountHomeOpeningSurface(home);
+  alignFrozenHomeRows(home);
+ }
+ render();
  const page=$('#screen .all-operations-page');
  if(!page){home?.remove();return}
  app.classList.add('operations-opening');
@@ -168,21 +170,17 @@ paint=function(direction){
  const easing='cubic-bezier(.23,1,.32,1)';
  const backgroundTiming={duration:300,easing,fill:'both'};
  const background=home?.animate([{opacity:1,filter:'blur(0px)'},{opacity:0,filter:'blur(4px)'}],backgroundTiming);
- const homeTravel=home?.querySelector('.home-content')?.animate(
-  [{transform:'translate3d(0,0,0)'},{transform:'translate3d(0,-160px,0)'}],backgroundTiming
- );
  operationsNav(1,0,300);
  const motion=page.animate([
-  {transform:'translate3d(0,180px,0)',opacity:0,filter:'blur(3px)'},
+  {transform:'translate3d(0,180px,0)',opacity:0},
   {transform:'translate3d(0,0,0)',opacity:1,filter:'blur(0px)'}
  ],{duration:320,easing,fill:'both'});
  const scene={phase:'opening',page,home,motion};
  operationsScene=scene;
- playAfterFirstPaint(...[motion,background,homeTravel,operationsNavMotion].filter(Boolean));
+ playAfterFirstPaint(...[motion,background,operationsNavMotion].filter(Boolean));
  motion.finished.then(()=>{
   if(operationsScene!==scene)return;
   endOperationsEntrance();
-  fillHistoryInChunks(scene,historyItems);
  }).catch(()=>{});
 };
 const backBeforeSoftOperations=back;
@@ -429,7 +427,7 @@ function animateSideSurfaces(app, preview, from, to, duration) {
   {transform: translateX(sideUnderlayOffset(from, width))},
   {transform: translateX(sideUnderlayOffset(to, width))}
  ], timing);
- if (from === width && to === 0 && !preview.homeRowGeometry) {
+ if (from === width && to === 0) {
   playAfterFirstPaint(foreground, background);
  }
  const motion = {
@@ -1155,17 +1153,11 @@ render();
 function operationDateHeading(date){const d=new Date(date+'T12:00:00'),todayDate=new Date(today()+'T12:00:00'),yesterday=new Date(todayDate);yesterday.setDate(yesterday.getDate()-1);return date===today()?'Сьогодні':d.toDateString()===yesterday.toDateString()?'Вчора':d.toLocaleDateString('uk-UA',{day:'numeric',month:'long',...(d.getFullYear()===todayDate.getFullYear()?{}:{year:'numeric'})})}
 function operationHistoryRows(items,allAccounts=false){const sorted=[...items].sort(compareTransactions),template=document.createElement('template');template.innerHTML=rows(sorted);const byId=new Map([...template.content.querySelectorAll('.transaction')].map(row=>[row.dataset.id,row]));let previous='';return sorted.map(tx=>{let heading='';if(previous!==tx.date){previous=tx.date;heading=`<h3 class="date-heading">${esc(operationDateHeading(tx.date))}</h3>`}const row=byId.get(String(tx.id));if(!row)return '';if(allAccounts){const card=allCards().find(card=>card.id===(tx.cardId||'main'))||mainCard(),name=card.account,description=tx.amount>0?'На мою '+name.replace(/ картка$/,'').replace(/^Чорна/,'чорну').replace(/^Біла/,'білу'):'З '+name.replace(/^Чорна/,'Чорної').replace(/^Біла/,'Білої').replace(/ картка$/,' картки');const content=row.querySelector('.tx-content');let sub=content.querySelector('small');if(!sub){sub=document.createElement('small');content.append(sub)}sub.textContent=description}return heading+row.outerHTML}).join('')||empty('Операцій не знайдено','Спробуйте інший запит.')}
 
-const historyStartSize=12;
-let historyStartItems=null;
 function orderedHistoryItems(){
  const items=historyPresentation==='drawer'?state.transactions:txFor();
  return items.filter(tx=>!historyFavoritesActive||tx.favorite).sort(compareTransactions);
 }
-function renderHistoryStart(items,paint){
- historyStartItems=items.slice(0,historyStartSize);
- try{return paint()}finally{historyStartItems=null}
-}
-historyPage=function(){const all=historyPresentation==='drawer',items=historyStartItems??(all?state.transactions:txFor()).filter(t=>!historyFavoritesActive||t.favorite);return `<div class="all-operations-page ${all?'drawer-operations':'card-operations'}"><div class="all-operations-top">${all?referenceImage('history-stack','history-stack'): `<button data-action="back" aria-label="Назад">${icon('x')}</button><span class="stats-mini-card">${cardArtwork(activeCard())}</span>`}<button class="${historyFavoritesActive?'is-favorite':''}" aria-pressed="${historyFavoritesActive}" data-action="history-favorites" aria-label="Обрані операції">${icon(historyFavoritesActive?'star-fill':'star')}</button><button data-action="history-search" aria-label="Пошук">${icon('magnifying-glass')}</button></div>${all?'<h1>Усі операції</h1>':`<div class="history-card-identity"><strong>${displayMoney(balance())} ₴</strong></div>`}<div class="search history-search" hidden>${icon('magnifying-glass')}<input id="search" placeholder="Пошук операцій" aria-label="Пошук операцій"></div><div id="tx-list">${operationHistoryRows(items,all)}</div></div>`};
+historyPage=function(){const all=historyPresentation==='drawer',items=orderedHistoryItems();return `<div class="all-operations-page ${all?'drawer-operations':'card-operations'}"><div class="all-operations-top">${all?referenceImage('history-stack','history-stack'): `<button data-action="back" aria-label="Назад">${icon('x')}</button><span class="stats-mini-card">${cardArtwork(activeCard())}</span>`}<button class="${historyFavoritesActive?'is-favorite':''}" aria-pressed="${historyFavoritesActive}" data-action="history-favorites" aria-label="Обрані операції">${icon(historyFavoritesActive?'star-fill':'star')}</button><button data-action="history-search" aria-label="Пошук">${icon('magnifying-glass')}</button></div>${all?'<h1>Усі операції</h1>':`<div class="history-card-identity"><strong>${displayMoney(balance())} ₴</strong></div>`}<div class="search history-search" hidden>${icon('magnifying-glass')}<input id="search" placeholder="Пошук операцій" aria-label="Пошук операцій"></div><div id="tx-list">${operationHistoryRows(items,all)}</div></div>`};
 function updateOperationHistory(){const all=historyPresentation==='drawer',query=($('#search')?.value||'').toLowerCase(),items=(all?state.transactions:txFor()).filter(t=>(!historyFavoritesActive||t.favorite)&&(t.title+' '+(t.note||'')).toLowerCase().includes(query));if($('#tx-list'))$('#tx-list').innerHTML=operationHistoryRows(items,all)}
 actions['history-favorites']=button=>{historyFavoritesActive=!historyFavoritesActive;button=button||$('[data-action=history-favorites]');button?.classList.toggle('is-favorite',historyFavoritesActive);button?.setAttribute('aria-pressed',String(historyFavoritesActive));if(button)button.innerHTML=icon(historyFavoritesActive?'star-fill':'star');updateOperationHistory()};
 let edgeReturnScene=null;
@@ -1206,7 +1198,11 @@ function scanCornersIcon(){return '<svg class="icon" viewBox="0 0 24 24" fill="n
 const ibanBeforeScanHeader=ibanReferencePage;ibanReferencePage=function(){return ibanBeforeScanHeader().replace(icon('circles-four-fill'),scanCornersIcon()).replace('<form id="iban-reference-search"','<div class="iban-reference-search-row"><form id="iban-reference-search"').replace('</form>','</form><button class="iban-upload-source" data-action="iban-upload-info" aria-label="Реквізити з файлу">'+icon('upload-simple')+'</button></div>')};surfaces.iban=ibanReferencePage;actions['iban-upload-info']=()=>inform('Реквізити з файлу','Автоматичне розпізнавання реквізитів не підключене. Введіть IBAN у полі пошуку.');
 for(const page of ['notifications','cashback','appearance','receipt','file','photoChoice','poster'])sidePages.add(page);
 const referenceImageBeforeDecode=referenceImage;referenceImage=function(name,cls=''){return referenceImageBeforeDecode(name,cls).replace('<img ','<img decoding="sync" ')};
-const receiptPageBeforeLoading=receiptPage;receiptPage=function(){const html=receiptPageBeforeLoading();return html.replace('<div class="receipt-page">','<div class="receipt-document-stage"><div class="receipt-page">').replace('<div class="receipt-bottom">','</div><div class="receipt-bottom">')};
+const receiptPageBeforeLayout=receiptPage;
+receiptPage=function(){
+ const html=receiptPageBeforeLayout();
+ return html.replace('<div class="receipt-page">','<div class="receipt-document-stage"><div class="receipt-page">').replace('<div class="receipt-bottom">','</div><div class="receipt-bottom">');
+};
 render();
 
 demoBanks.splice(demoBanks.length-1,0,...[{"id": "privat", "name": "ПриватБанк", "bankType": "other", "logo": "assets/reference/bank-privat.png"}, {"id": "ukrsib", "name": "UKRSIBBANK", "bankType": "other", "logo": "assets/reference/bank-ukrsib.png"}, {"id": "otp", "name": "OTP Банк", "bankType": "other", "logo": "assets/reference/bank-otp.png"}]);

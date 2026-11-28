@@ -115,14 +115,14 @@ body:not(.has-glass-history) #app.history.operations-opening #screen {
 }
 #app.history.operations-opening { z-index: 41; }
 #app.history.operations-opening .all-operations-page {
- background: #121212;
+ background: #141215;
 }
 .soft-operations-layer.history.operations-dissolving {
  background: transparent !important;
  transition: none;
 }
 .soft-operations-layer.history.operations-dissolving .all-operations-page {
- background: #121212 !important;
+ background: #141215 !important;
 }
 
 
@@ -156,6 +156,6 @@ html[data-captured-home=closing]::view-transition-old(side-navigation) { animati
  to { transform: translate3d(calc(var(--captured-home-width) * -.25),0,0); }
 }
 @keyframes page-enter-edge {
- from { transform: translate3d(var(--captured-home-width),0,0); }
+ 0%, 8% { transform: translate3d(var(--captured-home-width),0,0); }
  to { transform: translate3d(0,0,0); }
 }
