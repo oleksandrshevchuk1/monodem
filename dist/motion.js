@@ -293,7 +293,7 @@ actions.nav = button => {
   return back();
  }
  if (button.closest('#nav') && mainTabs.includes(page) && route.page === page) {
-  pageScrollTo(0, 0);
+  if (page !== 'home') pageScrollTo(0, 0);
   return;
  }
  return navigateBeforeTabReselect(button);
@@ -441,13 +441,19 @@ function finishSideEntrance() {
 const homeSurfaceRows = [
  '.home-top', '.home-content > .home-balance', '.home-content > .open-card-intro',
  '.home-content > .card-carousel', '.home-content > .card-selector',
- '.home-content > .home-actions', '.home-content > .operation-panel:not(.account-swipe-preview)'
+ '.home-content > .home-actions', '.home-content > .operation-panel:not(.account-swipe-preview)',
+ '.home-content > .reference-home-tools'
 ];
 
 function alignFrozenHomeRows(surface) {
  if (!surface.homeRowTops) return;
  const offset = window.visualViewport?.offsetTop ?? 0;
- // Measure before writing so all rows are aligned to the same layout.
+ // Return previews clone an already aligned surface. Clear that compensation
+ // before measuring in the new container.
+ for (const row of surface.querySelectorAll('[data-frozen-home-offset]')) {
+  row.style.translate = '';
+  row.removeAttribute('data-frozen-home-offset');
+ }
  const offsets = homeSurfaceRows.map((selector, index) => {
   const row = surface.querySelector(selector);
   const top = surface.homeRowTops[index];
@@ -456,7 +462,10 @@ function alignFrozenHomeRows(surface) {
  for (const entry of offsets) {
   if (!entry) continue;
   const [row, delta] = entry;
-  if (Math.abs(delta) >= .01) row.style.translate = '0 ' + delta + 'px';
+  if (Math.abs(delta) >= .01) {
+   row.style.translate = '0 ' + delta + 'px';
+   row.setAttribute('data-frozen-home-offset', '');
+  }
  }
 }
 
@@ -1018,8 +1027,13 @@ render=function(){
  }
  const restore=!adminMode&&route.page==='home'&&retainedHome&&retainedHome.revision===serverRevision&&retainedHome.card===state.activeCard&&retainedHome.newCard===newCardSelected;
  if(!restore){
+  const homeScroll = route.page === 'home' && app.classList.contains('home') && pendingRouteScroll === null
+   ? pageScrollY() : null;
   if(route.page==='home')retainedHome=null;
   renderBeforeHomeRetention();
+  if (homeScroll !== null && pageScrollY() !== homeScroll) {
+   pageScrollTo({top:homeScroll,behavior:'instant'});
+  }
   alignHomeBackdropToViewport();
   return;
  }
