@@ -253,6 +253,11 @@ const quickSidePages = new Set([
  'detail', 'transfer', 'transferAmount', 'transferArchive', 'iban', 'payments', 'limits', 'abroad',
  'notifications', 'cashback', 'appearance', 'analytics'
 ]);
+const sideParentPages = new Map([
+ ['capital', 'analytics'], ['statbreakdown', 'analytics'], ['statcategory', 'analytics'],
+ ['notificationDetail', 'notifications'], ['photoChoice', 'appearance'], ['poster', 'appearance']
+]);
+const sideParentSnapshots = new Map();
 const mainTabs = ['home', 'credit', 'jars', 'more', 'market'];
 const tabFeedback = new WeakMap();
 const tabBar = $('#nav');
@@ -283,6 +288,10 @@ const translateX = x => `translate3d(${x}px,0,0)`;
 const navigateBeforeTabReselect = actions.nav;
 actions.nav = button => {
  const page = button.dataset.page;
+ if (page === sideParentPages.get(route.page) &&
+     button.matches('.stats-toolbar > button:first-child, .photo-choice-page .toolbar > .back')) {
+  return back();
+ }
  if (button.closest('#nav') && mainTabs.includes(page) && route.page === page) {
   pageScrollTo(0, 0);
   return;
@@ -606,6 +615,9 @@ paint = function(direction) {
   sideSnapshot?.remove();
   sideSnapshot = pendingSideSnapshot || freezePageSurface();
   if (sideSnapshot.classList.contains('home')) sideHomeSnapshot = sideSnapshot;
+  for (const parent of sideParentPages.values()) {
+   if (sideSnapshot.classList.contains(parent)) sideParentSnapshots.set(parent, sideSnapshot);
+  }
   const snapshot = sideSnapshot;
   if (snapshot.classList.contains('home') && canCaptureHomeTransition()) {
    animateCapturedHome(true, route.page);
@@ -650,7 +662,7 @@ navigate = function(page, id) {
 
 function sideSourceForPage(page) {
  if (sideSnapshot?.classList.contains(page)) return sideSnapshot;
- return page === 'home' ? sideHomeSnapshot : null;
+ return page === 'home' ? sideHomeSnapshot : sideParentSnapshots.get(page);
 }
 
 function makeSideReturnLayer(source) {
@@ -715,16 +727,17 @@ function sideBackDestination() {
  if (route.page === 'detail') return returnRoute.page;
  if (route.page === 'receipt') return 'detail';
  if (route.page === 'file') return fileReturn.page;
- return 'home';
+ return sideParentPages.get(route.page) || 'home';
 }
 
 const backBeforeLiveSideReturn = back;
 back = function() {
  if (sideEntrance?.isRouteExit) return;
- if (route.page==='capital') {
+ const parent = sideParentPages.get(route.page);
+ if (parent) {
   routeScrollPositions.set(routeScrollKey(route),pageScrollY());
-  route={page:'analytics'};
-  history.replaceState(route,'','#analytics');
+  route={page:parent};
+  history.replaceState(route,'','#'+parent);
   pendingRouteScroll=routeScrollPositions.get(routeScrollKey(route))||0;
   paint('back');
   return;
@@ -912,7 +925,10 @@ function renderWithHomeBackdrop(backdrop, update = render) {
 const renderBeforeHomeRetention=render;
 render=function(){
  const app=$('#app'),screen=$('#screen');
- if (route.page === 'home') sideHomeSnapshot = null;
+ if (route.page === 'home') {
+  sideHomeSnapshot = null;
+  sideParentSnapshots.clear();
+ }
  if(route.page==='home'&&homeBackdropViewportAnchor){
   const {surface,startTop}=homeBackdropViewportAnchor;
   surface.style.top=startTop;
@@ -1055,7 +1071,6 @@ const detailBeforeFloatingPortrait=detail;detail=function(){let html=detailBefor
 render();
 surfaces.notificationDetail=function(){const n=state.notificationsList?.find(n=>n.id===route.id);return toolbar('')+`<article class="page notification-detail"><span class="service-symbol ${esc(n?.color||'orange')}">${icon(n?.icon||'gift-fill')}</span><h1>${esc(n?.title||'Повідомлення')}</h1><p>${esc(n?.text||'Повідомлення не знайдено.')}</p></article>`};sidePages.add('notificationDetail');
 actions['notification-info']=button=>{const n=state.notificationsList?.find(n=>n.id===button?.dataset.id);if(n){navigate('notificationDetail',n.id);return}inform('Повідомлення','Повідомлення демонстраційного проєкту.')};
-const backBeforeNotificationDetails=back;back=function(){if(route.page!=='notificationDetail')return backBeforeNotificationDetails();route={page:'notifications'};history.replaceState(route,'','#notifications');pageScrollTo(0,0);paint('back')};actions.back=()=>back();
 
 // Uploaded receipts share the same document shell and navigation as generated receipts.
 const filePageBeforeReceiptShell=filePage;
