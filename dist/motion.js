@@ -344,7 +344,7 @@ document.addEventListener('click',event=>{
  homeNavigationTap=null;
  if(!tap||!event.detail||!tap.control.contains(event.target)||route.page!=='home')return;
  const drift=pageScrollY()-tap.scroll;
- if(drift&&Math.abs(drift)<=4)pageScrollTo({top:tap.scroll,behavior:'instant'});
+ if (drift) pageScrollTo({top:tap.scroll,behavior:'instant'});
 },true);
 function canCaptureHomeTransition() {
  return !adminMode && typeof document.startViewTransition === 'function' &&
@@ -365,6 +365,7 @@ function animateCapturedHome(opening, page) {
  root.dataset.capturedHome = opening ? 'opening' : 'closing';
  root.style.setProperty('--captured-home-duration', duration + 'ms');
  root.style.setProperty('--captured-home-ease', sideSlideEase);
+ root.style.setProperty('--captured-home-width', foreground.getBoundingClientRect().width + 'px');
  if (!opening) markForeground(true);
  const transition = document.startViewTransition(() => {
   if (route !== destination) return;
@@ -382,6 +383,7 @@ function animateCapturedHome(opening, page) {
    delete root.dataset.capturedHome;
    root.style.removeProperty('--captured-home-duration');
    root.style.removeProperty('--captured-home-ease');
+   root.style.removeProperty('--captured-home-width');
   }
  };
  sideEntrance = motion;

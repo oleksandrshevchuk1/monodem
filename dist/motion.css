@@ -147,9 +147,9 @@ html[data-captured-home=closing]::view-transition-old(side-foreground),
 html[data-captured-home=closing]::view-transition-old(side-navigation) { animation: page-enter-edge var(--captured-home-duration) var(--captured-home-ease) reverse both; }
 @keyframes home-recede {
  from { transform: translate3d(0,0,0); }
- to { transform: translate3d(-25vw,0,0); }
+ to { transform: translate3d(calc(var(--captured-home-width) * -.25),0,0); }
 }
 @keyframes page-enter-edge {
- from { transform: translate3d(100vw,0,0); }
+ from { transform: translate3d(var(--captured-home-width),0,0); }
  to { transform: translate3d(0,0,0); }
 }

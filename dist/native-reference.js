@@ -59,7 +59,7 @@ paint = function(direction) {
  const previous = allCardsScene;
  const reduced = shouldReduceMotion();
  const options = {duration: reduced ? 0 : pageMotionDuration, easing: slideEase, fill: 'both'};
- const backdrop = previous?.backdrop || (isOverview ? cardsViewportSnapshot() : null);
+ let backdrop = previous?.backdrop || (isOverview ? cardsViewportSnapshot() : null);
  let shade = previous?.shade;
  const source = isOverview ? previous?.exit?.firstElementChild : screen;
  const initialPose = source ? cardsPose(source) : cardsHiddenPose(reduced);
@@ -94,10 +94,24 @@ paint = function(direction) {
 
  renderWithHomeBackdrop(isOverview ? backdrop : null);
  if (isOverview) app.classList.add('overview-visible');
+ if (!isOverview && returningToSameHome) {
+  // Home's original nodes have just been reattached, so the opening layer is empty.
+  const restoredBackdrop = cardsViewportSnapshot();
+  restoredBackdrop.classList.add('all-cards-backdrop');
+  restoredBackdrop.style.zIndex = '40';
+  if (!shade) {
+   shade = document.createElement('div');
+   shade.className = 'all-cards-shade';
+  }
+  restoredBackdrop.append(shade);
+  backdrop?.remove();
+  backdrop = restoredBackdrop;
+  mountHomeOpeningSurface(backdrop);
+ }
 
  const content = exit ? exit.firstElementChild : screen;
  const motion = content.animate([initialPose, isOverview ? cardsRestingPose : cardsHiddenPose(reduced)], options);
- const blur = shade?.animate([{opacity: initialShade}, {opacity: isOverview ? 1 : 0}], options);
+ const blur = shade?.animate([{opacity: !isOverview && !previous ? 1 : initialShade}, {opacity: isOverview ? 1 : 0}], options);
  const fade = backdrop?.animate([{opacity: initialBackdrop}, {opacity: isOverview || returningToSameHome ? 1 : 0}], options);
  const scene = {backdrop, shade, exit, motion, blur, fade, homeCard};
  allCardsScene = scene;
