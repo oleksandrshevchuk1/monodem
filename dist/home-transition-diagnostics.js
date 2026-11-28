@@ -29,7 +29,8 @@ function readHomeDiagnostic(timestamp, stage) {
  const frame = {
   ms: diagnosticRound(timestamp - homeDiagnostic.started),
   stage,
-  source: home === app ? 'live' : home ? 'transition' : 'covered',
+  source: home === app ? 'live' : home ? 'transition' :
+   document.documentElement.dataset.capturedHome ? 'viewport-capture' : 'covered',
   viewportTop: diagnosticRound(viewportTop),
   scroll: diagnosticRound(pageScrollY()),
   foregroundX: diagnosticRound(app.getBoundingClientRect().left)
@@ -64,7 +65,8 @@ function stopHomeDiagnostic() {
 function showHomeDiagnostic(test) {
  const viewport = window.visualViewport;
  const report = JSON.stringify({
-  build: 250,
+  build: 251,
+  viewportCaptureSupported: typeof document.startViewTransition === 'function',
   standalone: Boolean(navigator.standalone || matchMedia('(display-mode: standalone)').matches),
   devicePixelRatio: devicePixelRatio,
   viewport: [viewport?.width ?? innerWidth, viewport?.height ?? innerHeight].map(diagnosticRound),

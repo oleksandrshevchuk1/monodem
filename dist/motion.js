@@ -363,9 +363,7 @@ window.addEventListener('touchend', event => {
  }));
 }, {passive: false});
 function canCaptureHomeTransition() {
- // iOS can rebase a root View Transition capture as its visual viewport
- // settles after a tap. Use the positioned Home layer for touch navigation.
- if ($('#pwa-scroll') || matchMedia('(pointer: coarse)').matches) return false;
+ if (!$('#pwa-scroll') && matchMedia('(pointer: coarse)').matches) return false;
  return !adminMode && typeof document.startViewTransition === 'function' &&
   $('#app').clientWidth >= document.documentElement.clientWidth - 2;
 }
@@ -373,11 +371,14 @@ function canCaptureHomeTransition() {
 // Capture Home in its actual scroll container, with the viewport and safe-area styles already applied.
 function animateCapturedHome(opening, page) {
  const root = document.documentElement;
- const foreground = $('#pwa-scroll') || $('#app');
+ const installedViewport = $('#pwa-scroll');
+ const foreground = installedViewport || $('#app');
  const nav = $('#nav');
- const markForeground = visible => {
-  foreground.toggleAttribute('data-captured-home-page', visible);
-  nav.toggleAttribute('data-captured-home-nav', visible && !nav.hidden);
+ const markSurface = isHome => {
+  foreground.toggleAttribute('data-captured-home-page', !isHome);
+  nav.toggleAttribute('data-captured-home-nav', !isHome && !nav.hidden);
+  foreground.toggleAttribute('data-captured-home-viewport', isHome && !!installedViewport);
+  nav.toggleAttribute('data-captured-home-tabs', isHome && !!installedViewport && !nav.hidden);
  };
  const destination = route;
  const duration = quickSidePages.has(page) ? quickSideDuration : pageMotionDuration;
@@ -385,12 +386,11 @@ function animateCapturedHome(opening, page) {
  root.style.setProperty('--captured-home-duration', duration + 'ms');
  root.style.setProperty('--captured-home-ease', sideSlideEase);
  root.style.setProperty('--captured-home-width', foreground.getBoundingClientRect().width + 'px');
- if (!opening) markForeground(true);
+ markSurface(opening);
  const transition = document.startViewTransition(() => {
   if (route !== destination) return;
-  if (!opening) markForeground(false);
   render();
-  if (opening) markForeground(true);
+  markSurface(!opening);
  });
  const motion = {
   isRouteExit: !opening,
@@ -398,7 +398,11 @@ function animateCapturedHome(opening, page) {
   finish: () => transition.skipTransition(),
   cancel: () => transition.skipTransition(),
   cleanup() {
-   markForeground(false);
+   for (const attribute of ['data-captured-home-page', 'data-captured-home-viewport']) {
+    foreground.removeAttribute(attribute);
+   }
+   nav.removeAttribute('data-captured-home-nav');
+   nav.removeAttribute('data-captured-home-tabs');
    delete root.dataset.capturedHome;
    root.style.removeProperty('--captured-home-duration');
    root.style.removeProperty('--captured-home-ease');

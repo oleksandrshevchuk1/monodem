@@ -130,18 +130,25 @@ body:not(.has-glass-history) #app.history.operations-opening #screen {
 html[data-captured-home] :is(#app,#screen,#nav,#pwa-scroll) { view-transition-name: none !important; }
 html[data-captured-home] [data-captured-home-page]:is(#app,#pwa-scroll) { view-transition-name: side-foreground !important; }
 html[data-captured-home] #nav[data-captured-home-nav] { view-transition-name: side-navigation !important; }
-html[data-captured-home]::view-transition-group(side-navigation) { z-index: 2; }
+html[data-captured-home] #pwa-scroll[data-captured-home-viewport] { view-transition-name: home-viewport !important; }
+html[data-captured-home] #nav[data-captured-home-tabs] { view-transition-name: home-tabs !important; }
+html[data-captured-home]::view-transition-group(home-tabs) { z-index: 1; }
+html[data-captured-home]::view-transition-group(side-navigation) { z-index: 3; }
 html[data-captured-home]::view-transition-group(*) { animation: none; }
-html[data-captured-home]::view-transition-group(side-foreground) { z-index: 1; }
+html[data-captured-home]::view-transition-group(side-foreground) { z-index: 2; }
 html[data-captured-home]::view-transition-image-pair(*) { isolation: auto; }
 html[data-captured-home]::view-transition-old(*),
 html[data-captured-home]::view-transition-new(*) { animation: none; mix-blend-mode: normal; }
 html[data-captured-home=opening]::view-transition-new(root),
 html[data-captured-home=closing]::view-transition-old(root) { display: none; }
-html[data-captured-home=opening]::view-transition-old(root) { animation: home-recede var(--captured-home-duration) var(--captured-home-ease) both; }
+html[data-captured-home=opening]:not(.installed-scroll)::view-transition-old(root),
+html[data-captured-home=opening]::view-transition-old(home-viewport),
+html[data-captured-home=opening]::view-transition-old(home-tabs) { animation: home-recede var(--captured-home-duration) var(--captured-home-ease) both; }
 html[data-captured-home=opening]::view-transition-new(side-foreground),
 html[data-captured-home=opening]::view-transition-new(side-navigation) { animation: page-enter-edge var(--captured-home-duration) var(--captured-home-ease) both; }
-html[data-captured-home=closing]::view-transition-new(root) { animation: home-recede var(--captured-home-duration) var(--captured-home-ease) reverse both; }
+html[data-captured-home=closing]:not(.installed-scroll)::view-transition-new(root),
+html[data-captured-home=closing]::view-transition-new(home-viewport),
+html[data-captured-home=closing]::view-transition-new(home-tabs) { animation: home-recede var(--captured-home-duration) var(--captured-home-ease) reverse both; }
 html[data-captured-home=closing]::view-transition-old(side-foreground),
 html[data-captured-home=closing]::view-transition-old(side-navigation) { animation: page-enter-edge var(--captured-home-duration) var(--captured-home-ease) reverse both; }
 @keyframes home-recede {
