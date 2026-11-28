@@ -422,6 +422,8 @@ function animateCapturedHome(opening, page) {
  transition.finished.then(cleanup, cleanup);
 }
 
+const transferTransitionPages = new Set(['detail', 'transfer', 'transferAmount']);
+
 function prepareOperationArtwork(app) {
  const artwork = [...app.querySelectorAll('.toolbar img, .reference-operation-avatar img, .reference-operation-pattern img')];
  const pattern = app.querySelector('.reference-operation-pattern[data-original-pattern]');
@@ -432,22 +434,31 @@ function prepareOperationArtwork(app) {
   artwork.push(image);
  }
  // Wait for the displayed images, including a newly attached recipient photo.
- return Promise.all(artwork.map(image => image.decode().catch(() => {})));
+ for (const image of artwork) image.loading = 'eager';
+ // An unavailable image must not hold the screen off-canvas indefinitely.
+ return new Promise(resolve => {
+  const deadline = setTimeout(resolve, 120);
+  Promise.allSettled(artwork.map(image => image.decode())).then(() => {
+   clearTimeout(deadline);
+   resolve();
+  });
+ });
 }
 
-function animateSideSurfaces(app, preview, from, to, duration) {
+function animateSideSurfaces(app, preview, from, to, duration, stationaryPreview = false) {
  const width = app.clientWidth;
  placeSideSurfaces(app, preview, from, width);
  app.classList.add('paired-side-motion');
  const timing = {duration, easing: sideSlideEase, fill: 'both'};
  const foreground = app.animate([{transform: translateX(from)}, {transform: translateX(to)}], timing);
- const background = preview.animate([
+ if (stationaryPreview) preview.style.transform = 'none';
+ const background = stationaryPreview ? null : preview.animate([
   {transform: translateX(sideUnderlayOffset(from, width))},
   {transform: translateX(sideUnderlayOffset(to, width))}
  ], timing);
  if (from === width && to === 0) {
   const ready = app.classList.contains('detail') ? prepareOperationArtwork(app) : null;
-  playAfterSurfaceReady(ready, foreground, background);
+  playAfterSurfaceReady(ready, ...[foreground, background].filter(Boolean));
  }
  const motion = {
   finished: foreground.finished,
@@ -741,12 +752,23 @@ paint = function(direction) {
    if (sideSnapshot.classList.contains(parent)) sideParentSnapshots.set(parent, sideSnapshot);
   }
   const snapshot = sideSnapshot;
-  if (snapshot.classList.contains('home') && route.page !== 'detail' && canCaptureHomeTransition()) {
+  const fromHome = snapshot.classList.contains('home');
+  const stableTransfer = transferTransitionPages.has(route.page);
+  if (fromHome && !stableTransfer && canCaptureHomeTransition()) {
    animateCapturedHome(true, route.page);
    return;
   }
   snapshot.style.zIndex = 35;
-  if (snapshot.classList.contains('home')) {
+  if (fromHome && stableTransfer) {
+   // Keep the outgoing Home at its rendered scroll position while the new route resets scroll.
+   const screen = snapshot.firstElementChild;
+   screen.style.top = (parseFloat(screen.style.top) + parseFloat(snapshot.style.top)) + 'px';
+   snapshot.style.top = '0px';
+   snapshot.style.height = 'var(--app-height, 100dvh)';
+   mountHomeOpeningSurface(snapshot);
+   alignFrozenHomeRows(snapshot);
+   render();
+  } else if (fromHome) {
    mountHomeOpeningSurface(snapshot);
    // Keep the rendered controls and card artwork through the first frame.
    // A clone can lay out differently until Safari repaints its contents.
@@ -760,7 +782,7 @@ paint = function(direction) {
 
   const width = app.clientWidth;
   const duration = quickSidePages.has(route.page) ? quickSideDuration : pageMotionDuration;
-  const entrance = animateSideSurfaces(app, snapshot, width, 0, duration);
+  const entrance = animateSideSurfaces(app, snapshot, width, 0, duration, stableTransfer);
   trackSideMotion(entrance, snapshot);
   return;
  }
