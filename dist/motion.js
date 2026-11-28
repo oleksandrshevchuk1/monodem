@@ -322,30 +322,46 @@ function sideUnderlayOffset(x, width) {
 }
 
 let pairedSideMotion = null;
-let homeNavigationTap = null;
-const homeNavigationControl = '#app.home button[data-action], #nav button[data-page]';
-document.addEventListener('pointerdown',event=>{
- const control=event.target.closest(homeNavigationControl);
- homeNavigationTap=event.isPrimary&&event.button===0&&control
-  ?{control,id:event.pointerId,x:event.clientX,y:event.clientY,scroll:pageScrollY()}
-  :null;
-},{capture:true,passive:true});
-document.addEventListener('pointermove',event=>{
- const tap=homeNavigationTap;
- if(tap?.id===event.pointerId&&Math.hypot(event.clientX-tap.x,event.clientY-tap.y)>7)homeNavigationTap=null;
-},{capture:true,passive:true});
-document.addEventListener('pointercancel',()=>{homeNavigationTap=null},{capture:true,passive:true});
+const homeNavigationControl = '#app.home button[data-action], #nav button[data-action]';
 document.addEventListener('mousedown',event=>{
  // Pointer navigation must not scroll the outgoing screen to focus its trigger.
  if(route.page==='home'&&event.button===0&&event.target.closest(homeNavigationControl))event.preventDefault();
 },true);
-document.addEventListener('click',event=>{
- const tap=homeNavigationTap;
- homeNavigationTap=null;
- if(!tap||!event.detail||!tap.control.contains(event.target)||route.page!=='home')return;
- const drift=pageScrollY()-tap.scroll;
- if (drift) pageScrollTo({top:tap.scroll,behavior:'instant'});
-},true);
+
+// In standalone WebKit a tap can scroll a button into focus before click.
+// Activate stationary taps without the compatibility mouse/focus sequence.
+let installedHomeTap = null;
+window.addEventListener('touchstart', event => {
+ installedHomeTap = null;
+ if (!(navigator.standalone || matchMedia('(display-mode: standalone)').matches) ||
+     route.page !== 'home' || event.touches.length !== 1) return;
+ const control = event.target.closest(homeNavigationControl);
+ if (!control || control.disabled) return;
+ const touch = event.touches[0];
+ installedHomeTap = {control, id: touch.identifier, x: touch.clientX, y: touch.clientY, scroll: pageScrollY()};
+}, {passive: true});
+window.addEventListener('touchmove', event => {
+ const tap = installedHomeTap;
+ const touch = event.touches[0];
+ if (tap && (event.touches.length !== 1 || Math.hypot(touch.clientX - tap.x, touch.clientY - tap.y) > 7)) {
+  installedHomeTap = null;
+ }
+}, {passive: true});
+window.addEventListener('touchcancel', () => { installedHomeTap = null; }, {passive: true});
+window.addEventListener('touchend', event => {
+ const tap = installedHomeTap;
+ installedHomeTap = null;
+ if (!tap || route.page !== 'home' || event.defaultPrevented || !event.cancelable ||
+     !tap.control.isConnected || tap.control.disabled || Math.abs(pageScrollY() - tap.scroll) > 2) return;
+ const touch = Array.from(event.changedTouches).find(touch => touch.identifier === tap.id);
+ if (!touch || Math.hypot(touch.clientX - tap.x, touch.clientY - tap.y) > 7 ||
+     !tap.control.contains(document.elementFromPoint(touch.clientX, touch.clientY))) return;
+ event.preventDefault();
+ tap.control.dispatchEvent(new MouseEvent('click', {
+  bubbles: true, cancelable: true, composed: true, detail: 1,
+  clientX: touch.clientX, clientY: touch.clientY
+ }));
+}, {passive: false});
 function canCaptureHomeTransition() {
  // iOS can rebase a root View Transition capture as its visual viewport
  // settles after a tap. Use the positioned Home layer for touch navigation.
