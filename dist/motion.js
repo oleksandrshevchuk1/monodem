@@ -425,7 +425,9 @@ function animateSideSurfaces(app, preview, from, to, duration) {
   {transform: translateX(sideUnderlayOffset(from, width))},
   {transform: translateX(sideUnderlayOffset(to, width))}
  ], timing);
- if (from === width && to === 0) playAfterFirstPaint(foreground, background);
+ if (from === width && to === 0 && !preview.homeRowGeometry) {
+  playAfterFirstPaint(foreground, background);
+ }
  const motion = {
   finished: foreground.finished,
   finish() {
