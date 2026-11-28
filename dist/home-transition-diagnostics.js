@@ -64,7 +64,7 @@ function stopHomeDiagnostic() {
 function showHomeDiagnostic(test) {
  const viewport = window.visualViewport;
  const report = JSON.stringify({
-  build: 249,
+  build: 250,
   standalone: Boolean(navigator.standalone || matchMedia('(display-mode: standalone)').matches),
   devicePixelRatio: devicePixelRatio,
   viewport: [viewport?.width ?? innerWidth, viewport?.height ?? innerHeight].map(diagnosticRound),
