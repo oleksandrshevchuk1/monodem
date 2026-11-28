@@ -152,3 +152,37 @@ body.document-open .receipt-fit,body.document-open .receipt-document-stage{flex:
 #transfer-sum:focus-visible{outline:none}
 
 .card-operations .history-card-identity > strong{font-weight:600}
+
+/* Keep the history surface viewport-sized even when the list is short. */
+#app.history .card-operations {min-height:var(--app-height,100dvh)}
+
+/* Keep the preview centered between the header and the share panel. */
+@media screen {
+ body.document-open #app {height:var(--app-height,100dvh)}
+ body.document-open .receipt-fit,
+ body.document-open .receipt-document-stage {background:#1c1c1e}
+ body.document-open .receipt-fit,
+ body.document-open .receipt-document-stage .receipt-page {
+  padding:clamp(8px,3dvh,36px) 3px;
+ }
+ body.document-open .receipt-document-stage .receipt-page {
+  display:flex;
+  align-items:center;
+  border-top:0;
+ }
+ body.document-open .receipt-paper {
+  flex:0 0 100%;
+  min-width:0;
+  transform-origin:center;
+ }
+ body.document-open .toolbar {border-bottom:1px solid #ffffff20}
+ body.document-open .receipt-share-footer {
+  background:#262626;
+  border-top:1px solid #ffffff20;
+  padding:clamp(10px,2dvh,18px) clamp(12px,4vw,18px) calc(clamp(10px,2dvh,18px) + var(--safe-bottom));
+ }
+ body.document-open .receipt-share-footer .primary {
+  padding:12px;
+  min-height:clamp(46px,7dvh,56px);
+ }
+}

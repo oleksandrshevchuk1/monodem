@@ -155,34 +155,30 @@ paint=function(direction){
  pageAnimation?.cancel();
  if(operationsScene?.phase==='closing')operationsScene.finish();
  endOperationsEntrance();
+ finishSideEntrance();
  const app=$('#app');
  const fromHome=app.classList.contains('home');
  const home=fromHome?freezeHome():null;
  if(home)mountHomeOpeningSurface(home);
- const historyItems=orderedHistoryItems();
- renderHistoryStart(historyItems,render);
+ render();
  const page=$('#screen .all-operations-page');
  if(!page){home?.remove();return}
  app.classList.add('operations-opening');
  document.documentElement.dataset.gesture='active';
  const easing='cubic-bezier(.23,1,.32,1)';
  const backgroundTiming={duration:300,easing,fill:'both'};
- const background=home?.animate([{opacity:1,filter:'blur(0px)'},{opacity:0,filter:'blur(4px)'}],backgroundTiming);
- const homeTravel=home?.querySelector('.home-content')?.animate(
-  [{transform:'translate3d(0,0,0)'},{transform:'translate3d(0,-160px,0)'}],backgroundTiming
- );
+ const background=home?.animate([{opacity:1},{opacity:0}],backgroundTiming);
  operationsNav(1,0,300);
  const motion=page.animate([
-  {transform:'translate3d(0,180px,0)',opacity:0,filter:'blur(3px)'},
-  {transform:'translate3d(0,0,0)',opacity:1,filter:'blur(0px)'}
- ],{duration:320,easing,fill:'both'});
+  {transform:'translate3d(0,180px,0)',opacity:0},
+  {transform:'translate3d(0,0,0)',opacity:1}
+ ],backgroundTiming);
  const scene={phase:'opening',page,home,motion};
  operationsScene=scene;
- playAfterFirstPaint(...[motion,background,homeTravel,operationsNavMotion].filter(Boolean));
+ playAfterFirstPaint(...[motion,background,operationsNavMotion].filter(Boolean));
  motion.finished.then(()=>{
   if(operationsScene!==scene)return;
   endOperationsEntrance();
-  fillHistoryInChunks(scene,historyItems);
  }).catch(()=>{});
 };
 const backBeforeSoftOperations=back;
@@ -718,7 +714,7 @@ paint = function(direction) {
    if (sideSnapshot.classList.contains(parent)) sideParentSnapshots.set(parent, sideSnapshot);
   }
   const snapshot = sideSnapshot;
-  if (snapshot.classList.contains('home') && canCaptureHomeTransition()) {
+  if (snapshot.classList.contains('home') && route.page !== 'detail' && canCaptureHomeTransition()) {
    animateCapturedHome(true, route.page);
    return;
   }
@@ -1155,17 +1151,7 @@ render();
 function operationDateHeading(date){const d=new Date(date+'T12:00:00'),todayDate=new Date(today()+'T12:00:00'),yesterday=new Date(todayDate);yesterday.setDate(yesterday.getDate()-1);return date===today()?'Сьогодні':d.toDateString()===yesterday.toDateString()?'Вчора':d.toLocaleDateString('uk-UA',{day:'numeric',month:'long',...(d.getFullYear()===todayDate.getFullYear()?{}:{year:'numeric'})})}
 function operationHistoryRows(items,allAccounts=false){const sorted=[...items].sort(compareTransactions),template=document.createElement('template');template.innerHTML=rows(sorted);const byId=new Map([...template.content.querySelectorAll('.transaction')].map(row=>[row.dataset.id,row]));let previous='';return sorted.map(tx=>{let heading='';if(previous!==tx.date){previous=tx.date;heading=`<h3 class="date-heading">${esc(operationDateHeading(tx.date))}</h3>`}const row=byId.get(String(tx.id));if(!row)return '';if(allAccounts){const card=allCards().find(card=>card.id===(tx.cardId||'main'))||mainCard(),name=card.account,description=tx.amount>0?'На мою '+name.replace(/ картка$/,'').replace(/^Чорна/,'чорну').replace(/^Біла/,'білу'):'З '+name.replace(/^Чорна/,'Чорної').replace(/^Біла/,'Білої').replace(/ картка$/,' картки');const content=row.querySelector('.tx-content');let sub=content.querySelector('small');if(!sub){sub=document.createElement('small');content.append(sub)}sub.textContent=description}return heading+row.outerHTML}).join('')||empty('Операцій не знайдено','Спробуйте інший запит.')}
 
-const historyStartSize=12;
-let historyStartItems=null;
-function orderedHistoryItems(){
- const items=historyPresentation==='drawer'?state.transactions:txFor();
- return items.filter(tx=>!historyFavoritesActive||tx.favorite).sort(compareTransactions);
-}
-function renderHistoryStart(items,paint){
- historyStartItems=items.slice(0,historyStartSize);
- try{return paint()}finally{historyStartItems=null}
-}
-historyPage=function(){const all=historyPresentation==='drawer',items=historyStartItems??(all?state.transactions:txFor()).filter(t=>!historyFavoritesActive||t.favorite);return `<div class="all-operations-page ${all?'drawer-operations':'card-operations'}"><div class="all-operations-top">${all?referenceImage('history-stack','history-stack'): `<button data-action="back" aria-label="Назад">${icon('x')}</button><span class="stats-mini-card">${cardArtwork(activeCard())}</span>`}<button class="${historyFavoritesActive?'is-favorite':''}" aria-pressed="${historyFavoritesActive}" data-action="history-favorites" aria-label="Обрані операції">${icon(historyFavoritesActive?'star-fill':'star')}</button><button data-action="history-search" aria-label="Пошук">${icon('magnifying-glass')}</button></div>${all?'<h1>Усі операції</h1>':`<div class="history-card-identity"><strong>${displayMoney(balance())} ₴</strong></div>`}<div class="search history-search" hidden>${icon('magnifying-glass')}<input id="search" placeholder="Пошук операцій" aria-label="Пошук операцій"></div><div id="tx-list">${operationHistoryRows(items,all)}</div></div>`};
+historyPage=function(){const all=historyPresentation==='drawer',items=(all?state.transactions:txFor()).filter(t=>!historyFavoritesActive||t.favorite);return `<div class="all-operations-page ${all?'drawer-operations':'card-operations'}"><div class="all-operations-top">${all?referenceImage('history-stack','history-stack'): `<button data-action="back" aria-label="Назад">${icon('x')}</button><span class="stats-mini-card">${cardArtwork(activeCard())}</span>`}<button class="${historyFavoritesActive?'is-favorite':''}" aria-pressed="${historyFavoritesActive}" data-action="history-favorites" aria-label="Обрані операції">${icon(historyFavoritesActive?'star-fill':'star')}</button><button data-action="history-search" aria-label="Пошук">${icon('magnifying-glass')}</button></div>${all?'<h1>Усі операції</h1>':`<div class="history-card-identity"><strong>${displayMoney(balance())} ₴</strong></div>`}<div class="search history-search" hidden>${icon('magnifying-glass')}<input id="search" placeholder="Пошук операцій" aria-label="Пошук операцій"></div><div id="tx-list">${operationHistoryRows(items,all)}</div></div>`};
 function updateOperationHistory(){const all=historyPresentation==='drawer',query=($('#search')?.value||'').toLowerCase(),items=(all?state.transactions:txFor()).filter(t=>(!historyFavoritesActive||t.favorite)&&(t.title+' '+(t.note||'')).toLowerCase().includes(query));if($('#tx-list'))$('#tx-list').innerHTML=operationHistoryRows(items,all)}
 actions['history-favorites']=button=>{historyFavoritesActive=!historyFavoritesActive;button=button||$('[data-action=history-favorites]');button?.classList.toggle('is-favorite',historyFavoritesActive);button?.setAttribute('aria-pressed',String(historyFavoritesActive));if(button)button.innerHTML=icon(historyFavoritesActive?'star-fill':'star');updateOperationHistory()};
 let edgeReturnScene=null;

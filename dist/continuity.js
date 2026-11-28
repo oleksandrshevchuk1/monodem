@@ -21,7 +21,14 @@ const syncBeforeContinuity=syncNavigation;syncNavigation=function(){const nav=$(
 setTimeout(()=>{for(const f of state.files||[])if(f.type==='application/pdf')previewReceipt(f).catch(()=>{})},1500);
 render();
 // Fit generated demonstration receipts without clipping their lower edge.
-function fitReceiptPaper(){const paper=$('.document-open .receipt-paper'),stage=$('.document-open .receipt-page');if(!paper||!stage)return;paper.style.transform='none';const scale=Math.min(1,stage.clientHeight/paper.scrollHeight,stage.clientWidth/paper.offsetWidth);paper.style.transform=`scale(${scale})`;}
+function fitReceiptPaper(){
+ const paper=$('.document-open .receipt-paper'),stage=paper?.closest('.receipt-page');
+ if(!stage)return;
+ const style=getComputedStyle(stage);
+ const height=stage.clientHeight-parseFloat(style.paddingTop)-parseFloat(style.paddingBottom);
+ const scale=Math.max(0,Math.min(1,height/paper.scrollHeight));
+ paper.style.transform=`scale(${scale})`;
+}
 const renderBeforePaperFit=render;render=function(){renderBeforePaperFit();if(route.page==='receipt')requestAnimationFrame(fitReceiptPaper)};window.addEventListener('resize',fitReceiptPaper);
 // UI glyphs stay inline across navigation; bank logos retain their artwork.
 const iconBeforeStableGlyphs=icon;icon=function(name){return stableIconMarkup[name]||iconBeforeStableGlyphs(name)};
