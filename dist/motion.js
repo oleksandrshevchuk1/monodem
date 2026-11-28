@@ -448,15 +448,19 @@ const homeSurfaceRows = [
  '.home-content > .reference-home-tools'
 ];
 
+function clearFrozenHomeOffsets(rows) {
+ for (const row of rows) {
+  row.style.translate = '';
+  row.removeAttribute('data-frozen-home-offset');
+ }
+}
+
 function alignFrozenHomeRows(surface) {
  if (!surface.homeRowTops) return;
  const offset = window.visualViewport?.offsetTop ?? 0;
  // Return previews clone an already aligned surface. Clear that compensation
  // before measuring in the new container.
- for (const row of surface.querySelectorAll('[data-frozen-home-offset]')) {
-  row.style.translate = '';
-  row.removeAttribute('data-frozen-home-offset');
- }
+ clearFrozenHomeOffsets(surface.querySelectorAll('[data-frozen-home-offset]'));
  const offsets = homeSurfaceRows.map((selector, index) => {
   const row = surface.querySelector(selector);
   const top = surface.homeRowTops[index];
@@ -677,9 +681,15 @@ paint = function(direction) {
    return;
   }
   snapshot.style.zIndex = 35;
-  if(snapshot.classList.contains('home'))mountHomeOpeningSurface(snapshot);
-  else document.body.append(snapshot);
-  render();
+  if (snapshot.classList.contains('home')) {
+   mountHomeOpeningSurface(snapshot);
+   // Keep the rendered controls and card artwork through the first frame.
+   // A clone can lay out differently until Safari repaints its contents.
+   renderWithHomeBackdrop(snapshot);
+  } else {
+   document.body.append(snapshot);
+   render();
+  }
   alignFrozenHomeRows(snapshot);
   app.style.zIndex = '41';
 
@@ -994,7 +1004,7 @@ render=function(){
  if(!adminMode&&route.page!=='home'&&app.classList.contains('home')&&homeContent&&!swipeLayers){
   const nodes=[...screen.childNodes];
   const backdrop=openingHomeBackdrop;
-  if(backdrop){
+  if(backdrop&&backdrop!==sideSnapshot){
    const surface=backdrop.closest('.glass-history-backdrop')||backdrop;
    const visualTop=backdrop.homeVisualTop??homeContent.getBoundingClientRect().top-(window.visualViewport?.offsetTop??0);
    const anchor={surface,content:homeContent,visualTop,startTop:surface.style.top,top:parseFloat(surface.style.top)||0};
@@ -1056,6 +1066,7 @@ render=function(){
  pendingRouteScroll=null;
  renderBeforeHomeRetention();
  screen.replaceChildren(...retainedHome.nodes);
+ clearFrozenHomeOffsets(screen.querySelectorAll('[data-frozen-home-offset]'));
  retainedHome.homeContent.style.gridTemplateRows = retainedHome.liveRows;
  retainedHome.restoreSelector?.();
  screen.querySelector('.opening-card-source')?.classList.remove('opening-card-source');

@@ -69,7 +69,8 @@ body:has(.side-return-underlay) #nav,body:has(.all-cards-backdrop):has(.all-card
 /* Keep the edge of the moving page flush and the captured selector still. */
 #app.paired-side-motion{will-change:transform;box-shadow:none}
 
-#app.cashback{will-change:transform;box-shadow:none;overflow-anchor:none}
+/* Keep the same containing block before, during and after the horizontal slide. */
+#app.cashback{transform:translate3d(0,0,0);will-change:transform;box-shadow:none;overflow-anchor:none}
 
 .frozen-card-selector :is(.selector-label,.selector-dots,.selector-dots > *){transition:none}
 .side-page-snapshot .opening-card-source{visibility:hidden}
