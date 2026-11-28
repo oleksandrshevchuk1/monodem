@@ -161,6 +161,7 @@ paint=function(direction){
  const home=fromHome?freezeHome():null;
  if(home)mountHomeOpeningSurface(home);
  render();
+ if(home)alignFrozenHomeRows(home);
  const page=$('#screen .all-operations-page');
  if(!page){home?.remove();return}
  app.classList.add('operations-opening');
@@ -297,13 +298,19 @@ actions.nav = button => {
 
 // Keep the initial pose on screen while the browser prepares the new page's layers.
 function playAfterFirstPaint(...motions) {
+ playAfterSurfaceReady(null, ...motions);
+}
+
+function playAfterSurfaceReady(ready, ...motions) {
  for (const motion of motions) {
   motion.pause();
   motion.currentTime = 0;
  }
- requestAnimationFrame(() => requestAnimationFrame(() => {
+ const play = () => requestAnimationFrame(() => requestAnimationFrame(() => {
   for (const motion of motions) if (motion.playState === 'paused') motion.play();
  }));
+ if (ready) ready.then(play);
+ else play();
 }
 
 // Both surfaces use the same position in every frame, including the swipe handoff.
@@ -415,6 +422,19 @@ function animateCapturedHome(opening, page) {
  transition.finished.then(cleanup, cleanup);
 }
 
+function prepareOperationArtwork(app) {
+ const artwork = [...app.querySelectorAll('.toolbar img, .reference-operation-avatar img, .reference-operation-pattern img')];
+ const pattern = app.querySelector('.reference-operation-pattern[data-original-pattern]');
+ const background = pattern && getComputedStyle(pattern).backgroundImage.match(/^url\(["']?(.*?)["']?\)$/)?.[1];
+ if (background) {
+  const image = new Image();
+  image.src = background;
+  artwork.push(image);
+ }
+ // Wait for the displayed images, including a newly attached recipient photo.
+ return Promise.all(artwork.map(image => image.decode().catch(() => {})));
+}
+
 function animateSideSurfaces(app, preview, from, to, duration) {
  const width = app.clientWidth;
  placeSideSurfaces(app, preview, from, width);
@@ -425,8 +445,9 @@ function animateSideSurfaces(app, preview, from, to, duration) {
   {transform: translateX(sideUnderlayOffset(from, width))},
   {transform: translateX(sideUnderlayOffset(to, width))}
  ], timing);
- if (from === width && to === 0 && !preview.homeRowGeometry) {
-  playAfterFirstPaint(foreground, background);
+ if (from === width && to === 0) {
+  const ready = app.classList.contains('detail') ? prepareOperationArtwork(app) : null;
+  playAfterSurfaceReady(ready, foreground, background);
  }
  const motion = {
   finished: foreground.finished,
@@ -656,13 +677,14 @@ paint = function(direction) {
   sideEntrance.adoptBackDestination();
   return;
  }
- if (direction === 'back' && fromSide && route.page === 'home' && !sideSwipeLayer &&
+ const liveDetailReturn = direction === 'back' && fromSide === 'detail' && route.page === 'home';
+ if (direction === 'back' && fromSide && !liveDetailReturn && route.page === 'home' && !sideSwipeLayer &&
      !sidePageX(app) && canCaptureHomeTransition()) {
   finishSideEntrance();
   animateCapturedHome(false, fromSide);
   return;
  }
- if (direction === 'back' && fromSide) {
+ if (direction === 'back' && fromSide && !liveDetailReturn) {
   const source = sideSourceForPage(route.page);
   if (source) {
    startLiveSideExit(source, render);
@@ -689,6 +711,11 @@ paint = function(direction) {
   const options = {duration: Math.max(160, duration * (1 - dx / width)), easing: sideSlideEase, fill: 'both'};
   const exit = snapshot.animate([{transform: translateX(dx)}, {transform: translateX(width)}], options);
   exit.isRouteExit = true;
+  if (liveDetailReturn) {
+   playAfterFirstPaint(exit);
+   trackSideMotion(exit, snapshot);
+   return;
+  }
   const underlay = freezePageSurface();
   underlay.classList.add('side-return-underlay');
   underlay.style.zIndex = '40';
@@ -849,6 +876,9 @@ back = function() {
  }
  const destination = sideBackDestination();
  const source = sideSourceForPage(destination);
+ if (route.page === 'detail' && destination === 'home' && !sideSwipeLayer) {
+  return backBeforeLiveSideReturn();
+ }
  if (destination === 'home' && !sideSwipeLayer && !sidePageX($('#app')) && canCaptureHomeTransition()) {
   return backBeforeLiveSideReturn();
  }
