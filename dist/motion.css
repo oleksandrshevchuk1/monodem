@@ -87,7 +87,7 @@ body:has(> :is(.closing-page-surface,.history-side-sheet,.operations-dissolving,
  grid-template-rows: repeat(4,auto) var(--swipe-statement-row,auto);
 }
 .pwa-scroll:has(> #app.home, > .side-page-snapshot.home) { overflow-anchor: none; }
-.side-page-snapshot.home [data-frozen-home-offset] {
+.side-page-snapshot.home [data-frozen-home-size] {
  box-sizing: border-box;
  inline-size: var(--frozen-home-width);
  block-size: var(--frozen-home-height);

@@ -461,6 +461,10 @@ const homeSurfaceRows = [
  '.home-content > .home-actions', '.home-content > .operation-panel:not(.account-swipe-preview)',
  '.home-content > .reference-home-tools', '.transition-nav'
 ];
+const homeSurfaceDetails = [
+ '.home-balance > strong', '.home-balance > .icon',
+ '.card-carousel .card-face', '.card-selector .selector-label', '.card-selector .selector-dots'
+].join(', ');
 
 function clearFrozenHomeOffsets(rows) {
  for (const row of rows) {
@@ -481,6 +485,7 @@ function alignFrozenHomeRows(surface) {
   row.style.setProperty('--frozen-home-width', geometry.width + 'px');
   row.style.setProperty('--frozen-home-height', geometry.height + 'px');
   row.setAttribute('data-frozen-home-offset', '');
+  row.setAttribute('data-frozen-home-size', '');
  });
  const offsets = rows.map((row, index) => {
   const geometry = surface.homeRowGeometry[index];
@@ -488,6 +493,17 @@ function alignFrozenHomeRows(surface) {
  });
  rows.forEach((row, index) => {
   if (Math.abs(offsets[index]) >= .01) row.style.translate = '0 ' + offsets[index] + 'px';
+ });
+ // The visible card and labels can move inside rows whose boxes are fixed.
+ // Measure them only after the enclosing rows have been placed.
+ const details = [...surface.querySelectorAll(homeSurfaceDetails)];
+ const detailOffsets = details.map((element, index) =>
+  surface.homeDetailTops[index] - element.getBoundingClientRect().top + offset
+ );
+ details.forEach((element, index) => {
+  if (Math.abs(detailOffsets[index]) < .01 || !Number.isFinite(detailOffsets[index])) return;
+  element.style.translate = '0 ' + detailOffsets[index] + 'px';
+  element.setAttribute('data-frozen-home-offset', '');
  });
 }
 
@@ -510,6 +526,9 @@ function freezePageSurface(preserveArtwork = true) {
    const {top, width, height} = row.getBoundingClientRect();
    return {top: top - viewportTop, width, height};
   });
+  surface.homeDetailTops = [...source.querySelectorAll(homeSurfaceDetails)].map(element =>
+   element.getBoundingClientRect().top - viewportTop
+  );
   const content = source.querySelector('.home-content');
   const frozenContent = copy.querySelector('.home-content');
   if (content && frozenContent) {
@@ -754,6 +773,7 @@ function makeSideReturnLayer(source) {
  layer.style.zIndex = '35';
  document.body.append(layer);
  layer.homeRowGeometry = source.homeRowGeometry;
+ layer.homeDetailTops = source.homeDetailTops;
  alignFrozenHomeRows(layer);
  return layer;
 }
@@ -1089,6 +1109,7 @@ render=function(){
   row.style.removeProperty('--frozen-home-width');
   row.style.removeProperty('--frozen-home-height');
   row.removeAttribute('data-frozen-home-offset');
+  row.removeAttribute('data-frozen-home-size');
  }
  retainedHome.homeContent.style.gridTemplateRows = retainedHome.liveRows;
  retainedHome.restoreSelector?.();
