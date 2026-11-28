@@ -313,7 +313,7 @@ function playAfterFirstPaint(...motions) {
 // Both surfaces use the same position in every frame, including the swipe handoff.
 function placeSideSurfaces(app, preview, x, width) {
  app.style.transform = translateX(x);
- preview.style.transform = translateX(sideUnderlayOffset(x, width));
+ if (!preview.classList.contains('home')) preview.style.transform = translateX(sideUnderlayOffset(x, width));
 }
 
 function sideUnderlayOffset(x, width) {
@@ -404,11 +404,11 @@ function animateSideSurfaces(app, preview, from, to, duration) {
  app.classList.add('paired-side-motion');
  const timing = {duration, easing: sideSlideEase, fill: 'both'};
  const foreground = app.animate([{transform: translateX(from)}, {transform: translateX(to)}], timing);
- const background = preview.animate([
+ const background = preview.classList.contains('home') ? null : preview.animate([
   {transform: translateX(sideUnderlayOffset(from, width))},
   {transform: translateX(sideUnderlayOffset(to, width))}
  ], timing);
- if (from === width && to === 0) playAfterFirstPaint(foreground, background);
+ if (from === width && to === 0) playAfterFirstPaint(...[foreground, background].filter(Boolean));
  const motion = {
   finished: foreground.finished,
   finish() {
@@ -438,6 +438,28 @@ function finishSideEntrance() {
  previous.cleanup?.();
 }
 
+const homeSurfaceRows = [
+ '.home-top', '.home-content > .home-balance', '.home-content > .open-card-intro',
+ '.home-content > .card-carousel', '.home-content > .card-selector',
+ '.home-content > .home-actions', '.home-content > .operation-panel:not(.account-swipe-preview)'
+];
+
+function alignFrozenHomeRows(surface) {
+ if (!surface.homeRowTops) return;
+ const offset = window.visualViewport?.offsetTop ?? 0;
+ // Measure before writing so all rows are aligned to the same layout.
+ const offsets = homeSurfaceRows.map((selector, index) => {
+  const row = surface.querySelector(selector);
+  const top = surface.homeRowTops[index];
+  return row && top != null ? [row, top - row.getBoundingClientRect().top + offset] : null;
+ });
+ for (const entry of offsets) {
+  if (!entry) continue;
+  const [row, delta] = entry;
+  if (Math.abs(delta) >= .01) row.style.translate = '0 ' + delta + 'px';
+ }
+}
+
 function freezePageSurface(preserveArtwork = true) {
  const app = $('#app'), surface = captureBankSurface(preserveArtwork), source = $('#screen');
  const copy = surface.firstElementChild;
@@ -450,6 +472,11 @@ function freezePageSurface(preserveArtwork = true) {
  surface.classList.add('side-page-snapshot');
  surface.classList.remove('paired-side-motion');
  if (surface.classList.contains('home')) {
+  const viewportTop = window.visualViewport?.offsetTop ?? 0;
+  surface.homeRowTops = homeSurfaceRows.map(selector => {
+   const row = source.querySelector(selector);
+   return row ? row.getBoundingClientRect().top - viewportTop : null;
+  });
   const content = source.querySelector('.home-content');
   const frozenContent = copy.querySelector('.home-content');
   if (content && frozenContent) {
@@ -601,11 +628,12 @@ paint = function(direction) {
   underlay.classList.add('side-return-underlay');
   underlay.style.zIndex = '40';
   document.body.append(underlay);
-  const companion = underlay.animate([
+  alignFrozenHomeRows(underlay);
+  const companion = underlay.classList.contains('home') ? null : underlay.animate([
    {transform: translateX(sideUnderlayOffset(dx, width))},
    {transform: translateX(0)}
   ], options);
-  playAfterFirstPaint(exit, companion);
+  playAfterFirstPaint(...[exit, companion].filter(Boolean));
   trackSideMotion(exit, snapshot, underlay, companion);
   return;
  }
@@ -628,7 +656,8 @@ paint = function(direction) {
   snapshot.style.zIndex = 35;
   if(snapshot.classList.contains('home'))mountHomeOpeningSurface(snapshot);
   else document.body.append(snapshot);
-  renderWithHomeBackdrop(snapshot);
+  render();
+  alignFrozenHomeRows(snapshot);
   app.style.zIndex = '41';
 
   const width = app.clientWidth;
@@ -674,6 +703,8 @@ function makeSideReturnLayer(source) {
  layer.sourceSurface = source;
  layer.style.zIndex = '35';
  document.body.append(layer);
+ layer.homeRowTops = source.homeRowTops;
+ alignFrozenHomeRows(layer);
  return layer;
 }
 

@@ -69,8 +69,6 @@ body:has(.side-return-underlay) #nav,body:has(.all-cards-backdrop):has(.all-card
 /* Keep the edge of the moving page flush and the captured selector still. */
 #app.paired-side-motion{will-change:transform;box-shadow:none}
 
-/* Keep the same compositing layers on both sides of the animation handoff. */
-#app.home,.side-page-snapshot.home{will-change:transform}
 #app.cashback{will-change:transform;box-shadow:none;overflow-anchor:none}
 
 .frozen-card-selector :is(.selector-label,.selector-dots,.selector-dots > *){transition:none}
@@ -101,14 +99,9 @@ body:has(> :is(.closing-page-surface,.history-side-sheet,.operations-dissolving,
 }
 .home-content > .operation-panel.account-swipe-preview { position: relative; inset: auto; }
 .home-content > .account-swipe-preview:not(.swipe-preview-visible) { visibility: hidden; will-change: auto; }
-/* Keep the painted layers through the existing gesture and animation handoff. */
-:is(#app,.side-page-snapshot).home .home-top, #app.limits,
+/* These controls animate independently of the stationary Home rows. */
+#app.limits,
 #nav .tab :is(.reference-control-glyph,.icon) { will-change: transform; }
-.home-content > :is(.home-balance,.open-card-intro,.home-actions,.operation-panel) {
- translate: 0 0 0;
- will-change: translate;
-}
-
 /* Keep the statement header in its final layout throughout the entrance. */
 #app.history.operations-opening,
 body:not(.has-glass-history) #app.history.operations-opening #screen {
@@ -139,16 +132,10 @@ html[data-captured-home]::view-transition-old(*),
 html[data-captured-home]::view-transition-new(*) { animation: none; mix-blend-mode: normal; }
 html[data-captured-home=opening]::view-transition-new(root),
 html[data-captured-home=closing]::view-transition-old(root) { display: none; }
-html[data-captured-home=opening]::view-transition-old(root) { animation: home-recede var(--captured-home-duration) var(--captured-home-ease) both; }
 html[data-captured-home=opening]::view-transition-new(side-foreground),
 html[data-captured-home=opening]::view-transition-new(side-navigation) { animation: page-enter-edge var(--captured-home-duration) var(--captured-home-ease) both; }
-html[data-captured-home=closing]::view-transition-new(root) { animation: home-recede var(--captured-home-duration) var(--captured-home-ease) reverse both; }
 html[data-captured-home=closing]::view-transition-old(side-foreground),
 html[data-captured-home=closing]::view-transition-old(side-navigation) { animation: page-enter-edge var(--captured-home-duration) var(--captured-home-ease) reverse both; }
-@keyframes home-recede {
- from { transform: translate3d(0,0,0); }
- to { transform: translate3d(calc(var(--captured-home-width) * -.25),0,0); }
-}
 @keyframes page-enter-edge {
  from { transform: translate3d(var(--captured-home-width),0,0); }
  to { transform: translate3d(0,0,0); }

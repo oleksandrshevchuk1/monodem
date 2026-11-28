@@ -92,10 +92,11 @@ paint = function(direction) {
   document.body.append(exit);
  }
 
- renderWithHomeBackdrop(isOverview ? backdrop : null);
+ render();
+ if (isOverview) alignFrozenHomeRows(backdrop);
  if (isOverview) app.classList.add('overview-visible');
  if (!isOverview && returningToSameHome) {
-  // Home's original nodes have just been reattached, so the opening layer is empty.
+  // Refresh the backdrop from the restored Home at its final scroll position.
   const restoredBackdrop = cardsViewportSnapshot();
   restoredBackdrop.classList.add('all-cards-backdrop');
   restoredBackdrop.style.zIndex = '40';
@@ -107,6 +108,7 @@ paint = function(direction) {
   backdrop?.remove();
   backdrop = restoredBackdrop;
   mountHomeOpeningSurface(backdrop);
+  alignFrozenHomeRows(backdrop);
  }
 
  const content = exit ? exit.firstElementChild : screen;
