@@ -276,8 +276,8 @@ tabBar.addEventListener('click', event => {
  });
 });
 const slideEase = 'cubic-bezier(.32,.72,0,1)';
-const sideSlideEase = 'cubic-bezier(.22,.61,.36,1)';
-const quickSideDuration = 270;
+const sideSlideEase = 'cubic-bezier(.25,.1,.25,1)';
+const quickSideDuration = 320;
 const translateX = x => `translate3d(${x}px,0,0)`;
 
 const navigateBeforeTabReselect = actions.nav;
@@ -337,6 +337,54 @@ document.addEventListener('click',event=>{
  const drift=pageScrollY()-tap.scroll;
  if(drift&&Math.abs(drift)<=4)pageScrollTo({top:tap.scroll,behavior:'instant'});
 },true);
+function canCaptureHomeTransition() {
+ return !adminMode && typeof document.startViewTransition === 'function' &&
+  $('#app').clientWidth >= document.documentElement.clientWidth - 2;
+}
+
+// Capture Home in its actual scroll container, with the viewport and safe-area styles already applied.
+function animateCapturedHome(opening, page) {
+ const root = document.documentElement;
+ const foreground = $('#pwa-scroll') || $('#app');
+ const nav = $('#nav');
+ const markForeground = visible => {
+  foreground.toggleAttribute('data-captured-home-page', visible);
+  nav.toggleAttribute('data-captured-home-nav', visible && !nav.hidden);
+ };
+ const destination = route;
+ const duration = quickSidePages.has(page) ? quickSideDuration : pageMotionDuration;
+ root.dataset.capturedHome = opening ? 'opening' : 'closing';
+ root.style.setProperty('--captured-home-duration', duration + 'ms');
+ root.style.setProperty('--captured-home-ease', sideSlideEase);
+ if (!opening) markForeground(true);
+ const transition = document.startViewTransition(() => {
+  if (route !== destination) return;
+  if (!opening) markForeground(false);
+  render();
+  if (opening) markForeground(true);
+ });
+ const motion = {
+  isRouteExit: !opening,
+  isHomeCapture: true,
+  finish: () => transition.skipTransition(),
+  cancel: () => transition.skipTransition(),
+  cleanup() {
+   markForeground(false);
+   delete root.dataset.capturedHome;
+   root.style.removeProperty('--captured-home-duration');
+   root.style.removeProperty('--captured-home-ease');
+  }
+ };
+ sideEntrance = motion;
+ root.dataset.routeMotion = 'active';
+ transition.ready.catch(() => {});
+ const cleanup = () => {
+  if (sideEntrance !== motion) return;
+  finishSideEntrance();
+ };
+ transition.finished.then(cleanup, cleanup);
+}
+
 function animateSideSurfaces(app, preview, from, to, duration) {
  const width = app.clientWidth;
  const enteringDetail = from === width && to === 0 && !!app.querySelector('.operation-boundary-slot');
@@ -349,7 +397,7 @@ function animateSideSurfaces(app, preview, from, to, duration) {
   {transform: translateX(sideUnderlayOffset(from, width))},
   {transform: translateX(sideUnderlayOffset(to, width))}
  ], timing);
- if (enteringDetail) playAfterFirstPaint(...[foreground, background].filter(Boolean));
+ if (from === width && to === 0) playAfterFirstPaint(foreground, background);
  const motion = {
   finished: foreground.finished,
   finish() {
@@ -478,6 +526,7 @@ function trackSideMotion(motion, snapshot, underlay, companion) {
 }
 
 paint = function(direction) {
+ if (sideEntrance?.isHomeCapture) finishSideEntrance();
  if(direction==='back'&&route.page==='analytics'&&$('#app').classList.contains('capital'))statisticsVisit=route;
  pageTransition?.skipTransition();
  pageAnimation?.cancel();
@@ -502,6 +551,12 @@ paint = function(direction) {
  }
  if (direction === 'back' && sideEntrance?.adoptBackDestination) {
   sideEntrance.adoptBackDestination();
+  return;
+ }
+ if (direction === 'back' && fromSide && route.page === 'home' && !sideSwipeLayer &&
+     !sidePageX(app) && canCaptureHomeTransition()) {
+  finishSideEntrance();
+  animateCapturedHome(false, fromSide);
   return;
  }
  if (direction === 'back' && fromSide) {
@@ -552,6 +607,10 @@ paint = function(direction) {
   sideSnapshot = pendingSideSnapshot || freezePageSurface();
   if (sideSnapshot.classList.contains('home')) sideHomeSnapshot = sideSnapshot;
   const snapshot = sideSnapshot;
+  if (snapshot.classList.contains('home') && canCaptureHomeTransition()) {
+   animateCapturedHome(true, route.page);
+   return;
+  }
   snapshot.style.zIndex = 35;
   if(snapshot.classList.contains('home'))mountHomeOpeningSurface(snapshot);
   else document.body.append(snapshot);
@@ -672,6 +731,9 @@ back = function() {
  }
  const destination = sideBackDestination();
  const source = sideSourceForPage(destination);
+ if (destination === 'home' && !sideSwipeLayer && !sidePageX($('#app')) && canCaptureHomeTransition()) {
+  return backBeforeLiveSideReturn();
+ }
  if (!sidePages.has(route.page) || !source || shouldReduceMotion() || $('#modal').open) {
   return backBeforeLiveSideReturn();
  }

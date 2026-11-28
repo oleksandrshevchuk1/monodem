@@ -125,3 +125,31 @@ body:not(.has-glass-history) #app.history.operations-opening #screen {
 .soft-operations-layer.history.operations-dissolving .all-operations-page {
  background: #121212 !important;
 }
+
+
+/* A captured viewport keeps the exact painted Home geometry through the handoff. */
+html[data-captured-home] :is(#app,#screen,#nav,#pwa-scroll) { view-transition-name: none !important; }
+html[data-captured-home] [data-captured-home-page]:is(#app,#pwa-scroll) { view-transition-name: side-foreground !important; }
+html[data-captured-home] #nav[data-captured-home-nav] { view-transition-name: side-navigation !important; }
+html[data-captured-home]::view-transition-group(side-navigation) { z-index: 2; }
+html[data-captured-home]::view-transition-group(*) { animation: none; }
+html[data-captured-home]::view-transition-group(side-foreground) { z-index: 1; }
+html[data-captured-home]::view-transition-image-pair(*) { isolation: auto; }
+html[data-captured-home]::view-transition-old(*),
+html[data-captured-home]::view-transition-new(*) { animation: none; mix-blend-mode: normal; }
+html[data-captured-home=opening]::view-transition-new(root),
+html[data-captured-home=closing]::view-transition-old(root) { display: none; }
+html[data-captured-home=opening]::view-transition-old(root) { animation: home-recede var(--captured-home-duration) var(--captured-home-ease) both; }
+html[data-captured-home=opening]::view-transition-new(side-foreground),
+html[data-captured-home=opening]::view-transition-new(side-navigation) { animation: page-enter-edge var(--captured-home-duration) var(--captured-home-ease) both; }
+html[data-captured-home=closing]::view-transition-new(root) { animation: home-recede var(--captured-home-duration) var(--captured-home-ease) reverse both; }
+html[data-captured-home=closing]::view-transition-old(side-foreground),
+html[data-captured-home=closing]::view-transition-old(side-navigation) { animation: page-enter-edge var(--captured-home-duration) var(--captured-home-ease) reverse both; }
+@keyframes home-recede {
+ from { transform: translate3d(0,0,0); }
+ to { transform: translate3d(-25vw,0,0); }
+}
+@keyframes page-enter-edge {
+ from { transform: translate3d(100vw,0,0); }
+ to { transform: translate3d(0,0,0); }
+}
