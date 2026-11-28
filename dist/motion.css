@@ -73,24 +73,6 @@ body:has(.side-return-underlay) #nav,body:has(.all-cards-backdrop):has(.all-card
 #app.home,.side-page-snapshot.home{will-change:transform}
 #app.cashback{will-change:transform;box-shadow:none;overflow-anchor:none}
 
-/* Safari keeps the already painted Home frame while the live page slides over it. */
-html[data-painted-home-opening] :is(#screen,#nav,#app,#pwa-scroll) { view-transition-name: none !important; }
-html[data-painted-home-opening] [data-painted-home-foreground]:is(#app,#pwa-scroll) { view-transition-name: opening-page !important; }
-html[data-painted-home-opening]::view-transition-group(root),
-html[data-painted-home-opening]::view-transition-group(opening-page),
-html[data-painted-home-opening]::view-transition-old(root) {
- animation: none;
-}
-html[data-painted-home-opening]::view-transition-group(opening-page) { z-index: 1; }
-html[data-painted-home-opening]::view-transition-new(root) { display: none; }
-html[data-painted-home-opening]::view-transition-new(opening-page) {
- animation: painted-home-slide-in var(--painted-home-duration) cubic-bezier(.333333,0,.666667,1) both;
- mix-blend-mode: normal;
-}
-@keyframes painted-home-slide-in {
- from { transform: translate3d(100%,0,0); }
- to { transform: translate3d(0,0,0); }
-}
 .frozen-card-selector :is(.selector-label,.selector-dots,.selector-dots > *){transition:none}
 .side-page-snapshot .opening-card-source{visibility:hidden}
 
