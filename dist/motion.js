@@ -347,6 +347,9 @@ document.addEventListener('click',event=>{
  if (drift) pageScrollTo({top:tap.scroll,behavior:'instant'});
 },true);
 function canCaptureHomeTransition() {
+ // iOS can rebase a root View Transition capture as its visual viewport
+ // settles after a tap. Use the positioned Home layer for touch navigation.
+ if ($('#pwa-scroll') || matchMedia('(pointer: coarse)').matches) return false;
  return !adminMode && typeof document.startViewTransition === 'function' &&
   $('#app').clientWidth >= document.documentElement.clientWidth - 2;
 }
@@ -550,10 +553,21 @@ function mountHomeOpeningSurface(surface) {
 
 function trackSideMotion(motion, snapshot, underlay, companion) {
  const app = $('#app');
+ const home = snapshot?.homeRowTops ? snapshot : underlay?.homeRowTops ? underlay : null;
+ const viewport = window.visualViewport;
+ const alignHome = () => alignFrozenHomeRows(home);
+ if (home && viewport) {
+  viewport.addEventListener('scroll', alignHome);
+  viewport.addEventListener('resize', alignHome);
+ }
  sideEntrance = motion;
  document.documentElement.dataset.routeMotion = 'active';
  motion.cleanup = () => {
   motion.cleanup = null;
+  if (home && viewport) {
+   viewport.removeEventListener('scroll', alignHome);
+   viewport.removeEventListener('resize', alignHome);
+  }
   if (snapshot) {
    snapshot.remove();
    snapshot.style.transform = '';
