@@ -313,7 +313,7 @@ function playAfterFirstPaint(...motions) {
 // Both surfaces use the same position in every frame, including the swipe handoff.
 function placeSideSurfaces(app, preview, x, width) {
  app.style.transform = translateX(x);
- if (!preview.classList.contains('home')) preview.style.transform = translateX(sideUnderlayOffset(x, width));
+ preview.style.transform = translateX(sideUnderlayOffset(x, width));
 }
 
 function sideUnderlayOffset(x, width) {
@@ -404,11 +404,11 @@ function animateSideSurfaces(app, preview, from, to, duration) {
  app.classList.add('paired-side-motion');
  const timing = {duration, easing: sideSlideEase, fill: 'both'};
  const foreground = app.animate([{transform: translateX(from)}, {transform: translateX(to)}], timing);
- const background = preview.classList.contains('home') ? null : preview.animate([
+ const background = preview.animate([
   {transform: translateX(sideUnderlayOffset(from, width))},
   {transform: translateX(sideUnderlayOffset(to, width))}
  ], timing);
- if (from === width && to === 0) playAfterFirstPaint(...[foreground, background].filter(Boolean));
+ if (from === width && to === 0) playAfterFirstPaint(foreground, background);
  const motion = {
   finished: foreground.finished,
   finish() {
@@ -629,11 +629,11 @@ paint = function(direction) {
   underlay.style.zIndex = '40';
   document.body.append(underlay);
   alignFrozenHomeRows(underlay);
-  const companion = underlay.classList.contains('home') ? null : underlay.animate([
+  const companion = underlay.animate([
    {transform: translateX(sideUnderlayOffset(dx, width))},
    {transform: translateX(0)}
   ], options);
-  playAfterFirstPaint(...[exit, companion].filter(Boolean));
+  playAfterFirstPaint(exit, companion);
   trackSideMotion(exit, snapshot, underlay, companion);
   return;
  }
