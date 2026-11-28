@@ -386,6 +386,7 @@ function animateCapturedHome(opening, page) {
  const destination = route;
  const duration = quickSidePages.has(page) ? quickSideDuration : pageMotionDuration;
  root.dataset.capturedHome = opening ? 'opening' : 'closing';
+ root.toggleAttribute('data-stationary-home', opening && transferTransitionPages.has(page));
  root.style.setProperty('--captured-home-duration', duration + 'ms');
  root.style.setProperty('--captured-home-ease', sideSlideEase);
  root.style.setProperty('--captured-home-width', foreground.getBoundingClientRect().width + 'px');
@@ -394,6 +395,7 @@ function animateCapturedHome(opening, page) {
   if (route !== destination) return;
   render();
   markSurface(!opening);
+  if (opening && page === 'detail') return prepareOperationArtwork($('#app'));
  });
  const motion = {
   isRouteExit: !opening,
@@ -407,6 +409,7 @@ function animateCapturedHome(opening, page) {
    nav.removeAttribute('data-captured-home-nav');
    nav.removeAttribute('data-captured-home-tabs');
    delete root.dataset.capturedHome;
+   root.removeAttribute('data-stationary-home');
    root.style.removeProperty('--captured-home-duration');
    root.style.removeProperty('--captured-home-ease');
    root.style.removeProperty('--captured-home-width');
@@ -426,6 +429,7 @@ const transferTransitionPages = new Set(['detail', 'transfer', 'transferAmount']
 
 function prepareOperationArtwork(app) {
  const artwork = [...app.querySelectorAll('.toolbar img, .reference-operation-avatar img, .reference-operation-pattern img')];
+ const pendingAvatars = new Set(app.querySelectorAll('.incoming-operation .reference-operation-avatar img'));
  const pattern = app.querySelector('.reference-operation-pattern[data-original-pattern]');
  const background = pattern && getComputedStyle(pattern).backgroundImage.match(/^url\(["']?(.*?)["']?\)$/)?.[1];
  if (background) {
@@ -437,22 +441,31 @@ function prepareOperationArtwork(app) {
  for (const image of artwork) image.loading = 'eager';
  // An unavailable image must not hold the screen off-canvas indefinitely.
  return new Promise(resolve => {
-  const deadline = setTimeout(resolve, 120);
-  Promise.allSettled(artwork.map(image => image.decode())).then(() => {
-   clearTimeout(deadline);
+  const finish = () => {
+   for (const image of pendingAvatars) {
+    if (image.isConnected) image.outerHTML = stableIconMarkup['arrow-square-in'];
+   }
+   pendingAvatars.clear();
    resolve();
+  };
+  const deadline = setTimeout(finish, 120);
+  Promise.allSettled(artwork.map(async image => {
+   await image.decode();
+   pendingAvatars.delete(image);
+  })).then(() => {
+   clearTimeout(deadline);
+   finish();
   });
  });
 }
 
-function animateSideSurfaces(app, preview, from, to, duration, stationaryPreview = false) {
+function animateSideSurfaces(app, preview, from, to, duration, keepHomeStill = false) {
  const width = app.clientWidth;
  placeSideSurfaces(app, preview, from, width);
  app.classList.add('paired-side-motion');
  const timing = {duration, easing: sideSlideEase, fill: 'both'};
  const foreground = app.animate([{transform: translateX(from)}, {transform: translateX(to)}], timing);
- if (stationaryPreview) preview.style.transform = 'none';
- const background = stationaryPreview ? null : preview.animate([
+ const background = keepHomeStill ? null : preview.animate([
   {transform: translateX(sideUnderlayOffset(from, width))},
   {transform: translateX(sideUnderlayOffset(to, width))}
  ], timing);
@@ -753,18 +766,14 @@ paint = function(direction) {
   }
   const snapshot = sideSnapshot;
   const fromHome = snapshot.classList.contains('home');
-  const stableTransfer = transferTransitionPages.has(route.page);
-  if (fromHome && !stableTransfer && canCaptureHomeTransition()) {
+  const fromHomeToTransfer = fromHome && transferTransitionPages.has(route.page);
+  if (fromHome && canCaptureHomeTransition()) {
    animateCapturedHome(true, route.page);
    return;
   }
   snapshot.style.zIndex = 35;
-  if (fromHome && stableTransfer) {
-   // Keep the outgoing Home at its rendered scroll position while the new route resets scroll.
-   const screen = snapshot.firstElementChild;
-   screen.style.top = (parseFloat(screen.style.top) + parseFloat(snapshot.style.top)) + 'px';
-   snapshot.style.top = '0px';
-   snapshot.style.height = 'var(--app-height, 100dvh)';
+  if (fromHomeToTransfer) {
+   // Retain the background's original size and position while the route resets scroll.
    mountHomeOpeningSurface(snapshot);
    alignFrozenHomeRows(snapshot);
    render();
@@ -777,12 +786,12 @@ paint = function(direction) {
    document.body.append(snapshot);
    render();
   }
-  alignFrozenHomeRows(snapshot);
+  if (!fromHomeToTransfer) alignFrozenHomeRows(snapshot);
   app.style.zIndex = '41';
 
   const width = app.clientWidth;
   const duration = quickSidePages.has(route.page) ? quickSideDuration : pageMotionDuration;
-  const entrance = animateSideSurfaces(app, snapshot, width, 0, duration, stableTransfer);
+  const entrance = animateSideSurfaces(app, snapshot, width, 0, duration, fromHomeToTransfer);
   trackSideMotion(entrance, snapshot);
   return;
  }

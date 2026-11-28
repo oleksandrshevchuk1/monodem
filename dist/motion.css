@@ -159,3 +159,9 @@ html[data-captured-home=closing]::view-transition-old(side-navigation) { animati
  from { transform: translate3d(var(--captured-home-width),0,0); }
  to { transform: translate3d(0,0,0); }
 }
+
+
+/* A transfer panel slides over Home at the scroll position the user left. */
+html[data-stationary-home]::view-transition-old(root),
+html[data-stationary-home]::view-transition-old(home-viewport),
+html[data-stationary-home]::view-transition-old(home-tabs) { animation: none !important; }
