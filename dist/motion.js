@@ -1033,7 +1033,8 @@ function renderWithHomeBackdrop(backdrop, update = render) {
 }
 const renderBeforeHomeRetention=render;
 render=function(){
- const app=$('#app'),screen=$('#screen');
+ const app=$('#app');
+ let screen=$('#screen');
  if (route.page === 'home') {
   sideHomeSnapshot = null;
   sideParentSnapshots.clear();
@@ -1085,12 +1086,27 @@ render=function(){
   const frozenRows = destination.querySelector('.home-content')?.style.gridTemplateRows;
   const liveRows = homeContent.style.gridTemplateRows;
   if (frozenRows) homeContent.style.gridTemplateRows = frozenRows;
-  destination.replaceChildren(...nodes);
+  let liveScreen;
+  if (backdrop && backdrop === sideSnapshot && $('#pwa-scroll')) {
+   // Move the live formatting container with its contents so WebKit keeps
+   // the card and labels in the same containing block during the handoff.
+   liveScreen = {element: screen, style: screen.getAttribute('style')};
+   screen.replaceWith(screen.cloneNode(false));
+   screen.removeAttribute('id');
+   screen.classList.add('transition-screen');
+   for (const property of ['display', 'paddingTop', 'paddingRight', 'paddingBottom',
+    'paddingLeft', 'minHeight', 'boxSizing', 'top', 'zIndex']) {
+    screen.style[property] = destination.style[property];
+   }
+   destination.replaceWith(screen);
+  } else {
+   destination.replaceChildren(...nodes);
+  }
   if(backdrop?.preserveArtwork===false){
-   const card=[...destination.querySelectorAll('.card-face')].find(face=>face.dataset.id===state.activeCard);
+   const card=[...backdrop.querySelectorAll('.card-face')].find(face=>face.dataset.id===state.activeCard);
    card?.classList.add('opening-card-source');
   }
-  retainedHome={nodes,restoreSelector,homeContent,liveRows,revision:serverRevision,card:state.activeCard,newCard:newCardSelected};
+  retainedHome={nodes,restoreSelector,homeContent,liveRows,liveScreen,revision:serverRevision,card:state.activeCard,newCard:newCardSelected};
  }
  const restore=!adminMode&&route.page==='home'&&retainedHome&&retainedHome.revision===serverRevision&&retainedHome.card===state.activeCard&&retainedHome.newCard===newCardSelected;
  if(!restore){
@@ -1108,7 +1124,17 @@ render=function(){
  // Restore the scroll only once the retained Home rows are back in the document.
  pendingRouteScroll=null;
  renderBeforeHomeRetention();
- screen.replaceChildren(...retainedHome.nodes);
+ if (retainedHome.liveScreen) {
+  const {element,style} = retainedHome.liveScreen;
+  element.id = 'screen';
+  element.classList.remove('transition-screen');
+  if (style === null) element.removeAttribute('style');
+  else element.setAttribute('style', style);
+  screen.replaceWith(element);
+  screen = element;
+ } else {
+  screen.replaceChildren(...retainedHome.nodes);
+ }
  const frozenRows = screen.querySelectorAll('[data-frozen-home-offset]');
  clearFrozenHomeOffsets(frozenRows);
  for (const row of frozenRows) {
