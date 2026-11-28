@@ -65,6 +65,7 @@ body:has(.side-return-underlay) #nav,body:has(.all-cards-backdrop):has(.all-card
 
 .pwa-scroll:has(#app:is(.detail,.transfer,.transferAmount,.transferArchive)){touch-action:pan-y;overscroll-behavior-x:none}
 .side-return-preview{will-change:transform}
+.side-return-preview[data-home-layout-slide]{will-change:auto}
 
 /* Keep the edge of the moving page flush and the captured selector still. */
 #app.paired-side-motion{will-change:transform;box-shadow:none}

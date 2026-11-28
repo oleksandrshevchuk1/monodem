@@ -313,7 +313,18 @@ function playAfterFirstPaint(...motions) {
 // Both surfaces use the same position in every frame, including the swipe handoff.
 function placeSideSurfaces(app, preview, x, width) {
  app.style.transform = translateX(x);
- preview.style.transform = translateX(sideUnderlayOffset(x, width));
+ Object.assign(preview.style, sideUnderlayPose(preview, sideUnderlayOffset(x, width)));
+}
+
+function sideUnderlayPose(surface, x) {
+ // Preserve the original projection of Home's 3D cards on standalone WebKit.
+ // The fixed underlay can slide without adding an animated transform ancestor.
+ if (surface.homeRowGeometry && $('#pwa-scroll')) {
+  surface.homeSlideLeft ??= parseFloat(surface.style.left);
+  surface.setAttribute('data-home-layout-slide', '');
+  return {left: (surface.homeSlideLeft + x) + 'px'};
+ }
+ return {transform: translateX(x)};
 }
 
 function sideUnderlayOffset(x, width) {
@@ -422,8 +433,8 @@ function animateSideSurfaces(app, preview, from, to, duration) {
  const timing = {duration, easing: sideSlideEase, fill: 'both'};
  const foreground = app.animate([{transform: translateX(from)}, {transform: translateX(to)}], timing);
  const background = preview.animate([
-  {transform: translateX(sideUnderlayOffset(from, width))},
-  {transform: translateX(sideUnderlayOffset(to, width))}
+  sideUnderlayPose(preview, sideUnderlayOffset(from, width)),
+  sideUnderlayPose(preview, sideUnderlayOffset(to, width))
  ], timing);
  if (from === width && to === 0 && !preview.homeRowGeometry) {
   playAfterFirstPaint(foreground, background);
@@ -441,6 +452,7 @@ function animateSideSurfaces(app, preview, from, to, duration) {
    pairedSideMotion = null;
    app.style.transform = '';
    preview.style.transform = '';
+   if (preview.homeSlideLeft != null) preview.style.left = preview.homeSlideLeft + 'px';
    app.classList.remove('paired-side-motion');
   }
  };
@@ -695,8 +707,8 @@ paint = function(direction) {
   document.body.append(underlay);
   alignFrozenHomeRows(underlay);
   const companion = underlay.animate([
-   {transform: translateX(sideUnderlayOffset(dx, width))},
-   {transform: translateX(0)}
+   sideUnderlayPose(underlay, sideUnderlayOffset(dx, width)),
+   sideUnderlayPose(underlay, 0)
   ], options);
   playAfterFirstPaint(exit, companion);
   trackSideMotion(exit, snapshot, underlay, companion);
